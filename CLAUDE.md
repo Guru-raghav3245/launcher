@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-Phases 1 and 2 are complete (all tasks below), verified live on an Android emulator. Phase 3 is in progress: tasks 1–2 done (tile dashboard shell + Add New Tile sheet); tasks 3–7 (Notes/Todo/Weather/App Folder/From-Apps tile bodies) remain. Phases 4–5 haven't started. The intended product is documented below from UI mockups in `screenshots/`.
+Phases 1 and 2 are complete (all tasks below), verified live on an Android emulator. Phase 3 is in progress: tasks 1–5 done (tile dashboard shell, Add New Tile sheet, Notes tile, Todo tile, Weather tile); tasks 6–7 (App Folder/From-Apps tile bodies) remain. Phases 4–5 haven't started. The intended product is documented below from UI mockups in `screenshots/`.
 
 ## Product: Yin Yang Launcher
 
@@ -40,13 +40,15 @@ Tasks, in build order (each depends on the ones above it):
 
 1. ✅ **Tile dashboard shell** — `lib/panels/my_space_panel.dart` + `lib/services/my_space_service.dart` (JSON persistence via shared_preferences); empty state matches the original mockup's faded Weather/Todo preview
 2. ✅ **"Add New Tile" sheet** — `lib/my_space/add_tile_sheet.dart` + `built_in_tile_specs.dart`; Built-in tab wired to append tiles, From Apps tab is an honest placeholder for task 7
-3. ⬜ **Notes tile** — freeform text, persisted
-4. ⬜ **Todo tile** — checklist with add-item, persisted
-5. ⬜ **Weather tile** — current temp, hi/lo, location, hourly forecast — needs a weather API + location permission, so it's the first tile requiring external access
+3. ✅ **Notes tile** — freeform text, persisted (`lib/my_space/tiles/notes_tile.dart`)
+4. ✅ **Todo tile** — checklist with add-item, persisted (`lib/my_space/tiles/todo_tile.dart`)
+5. ✅ **Weather tile** — current temp, hi/lo, location, hourly forecast (`lib/my_space/tiles/weather_tile.dart` + `lib/services/weather_service.dart`); location via `geolocator`, conditions via Open-Meteo, reverse-geocoding via a plain HTTP call to BigDataCloud's free endpoint (not the `geocoding` plugin — its native call ANR'd on-device, see below)
 6. ⬜ **App Folder tile** — grouped shortcuts built from the Phase 1 installed-apps data source
 7. ⬜ **From-Apps widgets** — browse/search installed apps and embed their native Android AppWidgets via `AppWidgetHost`/`AppWidgetManager` — the most complex tile type, done last
 
-Tile bodies in `my_space_panel.dart`'s `_TileList` are still a placeholder (`Card(ListTile(title: Text(kind.name)))`) — tasks 3–6 replace that per-kind.
+Tile bodies in `my_space_panel.dart`'s `_TileList` are still a placeholder (`Card(ListTile(title: Text(kind.name)))`) for kinds not yet built — tasks 6–7 replace that per-kind.
+
+**Weather tile pitfalls (if touching this code):** `LocationAccuracy.low` uses the network/fused provider, which doesn't respond to `adb emu geo fix` on an emulator — use `.high` with a time limit. The `geocoding` package's native reverse-geocode call blocked the Android main thread indefinitely on the test emulator (no Play Services geocoder backend) and caused an ANR; it was replaced with a timeout-bounded HTTP call instead.
 
 ### Phase 4 — Mind Space (screen-time insights)
 Needs `PACKAGE_USAGE_STATS` permission and accumulated usage data, so it follows the other panels.
@@ -79,10 +81,10 @@ Aggregates toggles/controls introduced in earlier phases into one screen; do las
 - `lib/shell/` — the 5-panel swipe navigation shell
 - `lib/panels/` — the 5 panel screens (Home, My Space, Mind Space, App Drawer, Spotlight Search)
 - `lib/onboarding/` — first-run flow (steps, phone mockup, wallpaper/segmented-toggle pickers)
-- `lib/my_space/` — My Space-specific widgets (Add New Tile sheet, built-in tile catalog)
+- `lib/my_space/` — My Space-specific widgets (Add New Tile sheet, built-in tile catalog, tile chrome); `lib/my_space/tiles/` holds the per-kind tile bodies (Notes, Todo, Weather)
 - `lib/search/` — shared app search/filter logic and UI, used by App Drawer and Spotlight Search
 - `lib/state/` — `AppSettings` (theme/layout/wallpaper), exposed via `AppSettingsScope` (`InheritedNotifier`)
-- `lib/services/` — platform-channel and persistence services (installed apps, onboarding flag, launcher role, My Space tiles)
+- `lib/services/` — platform-channel and persistence services (installed apps, onboarding flag, launcher role, My Space tiles, weather)
 - `lib/models/` — plain data models (`HomeLayoutMode`, `MySpaceTile`, `TileKind`)
 - `lib/widgets/` — small shared widgets (`SegmentedToggle`)
 - `android/app/src/main/kotlin/.../MainActivity.kt` — native `RoleManager.ROLE_HOME` MethodChannel bridge (`yinyang.launcher/role`)

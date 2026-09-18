@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../models/my_space_tile.dart';
+import '../models/tile_kind.dart';
 import '../my_space/add_tile_sheet.dart';
+import '../my_space/tile_card.dart';
+import '../my_space/tiles/notes_tile.dart';
+import '../my_space/tiles/todo_tile.dart';
+import '../my_space/tiles/weather_tile.dart';
 import '../services/my_space_service.dart';
 
 /// My Space panel: a persisted list of dashboard tiles (Weather, Notes,
@@ -34,6 +39,15 @@ class _MySpacePanelState extends State<MySpacePanel> {
     await _service.saveTiles(updated);
   }
 
+  Future<void> _updateTileData(String id, Map<String, dynamic> data) async {
+    final updated = [
+      for (final tile in _tiles!)
+        if (tile.id == id) tile.copyWith(data: data) else tile,
+    ];
+    setState(() => _tiles = updated);
+    await _service.saveTiles(updated);
+  }
+
   @override
   Widget build(BuildContext context) {
     final tiles = _tiles;
@@ -42,30 +56,47 @@ class _MySpacePanelState extends State<MySpacePanel> {
           ? const Center(child: CircularProgressIndicator())
           : tiles.isEmpty
           ? _EmptyState(onAdd: _addTile)
-          : _TileList(tiles: tiles, onAdd: _addTile),
+          : _TileList(tiles: tiles, onAdd: _addTile, onUpdate: _updateTileData),
     );
   }
 }
 
 class _TileList extends StatelessWidget {
-  const _TileList({required this.tiles, required this.onAdd});
+  const _TileList({required this.tiles, required this.onAdd, required this.onUpdate});
 
   final List<MySpaceTile> tiles;
   final VoidCallback onAdd;
+  final void Function(String id, Map<String, dynamic> data) onUpdate;
 
   @override
   Widget build(BuildContext context) {
-    // Per-kind tile widgets land in tasks 3-7; for now just prove the
-    // persisted list round-trips.
     return Stack(
       children: [
         ListView.builder(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
           itemCount: tiles.length,
-          itemBuilder: (context, index) => Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: ListTile(title: Text(tiles[index].kind.name)),
-          ),
+          itemBuilder: (context, index) {
+            final tile = tiles[index];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: switch (tile.kind) {
+                TileKind.notes => NotesTile(
+                  tile: tile,
+                  onChanged: (data) => onUpdate(tile.id, data),
+                ),
+                TileKind.todo => TodoTile(
+                  tile: tile,
+                  onChanged: (data) => onUpdate(tile.id, data),
+                ),
+                TileKind.weather => WeatherTile(
+                  tile: tile,
+                  onChanged: (data) => onUpdate(tile.id, data),
+                ),
+                // App Folder/From-Apps bodies land in tasks 6-7.
+                _ => Card(child: ListTile(title: Text(tile.kind.name))),
+              },
+            );
+          },
         ),
         Positioned(
           right: 16,
@@ -109,11 +140,30 @@ class _EmptyState extends StatelessWidget {
             style: TextStyle(fontSize: 16, color: Colors.black54),
           ),
           const SizedBox(height: 28),
-          Opacity(
+          const Opacity(
             opacity: 0.35,
             child: IgnorePointer(
               child: Column(
-                children: const [_WeatherPreviewCard(), SizedBox(height: 16), _TodoPreviewCard()],
+                children: [
+                  TileCard(
+                    label: 'WEATHER',
+                    icon: Icons.cloud_outlined,
+                    child: Text('23°  Rain', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  ),
+                  SizedBox(height: 16),
+                  TileCard(
+                    label: 'TO-DO',
+                    icon: Icons.checklist,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('☑ Water the plants'),
+                        SizedBox(height: 6),
+                        Text('☐ Call the bank'),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -131,80 +181,6 @@ class _EmptyState extends StatelessWidget {
               child: const Text('Add Your First Tile', style: TextStyle(fontSize: 16)),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PreviewCard extends StatelessWidget {
-  const _PreviewCard({required this.label, required this.icon, required this.child});
-
-  final String label;
-  final IconData icon;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.black26),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 16, color: Colors.black45),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.black45,
-                  letterSpacing: 1.5,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _WeatherPreviewCard extends StatelessWidget {
-  const _WeatherPreviewCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return _PreviewCard(
-      label: 'WEATHER',
-      icon: Icons.cloud_outlined,
-      child: const Text('23°  Rain', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-    );
-  }
-}
-
-class _TodoPreviewCard extends StatelessWidget {
-  const _TodoPreviewCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return _PreviewCard(
-      label: 'TO-DO',
-      icon: Icons.checklist,
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('☑ Water the plants'),
-          SizedBox(height: 6),
-          Text('☐ Call the bank'),
         ],
       ),
     );
