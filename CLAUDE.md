@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-This is a freshly-scaffolded Flutter app (`flutter create`) with no custom architecture yet — `lib/main.dart` is still the default counter demo. There is no code beyond the stock structure; update the Structure/Commands sections once real architecture exists. The intended product is documented below from UI mockups in `screenshots/`.
+Phases 1 and 2 are complete (all tasks below), verified live on an Android emulator. Phase 3 is in progress: tasks 1–2 done (tile dashboard shell + Add New Tile sheet); tasks 3–7 (Notes/Todo/Weather/App Folder/From-Apps tile bodies) remain. Phases 4–5 haven't started. The intended product is documented below from UI mockups in `screenshots/`.
 
 ## Product: Yin Yang Launcher
 
@@ -12,35 +12,41 @@ An Android home-screen replacement app (yin/yang branding = light/dark duality) 
 
 Features below are grouped into execution phases, ordered so each phase only depends on ones before it. Update Structure/Commands as each phase lands.
 
-### Phase 1 — Launcher core
-The minimum to be a working, installable launcher. Tasks, in build order (each depends on the ones above it):
+### Phase 1 — Launcher core (done)
+The minimum to be a working, installable launcher. Tasks, in build order (each depends on the ones above it)
 
-1. **Register as launcher** — add `HOME`/`LAUNCHER` intent filter to the Android manifest; verify the app shows up in Android's default-launcher picker
-2. **Navigation shell** — 5-panel swipe scaffold (Search / My Space / Home / Mind Space / App Drawer) as an edge-to-edge `PageView` or gesture-detected panel switcher; other panels can be empty placeholders for now
-3. **Home screen chrome** — wallpaper/gradient background, live clock, date, battery %
-4. **Home layout modes** — Classic (adds search bar + 4-app dock) vs Minimal (plain text pinned-app list), switchable via local state
-5. **Installed-app data source** — platform-channel/plugin layer to query installed apps (label, icon, package name, launch intent); shared by tasks 6–8
-6. **App Drawer list** — alphabetical list of installed apps with fast-scroll A–Z/#/★ index
-7. **App Drawer search** — search field + filter/sort control over the same app list
-8. **Spotlight Search overlay** — swipe-down panel reusing the search/filter logic from task 7
+1. ✅ **Register as launcher** — add `HOME`/`LAUNCHER` intent filter to the Android manifest; verify the app shows up in Android's default-launcher picker
+2. ✅ **Navigation shell** — 5-panel swipe scaffold (Search / My Space / Home / Mind Space / App Drawer) as an edge-to-edge `PageView` or gesture-detected panel switcher; other panels can be empty placeholders for now (`lib/shell/launcher_shell.dart`)
+3. ✅ **Home screen chrome** — wallpaper/gradient background, live clock, date, battery % (`lib/panels/home_panel.dart`)
+4. ✅ **Home layout modes** — Classic (adds search bar + 4-app dock) vs Minimal (plain text pinned-app list); mode lives in `AppSettings`, not local state
+5. ✅ **Installed-app data source** — `lib/services/installed_apps_service.dart`, wraps the `installed_apps` platform-channel plugin; shared by tasks 6–8
+6. ✅ **App Drawer list** — alphabetical list of installed apps with fast-scroll A–Z/#/★ index (`lib/panels/app_drawer_panel.dart`)
+7. ✅ **App Drawer search** — `lib/search/app_search.dart` + `app_search_bar.dart`, shared with task 8
+8. ✅ **Spotlight Search overlay** — `lib/panels/spotlight_search_panel.dart`, reuses task 7's search/filter logic
 
-### Phase 2 — Onboarding
-Wraps Phase 1 features into a first-run flow. Tasks, in build order:
+### Phase 2 — Onboarding (done)
+Wraps Phase 1 features into a first-run flow (`lib/onboarding/`). Tasks, in build order:
 
-1. **First-run flow scaffold** — welcome screen ("Welcome to Yin Yang Launcher") + step container with a `Continue`/`Next` progression bar; gate it to show only before a launcher is set as default
-2. **Live preview mockup** — a phone-frame widget that renders the actual Home screen (chrome from Phase 1 task 3) at small scale, reused as the picker step's live preview
-3. **Theme step** — Light/Dark toggle wired to app theme state and reflected in the mockup
-4. **Layout step** — Classic/Minimal toggle wired to Phase 1's home-layout state and reflected in the mockup
-5. **Wallpaper step** — preset swatch gallery wired to background state and reflected in the mockup
-6. **"Set as my launcher" step** — trigger the Android default-launcher role/picker dialog and handle the result (confirmed vs cancelled)
-7. **Interactive tutorial** — 4-step swipe/long-press walkthrough of the Phase 1 nav shell (Home → My Space → Mind Space → Spotlight → App Drawer) with progress dots, ending in a "Let's Go" CTA into the real Home screen
+1. ✅ **First-run flow scaffold** — `lib/onboarding/onboarding_flow.dart` + `steps/welcome_step.dart`; gated by `OnboardingService`'s persisted `onboarding_complete` flag
+2. ✅ **Live preview mockup** — `lib/onboarding/phone_mockup.dart`, renders the real `HomePanel` at a fixed design size inside a phone frame
+3. ✅ **Theme step** — Light/Dark toggle in `steps/customize_step.dart`, wired to `AppSettings.isDark`
+4. ✅ **Layout step** — Classic/Minimal toggle in the same step, wired to `AppSettings.layoutMode`
+5. ✅ **Wallpaper step** — `lib/onboarding/wallpaper_picker.dart`; in light theme the selected swatch also tints the whole Customize step, matching the original design
+6. ✅ **"Set as my launcher" step** — `lib/services/launcher_role_service.dart` + `MainActivity.kt`'s `RoleManager.ROLE_HOME` MethodChannel bridge
+7. ✅ **Interactive tutorial** — `lib/onboarding/steps/tutorial_step.dart`, 5-page cross-layout walkthrough ending in "Let's Go"
 
-### Phase 3 — My Space (widget dashboard)
-- Tile dashboard shell on the My Space panel, with "Add New Tile" flow
-- Built-in widgets (no external deps): Notes (freeform text), Todo (checklist with add-item)
-- Built-in widget: Weather (current temp, hi/lo, location, hourly forecast) — needs a weather API + location permission
-- App Folder widget: grouped shortcuts to chosen apps
-- Widgets sourced from installed apps: browse/search installed apps and embed their native Android AppWidgets — needs `AppWidgetHost`/`AppWidgetManager` integration, the most complex tile type, do last in this phase
+### Phase 3 — My Space (widget dashboard) — in progress
+Tasks, in build order (each depends on the ones above it):
+
+1. ✅ **Tile dashboard shell** — `lib/panels/my_space_panel.dart` + `lib/services/my_space_service.dart` (JSON persistence via shared_preferences); empty state matches the original mockup's faded Weather/Todo preview
+2. ✅ **"Add New Tile" sheet** — `lib/my_space/add_tile_sheet.dart` + `built_in_tile_specs.dart`; Built-in tab wired to append tiles, From Apps tab is an honest placeholder for task 7
+3. ⬜ **Notes tile** — freeform text, persisted
+4. ⬜ **Todo tile** — checklist with add-item, persisted
+5. ⬜ **Weather tile** — current temp, hi/lo, location, hourly forecast — needs a weather API + location permission, so it's the first tile requiring external access
+6. ⬜ **App Folder tile** — grouped shortcuts built from the Phase 1 installed-apps data source
+7. ⬜ **From-Apps widgets** — browse/search installed apps and embed their native Android AppWidgets via `AppWidgetHost`/`AppWidgetManager` — the most complex tile type, done last
+
+Tile bodies in `my_space_panel.dart`'s `_TileList` are still a placeholder (`Card(ListTile(title: Text(kind.name)))`) — tasks 3–6 replace that per-kind.
 
 ### Phase 4 — Mind Space (screen-time insights)
 Needs `PACKAGE_USAGE_STATS` permission and accumulated usage data, so it follows the other panels.
@@ -69,7 +75,18 @@ Aggregates toggles/controls introduced in earlier phases into one screen; do las
 
 ## Structure
 
-- `lib/` — app source (currently just `main.dart`)
-- `test/` — widget/unit tests
+- `lib/main.dart` — entry point; gates between `OnboardingFlow` and `LauncherShell` on the persisted onboarding flag
+- `lib/shell/` — the 5-panel swipe navigation shell
+- `lib/panels/` — the 5 panel screens (Home, My Space, Mind Space, App Drawer, Spotlight Search)
+- `lib/onboarding/` — first-run flow (steps, phone mockup, wallpaper/segmented-toggle pickers)
+- `lib/my_space/` — My Space-specific widgets (Add New Tile sheet, built-in tile catalog)
+- `lib/search/` — shared app search/filter logic and UI, used by App Drawer and Spotlight Search
+- `lib/state/` — `AppSettings` (theme/layout/wallpaper), exposed via `AppSettingsScope` (`InheritedNotifier`)
+- `lib/services/` — platform-channel and persistence services (installed apps, onboarding flag, launcher role, My Space tiles)
+- `lib/models/` — plain data models (`HomeLayoutMode`, `MySpaceTile`, `TileKind`)
+- `lib/widgets/` — small shared widgets (`SegmentedToggle`)
+- `android/app/src/main/kotlin/.../MainActivity.kt` — native `RoleManager.ROLE_HOME` MethodChannel bridge (`yinyang.launcher/role`)
+- `test/` — widget tests; app startup is async (SharedPreferences), so tests use `SharedPreferences.setMockInitialValues` and `pumpAndSettle`
 - `android/`, `ios/`, `macos/`, `linux/`, `windows/`, `web/` — platform runner projects generated by Flutter tooling; rarely need manual edits
 - Dart SDK constraint: `^3.13.3` (see `pubspec.yaml`)
+- `graphify-out/` — generated knowledge-graph artifacts from `/graphify`; not app code, gitignored
