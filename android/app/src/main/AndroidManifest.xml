@@ -56,5 +56,11 @@
             <action android:name="android.intent.action.MAIN"/>
             <category android:name="android.intent.category.LAUNCHER"/>
         </intent>
+        <!-- Required for AppWidgetManager.installedProviders (Phase 3 task 7)
+             to see other apps' widget providers, per Android 11+ package
+             visibility rules. -->
+        <intent>
+            <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+        </intent>
     </queries>
 </manifest>

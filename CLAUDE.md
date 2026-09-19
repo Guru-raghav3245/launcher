@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-Phases 1 and 2 are complete (all tasks below), verified live on an Android emulator. Phase 3 is in progress: tasks 1–6 done (tile dashboard shell, Add New Tile sheet, Notes tile, Todo tile, Weather tile, App Folder tile); task 7 (From-Apps tile body) remains. Phases 4–5 haven't started. The intended product is documented below from UI mockups in `screenshots/`.
+Phases 1, 2, and 3 are complete (all tasks below), verified live on an Android emulator. Phases 4–5 haven't started. The intended product is documented below from UI mockups in `screenshots/`.
 
 ## Product: Yin Yang Launcher
 
@@ -35,18 +35,20 @@ Wraps Phase 1 features into a first-run flow (`lib/onboarding/`). Tasks, in buil
 6. ✅ **"Set as my launcher" step** — `lib/services/launcher_role_service.dart` + `MainActivity.kt`'s `RoleManager.ROLE_HOME` MethodChannel bridge
 7. ✅ **Interactive tutorial** — `lib/onboarding/steps/tutorial_step.dart`, 5-page cross-layout walkthrough ending in "Let's Go"
 
-### Phase 3 — My Space (widget dashboard) — in progress
+### Phase 3 — My Space (widget dashboard) — done
 Tasks, in build order (each depends on the ones above it):
 
 1. ✅ **Tile dashboard shell** — `lib/panels/my_space_panel.dart` + `lib/services/my_space_service.dart` (JSON persistence via shared_preferences); empty state matches the original mockup's faded Weather/Todo preview
-2. ✅ **"Add New Tile" sheet** — `lib/my_space/add_tile_sheet.dart` + `built_in_tile_specs.dart`; Built-in tab wired to append tiles, From Apps tab is an honest placeholder for task 7
+2. ✅ **"Add New Tile" sheet** — `lib/my_space/add_tile_sheet.dart` + `built_in_tile_specs.dart`; Built-in tab wired to append tiles, From Apps tab lists other apps' widgets (task 7)
 3. ✅ **Notes tile** — freeform text, persisted (`lib/my_space/tiles/notes_tile.dart`)
 4. ✅ **Todo tile** — checklist with add-item, persisted (`lib/my_space/tiles/todo_tile.dart`)
 5. ✅ **Weather tile** — current temp, hi/lo, location, hourly forecast (`lib/my_space/tiles/weather_tile.dart` + `lib/services/weather_service.dart`); location via `geolocator`, conditions via Open-Meteo, reverse-geocoding via a plain HTTP call to BigDataCloud's free endpoint (not the `geocoding` plugin — its native call ANR'd on-device, see below)
 6. ✅ **App Folder tile** — grouped shortcuts built from the Phase 1 installed-apps data source (`lib/my_space/tiles/app_folder_tile.dart`); packages stored as `{"packages": [...]}`, icons/names looked up live via `InstalledAppsService`, tap launches the app, long-press removes the shortcut, "+" opens a picker sheet (reuses the App Drawer's `AppSearchBar`/`AppResultRow`/`filterAndSortApps`)
-7. ⬜ **From-Apps widgets** — browse/search installed apps and embed their native Android AppWidgets via `AppWidgetHost`/`AppWidgetManager` — the most complex tile type, done last
+7. ✅ **From-Apps widgets** — browse/search other apps' native Android AppWidgets and embed them via `AppWidgetHost`/`AppWidgetManager` (`android/.../AppWidgetHostBridge.kt` + `lib/services/app_widget_service.dart` + `lib/my_space/tiles/from_app_tile.dart`); the Add New Tile sheet's From Apps tab lists every installed provider (grouped by app icon/name, searchable), tapping one allocates + binds the widget id, falling back to the system's `ACTION_APPWIDGET_BIND` consent dialog when the fast `bindAppWidgetIdIfAllowed` path is refused (this app isn't the default launcher in dev); the bound widget is then rendered live via an `AndroidView` platform view wrapping `AppWidgetHost.createView`
 
-Tile bodies in `my_space_panel.dart`'s `_TileList` are still a placeholder (`Card(ListTile(title: Text(kind.name)))`) for kinds not yet built — task 7 replaces that.
+Tile bodies in `my_space_panel.dart`'s `_TileList` cover every `TileKind` now — no placeholder remains.
+
+**From-Apps widget pitfalls (if touching this code):** a freshly created `AppWidgetHostView` renders blank for many widgets because their RemoteViews pick a layout by declared size, which defaults to 0×0 dp until told otherwise — `AppWidgetPlatformView` works around this with a one-shot `OnGlobalLayoutListener` that calls the (deprecated but still functional) 5-arg `updateAppWidgetSize` once Flutter's `AndroidView` has a real layout size. `AppWidgetHost.startListening()`/`stopListening()` are wired to `MainActivity.onStart`/`onStop`.
 
 **Weather tile pitfalls (if touching this code):** `LocationAccuracy.low` uses the network/fused provider, which doesn't respond to `adb emu geo fix` on an emulator — use `.high` with a time limit. The `geocoding` package's native reverse-geocode call blocked the Android main thread indefinitely on the test emulator (no Play Services geocoder backend) and caused an ANR; it was replaced with a timeout-bounded HTTP call instead.
 
@@ -81,13 +83,14 @@ Aggregates toggles/controls introduced in earlier phases into one screen; do las
 - `lib/shell/` — the 5-panel swipe navigation shell
 - `lib/panels/` — the 5 panel screens (Home, My Space, Mind Space, App Drawer, Spotlight Search)
 - `lib/onboarding/` — first-run flow (steps, phone mockup, wallpaper/segmented-toggle pickers)
-- `lib/my_space/` — My Space-specific widgets (Add New Tile sheet, built-in tile catalog, tile chrome); `lib/my_space/tiles/` holds the per-kind tile bodies (Notes, Todo, Weather, App Folder)
-- `lib/search/` — shared app search/filter logic and UI, used by App Drawer and Spotlight Search
+- `lib/my_space/` — My Space-specific widgets (Add New Tile sheet, built-in tile catalog, tile chrome); `lib/my_space/tiles/` holds the per-kind tile bodies (Notes, Todo, Weather, App Folder, From-Apps)
+- `lib/search/` — shared app search/filter logic and UI, used by App Drawer, Spotlight Search, and the App Folder/From-Apps picker sheets
 - `lib/state/` — `AppSettings` (theme/layout/wallpaper), exposed via `AppSettingsScope` (`InheritedNotifier`)
-- `lib/services/` — platform-channel and persistence services (installed apps, onboarding flag, launcher role, My Space tiles, weather)
+- `lib/services/` — platform-channel and persistence services (installed apps, onboarding flag, launcher role, My Space tiles, weather, app widgets)
 - `lib/models/` — plain data models (`HomeLayoutMode`, `MySpaceTile`, `TileKind`)
 - `lib/widgets/` — small shared widgets (`SegmentedToggle`)
-- `android/app/src/main/kotlin/.../MainActivity.kt` — native `RoleManager.ROLE_HOME` MethodChannel bridge (`yinyang.launcher/role`)
+- `android/app/src/main/kotlin/.../MainActivity.kt` — native `RoleManager.ROLE_HOME` MethodChannel bridge (`yinyang.launcher/role`); wires up `AppWidgetHostBridge`'s lifecycle and activity-result routing
+- `android/app/src/main/kotlin/.../AppWidgetHostBridge.kt` — native `AppWidgetHost`/`AppWidgetManager` bridge (`yinyang.launcher/appwidget` channel + `yinyang.launcher/appwidget_view` platform view) for the From-Apps tile
 - `test/` — widget tests; app startup is async (SharedPreferences), so tests use `SharedPreferences.setMockInitialValues` and `pumpAndSettle`
 - `android/`, `ios/`, `macos/`, `linux/`, `windows/`, `web/` — platform runner projects generated by Flutter tooling; rarely need manual edits
 - Dart SDK constraint: `^3.13.3` (see `pubspec.yaml`)

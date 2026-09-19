@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:installed_apps/app_info.dart';
 
 import '../models/my_space_tile.dart';
+import '../models/tile_kind.dart';
+import '../search/app_result_row.dart';
+import '../search/app_search.dart';
+import '../search/app_search_bar.dart';
+import '../services/app_widget_service.dart';
+import '../services/installed_apps_service.dart';
 import '../widgets/segmented_toggle.dart';
 import 'built_in_tile_specs.dart';
 
@@ -26,6 +33,7 @@ class _AddTileSheet extends StatefulWidget {
 
 class _AddTileSheetState extends State<_AddTileSheet> {
   bool _fromApps = false;
+  bool _bindingWidget = false;
 
   void _add(BuiltInTileSpec spec) {
     final tile = MySpaceTile(
@@ -34,6 +42,27 @@ class _AddTileSheetState extends State<_AddTileSheet> {
       data: spec.defaultData(),
     );
     Navigator.of(context).pop(tile);
+  }
+
+  Future<void> _addWidget(WidgetProvider provider) async {
+    if (_bindingWidget) return;
+    setState(() => _bindingWidget = true);
+    const service = AppWidgetService();
+    final widgetId = await service.allocateId();
+    final bound = await service.bind(widgetId, provider.provider);
+    if (!bound) {
+      await service.deleteId(widgetId);
+      if (mounted) setState(() => _bindingWidget = false);
+      return;
+    }
+    if (!mounted) return;
+    Navigator.of(context).pop(
+      MySpaceTile(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        kind: TileKind.fromApp,
+        data: {'widgetId': widgetId, 'provider': provider.provider, 'label': provider.label},
+      ),
+    );
   }
 
   @override
@@ -76,7 +105,11 @@ class _AddTileSheetState extends State<_AddTileSheet> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Expanded(child: _fromApps ? const _FromAppsPlaceholder() : _BuiltInList(onAdd: _add)),
+                Expanded(
+                  child: _fromApps
+                      ? _FromAppsList(onAdd: _addWidget, busy: _bindingWidget)
+                      : _BuiltInList(onAdd: _add),
+                ),
               ],
             ),
           ),
@@ -114,18 +147,105 @@ class _BuiltInList extends StatelessWidget {
   }
 }
 
-// ponytail: native from-app AppWidget browsing is Phase 3 task 7.
-class _FromAppsPlaceholder extends StatelessWidget {
-  const _FromAppsPlaceholder();
+/// Lists other apps' home-screen widgets, searchable by app or widget name.
+/// Tapping one triggers [onAdd], which allocates + binds it natively before
+/// the tile is created (Phase 3 task 7).
+class _FromAppsList extends StatefulWidget {
+  const _FromAppsList({required this.onAdd, required this.busy});
+
+  final ValueChanged<WidgetProvider> onAdd;
+  final bool busy;
+
+  @override
+  State<_FromAppsList> createState() => _FromAppsListState();
+}
+
+class _FromAppsListState extends State<_FromAppsList> {
+  final _controller = TextEditingController();
+  late final Future<(List<AppInfo>, List<WidgetProvider>)> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _load();
+  }
+
+  Future<(List<AppInfo>, List<WidgetProvider>)> _load() async {
+    const apps = InstalledAppsService();
+    const widgets = AppWidgetService();
+    final results = await Future.wait([apps.loadApps(), widgets.listProviders()]);
+    return (results[0] as List<AppInfo>, results[1] as List<WidgetProvider>);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Text(
-        'Adding widgets from your installed apps\nis coming soon.',
-        textAlign: TextAlign.center,
-        style: TextStyle(color: Colors.black45),
-      ),
+    return FutureBuilder<(List<AppInfo>, List<WidgetProvider>)>(
+      future: _future,
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        if (data == null) return const Center(child: CircularProgressIndicator());
+        final (apps, providers) = data;
+        if (providers.isEmpty) {
+          return const Center(
+            child: Text(
+              'No apps on this device offer a\nhome-screen widget.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.black45),
+            ),
+          );
+        }
+        final appsByPackage = {for (final app in apps) app.packageName: app};
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppSearchBar(
+              controller: _controller,
+              sortMode: AppSortMode.alphabetical,
+              onSortModeChanged: (_) {},
+              showSortControl: false,
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: widget.busy
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListenableBuilder(
+                      listenable: _controller,
+                      builder: (context, _) {
+                        final query = _controller.text.trim().toLowerCase();
+                        final filtered = providers.where((provider) {
+                          if (query.isEmpty) return true;
+                          final appName = appsByPackage[provider.packageName]?.name ?? provider.packageName;
+                          return appName.toLowerCase().contains(query) ||
+                              provider.label.toLowerCase().contains(query);
+                        }).toList();
+                        return ListView.separated(
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, _) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final provider = filtered[index];
+                            final app = appsByPackage[provider.packageName];
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: AppIcon(icon: app?.icon, size: 40),
+                              title: Text(app?.name ?? provider.packageName),
+                              subtitle: Text(provider.label),
+                              onTap: () => widget.onAdd(provider),
+                            );
+                          },
+                        );
+                      },
+                    ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

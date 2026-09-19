@@ -13,6 +13,7 @@ private const val REQUEST_HOME_ROLE = 4242
 
 class MainActivity : FlutterActivity() {
     private var pendingResult: MethodChannel.Result? = null
+    private lateinit var appWidgetBridge: AppWidgetHostBridge
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -23,6 +24,18 @@ class MainActivity : FlutterActivity() {
                 result.notImplemented()
             }
         }
+        appWidgetBridge = AppWidgetHostBridge(this)
+        appWidgetBridge.attach(flutterEngine)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        appWidgetBridge.startListening()
+    }
+
+    override fun onStop() {
+        appWidgetBridge.stopListening()
+        super.onStop()
     }
 
     // Returns true if the role is granted, false if the user cancelled the
@@ -50,6 +63,7 @@ class MainActivity : FlutterActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (appWidgetBridge.onActivityResult(requestCode, resultCode)) return
         if (requestCode == REQUEST_HOME_ROLE) {
             pendingResult?.success(resultCode == RESULT_OK)
             pendingResult = null
