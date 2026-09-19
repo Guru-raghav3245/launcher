@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-Phases 1 and 2 are complete (all tasks below), verified live on an Android emulator. Phase 3 is in progress: tasks 1–5 done (tile dashboard shell, Add New Tile sheet, Notes tile, Todo tile, Weather tile); tasks 6–7 (App Folder/From-Apps tile bodies) remain. Phases 4–5 haven't started. The intended product is documented below from UI mockups in `screenshots/`.
+Phases 1 and 2 are complete (all tasks below), verified live on an Android emulator. Phase 3 is in progress: tasks 1–6 done (tile dashboard shell, Add New Tile sheet, Notes tile, Todo tile, Weather tile, App Folder tile); task 7 (From-Apps tile body) remains. Phases 4–5 haven't started. The intended product is documented below from UI mockups in `screenshots/`.
 
 ## Product: Yin Yang Launcher
 
@@ -43,10 +43,10 @@ Tasks, in build order (each depends on the ones above it):
 3. ✅ **Notes tile** — freeform text, persisted (`lib/my_space/tiles/notes_tile.dart`)
 4. ✅ **Todo tile** — checklist with add-item, persisted (`lib/my_space/tiles/todo_tile.dart`)
 5. ✅ **Weather tile** — current temp, hi/lo, location, hourly forecast (`lib/my_space/tiles/weather_tile.dart` + `lib/services/weather_service.dart`); location via `geolocator`, conditions via Open-Meteo, reverse-geocoding via a plain HTTP call to BigDataCloud's free endpoint (not the `geocoding` plugin — its native call ANR'd on-device, see below)
-6. ⬜ **App Folder tile** — grouped shortcuts built from the Phase 1 installed-apps data source
+6. ✅ **App Folder tile** — grouped shortcuts built from the Phase 1 installed-apps data source (`lib/my_space/tiles/app_folder_tile.dart`); packages stored as `{"packages": [...]}`, icons/names looked up live via `InstalledAppsService`, tap launches the app, long-press removes the shortcut, "+" opens a picker sheet (reuses the App Drawer's `AppSearchBar`/`AppResultRow`/`filterAndSortApps`)
 7. ⬜ **From-Apps widgets** — browse/search installed apps and embed their native Android AppWidgets via `AppWidgetHost`/`AppWidgetManager` — the most complex tile type, done last
 
-Tile bodies in `my_space_panel.dart`'s `_TileList` are still a placeholder (`Card(ListTile(title: Text(kind.name)))`) for kinds not yet built — tasks 6–7 replace that per-kind.
+Tile bodies in `my_space_panel.dart`'s `_TileList` are still a placeholder (`Card(ListTile(title: Text(kind.name)))`) for kinds not yet built — task 7 replaces that.
 
 **Weather tile pitfalls (if touching this code):** `LocationAccuracy.low` uses the network/fused provider, which doesn't respond to `adb emu geo fix` on an emulator — use `.high` with a time limit. The `geocoding` package's native reverse-geocode call blocked the Android main thread indefinitely on the test emulator (no Play Services geocoder backend) and caused an ANR; it was replaced with a timeout-bounded HTTP call instead.
 
@@ -81,7 +81,7 @@ Aggregates toggles/controls introduced in earlier phases into one screen; do las
 - `lib/shell/` — the 5-panel swipe navigation shell
 - `lib/panels/` — the 5 panel screens (Home, My Space, Mind Space, App Drawer, Spotlight Search)
 - `lib/onboarding/` — first-run flow (steps, phone mockup, wallpaper/segmented-toggle pickers)
-- `lib/my_space/` — My Space-specific widgets (Add New Tile sheet, built-in tile catalog, tile chrome); `lib/my_space/tiles/` holds the per-kind tile bodies (Notes, Todo, Weather)
+- `lib/my_space/` — My Space-specific widgets (Add New Tile sheet, built-in tile catalog, tile chrome); `lib/my_space/tiles/` holds the per-kind tile bodies (Notes, Todo, Weather, App Folder)
 - `lib/search/` — shared app search/filter logic and UI, used by App Drawer and Spotlight Search
 - `lib/state/` — `AppSettings` (theme/layout/wallpaper), exposed via `AppSettingsScope` (`InheritedNotifier`)
 - `lib/services/` — platform-channel and persistence services (installed apps, onboarding flag, launcher role, My Space tiles, weather)

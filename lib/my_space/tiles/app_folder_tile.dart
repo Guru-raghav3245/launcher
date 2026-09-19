@@ -1,0 +1,196 @@
+import 'package:flutter/material.dart';
+import 'package:installed_apps/app_info.dart';
+
+import '../../models/my_space_tile.dart';
+import '../../search/app_result_row.dart';
+import '../../search/app_search.dart';
+import '../../search/app_search_bar.dart';
+import '../../services/installed_apps_service.dart';
+import '../tile_card.dart';
+
+/// App Folder tile: a grid of shortcuts to apps the user picked. Packages
+/// are stored as `{"packages": List<String>}` in [MySpaceTile.data]; icons
+/// and names are looked up live from [InstalledAppsService] (Phase 1 task 5).
+class AppFolderTile extends StatefulWidget {
+  const AppFolderTile({super.key, required this.tile, required this.onChanged});
+
+  final MySpaceTile tile;
+  final ValueChanged<Map<String, dynamic>> onChanged;
+
+  @override
+  State<AppFolderTile> createState() => _AppFolderTileState();
+}
+
+class _AppFolderTileState extends State<AppFolderTile> {
+  final _service = const InstalledAppsService();
+  List<AppInfo>? _apps;
+
+  @override
+  void initState() {
+    super.initState();
+    _service.loadApps().then((apps) {
+      if (mounted) setState(() => _apps = apps);
+    });
+  }
+
+  List<String> get _packages => (widget.tile.data['packages'] as List).cast<String>();
+
+  void _setPackages(List<String> packages) => widget.onChanged({'packages': packages});
+
+  Future<void> _pickApp() async {
+    final apps = _apps;
+    if (apps == null) return;
+    final available = apps.where((a) => !_packages.contains(a.packageName)).toList();
+    final picked = await _showAppPickerSheet(context, available);
+    if (picked != null) _setPackages([..._packages, picked.packageName]);
+  }
+
+  void _remove(String packageName) => _setPackages(_packages.where((p) => p != packageName).toList());
+
+  @override
+  Widget build(BuildContext context) {
+    final apps = _apps;
+    final selected = [
+      for (final package in _packages)
+        if (apps != null)
+          for (final app in apps)
+            if (app.packageName == package) app,
+    ];
+
+    return TileCard(
+      label: 'APP FOLDER',
+      icon: Icons.apps,
+      trailing: IconButton(
+        icon: const Icon(Icons.add_circle_outline, size: 20),
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
+        onPressed: apps == null ? null : _pickApp,
+      ),
+      child: selected.isEmpty
+          ? const Text('No apps yet — tap + to add some.', style: TextStyle(color: Colors.black45))
+          : Wrap(
+              spacing: 16,
+              runSpacing: 12,
+              children: [
+                for (final app in selected)
+                  _AppShortcut(
+                    app: app,
+                    onTap: () => _service.launch(app.packageName),
+                    onLongPress: () => _remove(app.packageName),
+                  ),
+              ],
+            ),
+    );
+  }
+}
+
+class _AppShortcut extends StatelessWidget {
+  const _AppShortcut({required this.app, required this.onTap, required this.onLongPress});
+
+  final AppInfo app;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: SizedBox(
+        width: 64,
+        child: Column(
+          children: [
+            AppIcon(icon: app.icon),
+            const SizedBox(height: 4),
+            Text(
+              app.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 11),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet listing [apps] not yet in the folder, with search, so the
+/// user can pick one to add. Mirrors the App Drawer's search UI (Phase 1
+/// task 7) since it's browsing the same installed-apps list.
+Future<AppInfo?> _showAppPickerSheet(BuildContext context, List<AppInfo> apps) {
+  return showModalBottomSheet<AppInfo>(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (context) => _AppPickerSheet(apps: apps),
+  );
+}
+
+class _AppPickerSheet extends StatefulWidget {
+  const _AppPickerSheet({required this.apps});
+
+  final List<AppInfo> apps;
+
+  @override
+  State<_AppPickerSheet> createState() => _AppPickerSheetState();
+}
+
+class _AppPickerSheetState extends State<_AppPickerSheet> {
+  final _controller = TextEditingController();
+  var _sortMode = AppSortMode.alphabetical;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.75,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Add App',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              AppSearchBar(
+                controller: _controller,
+                sortMode: _sortMode,
+                onSortModeChanged: (mode) => setState(() => _sortMode = mode),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: ListenableBuilder(
+                  listenable: _controller,
+                  builder: (context, _) {
+                    final results = filterAndSortApps(
+                      widget.apps,
+                      query: _controller.text,
+                      sortMode: _sortMode,
+                    );
+                    return ListView.builder(
+                      itemCount: results.length,
+                      itemBuilder: (context, index) {
+                        final app = results[index];
+                        return AppResultRow(app: app, onTap: () => Navigator.of(context).pop(app));
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -4,6 +4,7 @@ import '../models/my_space_tile.dart';
 import '../models/tile_kind.dart';
 import '../my_space/add_tile_sheet.dart';
 import '../my_space/tile_card.dart';
+import '../my_space/tiles/app_folder_tile.dart';
 import '../my_space/tiles/notes_tile.dart';
 import '../my_space/tiles/todo_tile.dart';
 import '../my_space/tiles/weather_tile.dart';
@@ -11,7 +12,8 @@ import '../services/my_space_service.dart';
 
 /// My Space panel: a persisted list of dashboard tiles (Weather, Notes,
 /// Todo, App Folder, from-app widgets — built out across Phase 3 tasks
-/// 3-7). Shows an empty-state teaser until the user adds their first tile.
+/// 3-7). From-app widgets (task 7) are still a placeholder. Shows an
+/// empty-state teaser until the user adds their first tile.
 class MySpacePanel extends StatefulWidget {
   const MySpacePanel({super.key});
 
@@ -92,7 +94,11 @@ class _TileList extends StatelessWidget {
                   tile: tile,
                   onChanged: (data) => onUpdate(tile.id, data),
                 ),
-                // App Folder/From-Apps bodies land in tasks 6-7.
+                TileKind.appFolder => AppFolderTile(
+                  tile: tile,
+                  onChanged: (data) => onUpdate(tile.id, data),
+                ),
+                // From-Apps widget bodies land in task 7.
                 _ => Card(child: ListTile(title: Text(tile.kind.name))),
               },
             );
