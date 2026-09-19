@@ -82,6 +82,10 @@ Aggregates toggles/controls introduced in earlier phases into one screen; do las
 - Run a single test file: `flutter test test/widget_test.dart`
 - Build release: `flutter build <apk|ios|macos|web|linux|windows>`
 
+## Git commits
+
+Do not add a `Co-Authored-By: Claude ...` (or similar AI-attribution) trailer to commit messages in this repo. The user does not want Claude showing as a co-author on GitHub.
+
 ## Structure
 
 - `lib/main.dart` — entry point; gates between `OnboardingFlow` and `LauncherShell` on the persisted onboarding flag
