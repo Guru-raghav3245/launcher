@@ -26,6 +26,7 @@ class MainActivity : FlutterActivity() {
         }
         appWidgetBridge = AppWidgetHostBridge(this)
         appWidgetBridge.attach(flutterEngine)
+        UsageStatsBridge(this).attach(flutterEngine)
     }
 
     override fun onStart() {

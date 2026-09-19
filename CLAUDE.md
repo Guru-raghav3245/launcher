@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-Phases 1, 2, and 3 are complete (all tasks below), verified live on an Android emulator. Phases 4–5 haven't started; each is now broken into build-ordered tasks below, same as the earlier phases. The intended product is documented below from UI mockups in `screenshots/`.
+Phases 1, 2, and 3 are complete (all tasks below), verified live on an Android emulator. Phase 4 is in progress: task 1 (usage-stats permission + data source) done; tasks 2–6 remain. Phase 5 hasn't started; both are broken into build-ordered tasks below, same as the earlier phases. The intended product is documented below from UI mockups in `screenshots/`.
 
 ## Product: Yin Yang Launcher
 
@@ -52,11 +52,11 @@ Tile bodies in `my_space_panel.dart`'s `_TileList` cover every `TileKind` now �
 
 **Weather tile pitfalls (if touching this code):** `LocationAccuracy.low` uses the network/fused provider, which doesn't respond to `adb emu geo fix` on an emulator — use `.high` with a time limit. The `geocoding` package's native reverse-geocode call blocked the Android main thread indefinitely on the test emulator (no Play Services geocoder backend) and caused an ANR; it was replaced with a timeout-bounded HTTP call instead.
 
-### Phase 4 — Mind Space (screen-time insights)
+### Phase 4 — Mind Space (screen-time insights) — in progress
 Needs `PACKAGE_USAGE_STATS` permission and accumulated usage data, so it follows the other panels. Tasks, in build order (each depends on the ones above it):
 
-1. ⬜ **Usage-stats permission + data source** — `PACKAGE_USAGE_STATS` is a special permission granted only via `Settings.ACTION_USAGE_ACCESS_SETTINGS` (no runtime dialog), so this needs a Settings-redirect bridge like `launcher_role_service.dart`'s pattern; wrap Android's `UsageStatsManager`/`UsageEvents` behind `lib/services/usage_stats_service.dart`, querying per-app foreground time and launch events for a given window (today, last 24h)
-2. ⬜ **Mind Space panel shell** — replace the `lib/panels/mind_space_panel.dart` placeholder with the real scaffold (screen time total, pickups count) fed by task 1's service
+1. ✅ **Usage-stats permission + data source** — `PACKAGE_USAGE_STATS` is a special permission with no runtime dialog, granted only via `Settings.ACTION_USAGE_ACCESS_SETTINGS`; `android/.../UsageStatsBridge.kt` exposes `hasAccess` (checked via `AppOpsManager`, not `checkSelfPermission`), `requestAccess` (opens the Settings redirect, fire-and-forget like `requestHomeRole`'s fallback branch), and `queryEvents(start, end)` (raw `foreground`/`background`/`unlocked` events from `UsageEvents`, filtered natively) via the `yinyang.launcher/usage` channel; `lib/services/usage_stats_service.dart` wraps it with a `UsageEvent`/`UsageEventType` model. Verified live: granted access via the emulator's Usage access settings screen and confirmed real event counts came back.
+2. ⬜ **Mind Space panel shell** — replace `lib/panels/mind_space_panel.dart`'s bare access-check/event-count scaffold (task 1's live-verification harness) with the real scaffold (screen time total, pickups count) fed by task 1's service
 3. ⬜ **Hourly usage bar chart** — 12 AM–now bar chart of foreground time per hour, built from task 1's `UsageEvents` stream
 4. ⬜ **Per-app breakdown** — opens + time per app with a behavioral insight line, reusing `InstalledAppsService` for icons/names (same cross-reference pattern as the App Folder/From-Apps pickers)
 5. ⬜ **Habits & Reflexes** — derived behavioral patterns (e.g. what's opened right after unlock) computed from task 1's raw event sequence; depends on task 4's per-app data being in place first
@@ -91,11 +91,12 @@ Aggregates toggles/controls introduced in earlier phases into one screen; do las
 - `lib/my_space/` — My Space-specific widgets (Add New Tile sheet, built-in tile catalog, tile chrome); `lib/my_space/tiles/` holds the per-kind tile bodies (Notes, Todo, Weather, App Folder, From-Apps)
 - `lib/search/` — shared app search/filter logic and UI, used by App Drawer, Spotlight Search, and the App Folder/From-Apps picker sheets
 - `lib/state/` — `AppSettings` (theme/layout/wallpaper), exposed via `AppSettingsScope` (`InheritedNotifier`)
-- `lib/services/` — platform-channel and persistence services (installed apps, onboarding flag, launcher role, My Space tiles, weather, app widgets)
+- `lib/services/` — platform-channel and persistence services (installed apps, onboarding flag, launcher role, My Space tiles, weather, app widgets, usage stats)
 - `lib/models/` — plain data models (`HomeLayoutMode`, `MySpaceTile`, `TileKind`)
 - `lib/widgets/` — small shared widgets (`SegmentedToggle`)
-- `android/app/src/main/kotlin/.../MainActivity.kt` — native `RoleManager.ROLE_HOME` MethodChannel bridge (`yinyang.launcher/role`); wires up `AppWidgetHostBridge`'s lifecycle and activity-result routing
+- `android/app/src/main/kotlin/.../MainActivity.kt` — native `RoleManager.ROLE_HOME` MethodChannel bridge (`yinyang.launcher/role`); wires up `AppWidgetHostBridge`'s lifecycle/activity-result routing and attaches `UsageStatsBridge`
 - `android/app/src/main/kotlin/.../AppWidgetHostBridge.kt` — native `AppWidgetHost`/`AppWidgetManager` bridge (`yinyang.launcher/appwidget` channel + `yinyang.launcher/appwidget_view` platform view) for the From-Apps tile
+- `android/app/src/main/kotlin/.../UsageStatsBridge.kt` — native `UsageStatsManager`/`AppOpsManager` bridge (`yinyang.launcher/usage` channel) for Mind Space
 - `test/` — widget tests; app startup is async (SharedPreferences), so tests use `SharedPreferences.setMockInitialValues` and `pumpAndSettle`
 - `android/`, `ios/`, `macos/`, `linux/`, `windows/`, `web/` — platform runner projects generated by Flutter tooling; rarely need manual edits
 - Dart SDK constraint: `^3.13.3` (see `pubspec.yaml`)
