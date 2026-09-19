@@ -1,6 +1,8 @@
 import 'package:installed_apps/app_info.dart';
 import 'package:installed_apps/installed_apps.dart';
 
+import 'focus_mode_service.dart';
+
 /// Shared installed-app data source for the App Drawer, drawer search, and
 /// Spotlight Search (Phase 1 tasks 6-8) and Home's pinned-app dock.
 class InstalledAppsService {
@@ -17,7 +19,11 @@ class InstalledAppsService {
     );
   }
 
-  Future<void> launch(String packageName) async {
+  /// Launches [packageName], unless Focus Mode is active, in which case the
+  /// launch is refused (returns false) and no app opens.
+  Future<bool> launch(String packageName) async {
+    if (await const FocusModeService().isBlocked(packageName)) return false;
     await InstalledApps.startApp(packageName);
+    return true;
   }
 }
