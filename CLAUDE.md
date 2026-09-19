@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-Phases 1, 2, and 3 are complete (all tasks below), verified live on an Android emulator. Phases 4–5 haven't started. The intended product is documented below from UI mockups in `screenshots/`.
+Phases 1, 2, and 3 are complete (all tasks below), verified live on an Android emulator. Phases 4–5 haven't started; each is now broken into build-ordered tasks below, same as the earlier phases. The intended product is documented below from UI mockups in `screenshots/`.
 
 ## Product: Yin Yang Launcher
 
@@ -53,20 +53,25 @@ Tile bodies in `my_space_panel.dart`'s `_TileList` cover every `TileKind` now �
 **Weather tile pitfalls (if touching this code):** `LocationAccuracy.low` uses the network/fused provider, which doesn't respond to `adb emu geo fix` on an emulator — use `.high` with a time limit. The `geocoding` package's native reverse-geocode call blocked the Android main thread indefinitely on the test emulator (no Play Services geocoder backend) and caused an ANR; it was replaced with a timeout-bounded HTTP call instead.
 
 ### Phase 4 — Mind Space (screen-time insights)
-Needs `PACKAGE_USAGE_STATS` permission and accumulated usage data, so it follows the other panels.
-- Usage tracking: screen time, pickups, app opens
-- Hourly usage bar chart (12 AM–Now)
-- Per-app breakdown (opens + time) with a behavioral insight line
-- Habits & Reflexes: derived behavioral patterns (e.g. what's opened right after unlock)
-- Quick actions: Pause, Timer, Focus Mode
+Needs `PACKAGE_USAGE_STATS` permission and accumulated usage data, so it follows the other panels. Tasks, in build order (each depends on the ones above it):
+
+1. ⬜ **Usage-stats permission + data source** — `PACKAGE_USAGE_STATS` is a special permission granted only via `Settings.ACTION_USAGE_ACCESS_SETTINGS` (no runtime dialog), so this needs a Settings-redirect bridge like `launcher_role_service.dart`'s pattern; wrap Android's `UsageStatsManager`/`UsageEvents` behind `lib/services/usage_stats_service.dart`, querying per-app foreground time and launch events for a given window (today, last 24h)
+2. ⬜ **Mind Space panel shell** — replace the `lib/panels/mind_space_panel.dart` placeholder with the real scaffold (screen time total, pickups count) fed by task 1's service
+3. ⬜ **Hourly usage bar chart** — 12 AM–now bar chart of foreground time per hour, built from task 1's `UsageEvents` stream
+4. ⬜ **Per-app breakdown** — opens + time per app with a behavioral insight line, reusing `InstalledAppsService` for icons/names (same cross-reference pattern as the App Folder/From-Apps pickers)
+5. ⬜ **Habits & Reflexes** — derived behavioral patterns (e.g. what's opened right after unlock) computed from task 1's raw event sequence; depends on task 4's per-app data being in place first
+6. ⬜ **Quick actions: Pause, Timer, Focus Mode** — entry points on the Mind Space panel; the underlying enforcement (a `FocusModeService`) is shared with Phase 5's Settings screen, so build the service here first and just surface it in Settings later
 
 ### Phase 5 — Settings
-Aggregates toggles/controls introduced in earlier phases into one screen; do last since it has no independent surface of its own.
-- Settings screen (via long-press on Home): search across settings/modes/tools
-- Toggles: Theme (Light/Dark), Focus Mode
-- Settings groups: Appearance, Launcher Settings, System Settings
-- Mind Space quick actions surfaced here too: Pause, Timer, Focus Mode
-- Restart Launcher action
+Aggregates toggles/controls introduced in earlier phases into one screen; do last since it has no independent surface of its own. Tasks, in build order (each depends on the ones above it):
+
+1. ⬜ **Settings screen shell** — new screen (e.g. `lib/settings/settings_screen.dart`) reachable via long-press on Home; wire the long-press gesture into `lib/panels/home_panel.dart`
+2. ⬜ **Settings search** — search across settings/modes/tools, adapting `lib/search/app_search_bar.dart`'s pattern to a static list of settings entries instead of installed apps
+3. ⬜ **Appearance group** — Theme (Light/Dark) toggle surfaced here, reusing `AppSettings.isDark`/`SegmentedToggle` from onboarding rather than rebuilding it; same for layout mode and wallpaper if grouped under Appearance
+4. ⬜ **Launcher Settings group** — layout mode (Classic/Minimal), wallpaper picker, and a way to re-run onboarding, reusing `lib/onboarding/wallpaper_picker.dart` and `AppSettings.layoutMode`
+5. ⬜ **System Settings group** — permission entries (usage access from Phase 4 task 1, location for the Weather tile) and a "change default launcher" shortcut reusing `launcher_role_service.dart`
+6. ⬜ **Mind Space quick actions surfaced here too** — Pause, Timer, Focus Mode, wired to the same `FocusModeService` built in Phase 4 task 6
+7. ⬜ **Restart Launcher action** — process-restart utility; last since it's trivial and has no dependents
 
 ## Commands
 
