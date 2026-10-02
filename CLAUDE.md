@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-Phases 1-5 are complete (all tasks below), verified live on an Android emulator. Phase 6 (Focus Mode essential-apps allowlist) is complete too. The intended product is documented below from UI mockups in `screenshots/`.
+Phases 1-5 are complete (all tasks below), verified live on an Android emulator. Phase 6 (Focus Mode essential-apps allowlist) is complete too. Phases 7-10 come from a gap analysis against the real Yin Yang Launcher and haven't started. The intended product is documented below from UI mockups in `screenshots/`.
 
 ## Product: Yin Yang Launcher
 
@@ -82,6 +82,55 @@ Focus Mode used to block every launch. This lets the user pick apps that stay la
 4. ✅ **Verify live** — on the emulator, with Clock marked essential and Pause started: Camera was refused with the message from the App Drawer, Spotlight Search (message shown above the keyboard), and an App Folder tile, with `topResumedActivity` staying on the launcher each time; Clock opened (`DeskClock` resumed) from all three. Afterwards Focus Mode was stopped, Clock unmarked, and the temporary Clock shortcut removed from the folder
 
 **Known limit, not in scope:** Focus Mode can only gate launches this launcher makes. Native From-Apps widget taps (their PendingIntents fire inside `AppWidgetHostView`), notifications, and the recents screen all bypass it. Blocking those would need an `AccessibilityService` or similar app-wide enforcement, which is a much bigger permission ask.
+
+### Gap analysis vs. the real Yin Yang Launcher
+Phases 7-10 come from driving the real app (v5.11.2, `com.yinyang.launcher`, installed from the Play Store on a separate `yinyang_playstore` emulator) screen by screen. "(Pro)" marks features the original gates behind its paid tier; we build them anyway unless noted, since we have no paywall. Deliberately out of scope: the paywall/Pro tier, account/profile page, app language, live and dynamic (animated) wallpapers, third-party icon packs, work-profile apps, and the review/invite/FAQ/support pages.
+
+### Phase 7 — Mind Space tools
+The original's core identity: four tools that add friction to distracting apps. Like Focus Mode, they can only act on launches this launcher makes (see Phase 6's known limit). Tasks, in build order:
+
+1. ⬜ **Focus Mode starts with Phone and Messages allowed** — the original pre-allows them. Resolve the default dialer and SMS packages natively (`RoleManager` `ROLE_DIALER`/`ROLE_SMS` holders, falling back to `TelecomManager.defaultDialerPackage` / `Telephony.Sms.getDefaultSmsPackage`) and seed `FocusModeService` essentials once on first run, behind a flag so later removals stick
+2. ⬜ **Reusable multi-app picker** — generalize `lib/settings/essential_apps_sheet.dart` into a picker that takes a title, subtitle, and a selected set, so Mindful Pause, Mindful Timer, and Productive apps reuse it instead of copying it
+3. ⬜ **Mindful Pause** — a service persisting the paused apps and a pause duration (10-60 s, default 10). `launchApp` checks it after Focus Mode: a paused app first shows a full-screen breathing overlay with a progress bar, that app's today usage and opens (from `computePerAppUsage`), and an "I'll skip this time" button; the app opens automatically when the pause ends. Original: one app free (Pro: unlimited)
+4. ⬜ **Mind Space Awareness/Action tabs** — split `mind_space_panel.dart` into bottom tabs: Awareness (today's existing stats) and Action (the tool list: Mindful Pause, Mindful Timer, Mindful Break, Focus Mode, each opening a short explainer page the first time, then its settings). Move the Pause/Timer/Focus tiles into Action
+5. ⬜ **Focus Mode session screen** — while a session is active, Home shows a full-screen session view instead of the clock: date line, elapsed timer, a start → end progress bar, and an "Apps" button opening the allowed apps. Exiting early needs a long press, followed by a "You focused for X" summary. Replace the 15/30/60 timer sheet with a ruler-style duration picker in 15-minute steps showing the end time
+6. ⬜ **Mindful Timer** — named groups of apps with a daily budget (blocks the whole group once reached) and an optional cooldown before reopening. Opening a tracked app first asks how long this session should be. Time spent comes from usage events; the launcher can't interrupt another app mid-session, so a session ending while that app is open needs a notification reminder (shares the notification plumbing with task 8)
+7. ⬜ **Mindful Break** (Pro) — put one app away for 1, 3, 7, or 30 days: it's hidden from the drawer and Spotlight, and launching it shows a quiet block screen until the break ends
+8. ⬜ **Focus schedules** — named schedules (days of week, start time, duration) that remind the user to start Focus at the set time. Needs exact alarms + `POST_NOTIFICATIONS`: decide between a native `AlarmManager` bridge (matches the existing bridges) and a plugin before starting. Strict mode (Pro: no early exit) is a toggle on the session
+9. ⬜ **Reflect tab** — a Now/Reflect switch at the top of Awareness: Reflect shows yesterday's totals and a screen-time trend over up to 14 days with a one-line summary ("Holding steady…"), reusing `computeMindSpaceTotals` per day. Add a "Productive apps" list (via task 2's picker) whose time is left out of Mind Space stats
+
+### Phase 8 — Home and App Drawer controls
+Tasks, in build order:
+
+1. ⬜ **Per-app customizations store** — one persisted service holding pinned, hidden, and renamed apps, read by the App Drawer, Spotlight Search, and the App Folder picker through a single helper wrapping `InstalledAppsService.loadApps`
+2. ⬜ **App long-press menu** — in the App Drawer: Open, Rename, Pin/Unpin, Hide, App Info (`Settings.ACTION_APPLICATION_DETAILS_SETTINGS` via a small native method). Pinned apps get their own section at the top of the drawer, which the index's ★ jumps to; hidden apps disappear from the drawer and Spotlight
+3. ⬜ **Hidden apps page** — Settings row listing hidden apps, with unhide
+4. ⬜ **Configurable dock** — replace `home_panel.dart`'s static `_pinnedApps` placeholders with four slots, each set to a real app (chosen with the existing app picker) and launched through `launchApp`. The dock keeps its own line glyphs by default
+5. ⬜ **Drawer and Spotlight behaviour toggles** — open the drawer with the keyboard up, auto-open when one search result is left (drawer and Spotlight), recent apps at the top (from usage stats), and hide apps unused for 30 days (still searchable). Spotlight gets the keyboard up on open plus a recent-apps row
+6. ⬜ **Clock tap action** — tapping the Home clock/date opens the clock app (`AlarmClock.ACTION_SHOW_ALARMS`)
+7. ⬜ **Configurable gestures** — Settings → Home: swipe down = Spotlight / notification tray / none; double-tap = lock screen / none. The notification tray and lock screen both need native work (lock via an `AccessibilityService` `GLOBAL_ACTION_LOCK_SCREEN`, a significant permission to ask for), so this goes last
+
+### Phase 9 — More My Space tiles
+Each new kind extends `TileKind`, `builtInTileSpecs`, and `_TileList`. Tasks, in build order:
+
+1. ⬜ **Manage Tiles** — a screen to drag tiles into a new order (`ReorderableListView`) and delete them, persisted through `MySpaceService`; the Add New Tile sheet shows a preview of each tile before it's added
+2. ⬜ **Quote tile** — a bundled list of quotes with attribution, one per day, plus a refresh button
+3. ⬜ **Hydration tile** — one tap per glass, resets daily, with a daily goal
+4. ⬜ **Screen Time tile** (Pro) — today's screen time, unlocks, and the top three apps with opens and minutes, reusing the Mind Space computations
+5. ⬜ **Calendar tile** — upcoming events from the device calendar (needs `READ_CALENDAR`; decide between a native `CalendarContract` bridge and a plugin)
+6. ⬜ **Music tile** — now playing with play/pause/skip, via a `NotificationListenerService` + `MediaSessionManager` bridge. The heaviest permission ask of the tiles, so it's last
+
+### Phase 10 — Appearance and polish
+Tasks, in build order:
+
+1. ⬜ **Theme Auto + Toggles group** — add an Auto theme option (`ThemeMode.system`) alongside Light/Dark, and the mockup's "Toggles" group at the top of the Settings sheet (a Theme row and a Focus Mode row)
+2. ⬜ **Home layout options** — three clock styles, three clock positions, show/hide the Spotlight search bar, and show/hide the status bar, all in `AppSettings`
+3. ⬜ **Gradient wallpapers** — grow `wallpaperPresets` from 5 flat colours to the original's 8 soft gradients, with light and dark variants
+4. ⬜ **Units and format** — 12/24-hour clock and °C/°F for the Weather tile
+5. ⬜ **Fonts** — four font families (DM Sans, Noto Serif, Open Sans, Roboto) and a size setting; decide between bundling them and a fonts package
+6. ⬜ **Icon tints** — grayscale app icons by default, plus Muted / Classic / Cool Tone / Invert tints, applied wherever `AppIcon` renders
+7. ⬜ **Drawer look editor** — list or grid (3-5 columns), icon size or no icons, label size / two lines / no labels, row height, and A-Z section headers on or off, with a live preview and Reset
+8. ⬜ **Guided tours** — replace the post-onboarding tutorial with a "Take a look around" chip on Home offering goal-based tours (Find my apps / Use my phone less / Organize my day / Customize my home) that point at the real controls with tooltips
 
 ## Commands
 
