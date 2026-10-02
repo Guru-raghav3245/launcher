@@ -6,6 +6,7 @@ import '../../search/app_result_row.dart';
 import '../../search/app_search.dart';
 import '../../search/app_search_bar.dart';
 import '../../services/installed_apps_service.dart';
+import '../../widgets/launch_app.dart';
 import '../tile_card.dart';
 
 /// App Folder tile: a grid of shortcuts to apps the user picked. Packages
@@ -75,7 +76,7 @@ class _AppFolderTileState extends State<AppFolderTile> {
                 for (final app in selected)
                   _AppShortcut(
                     app: app,
-                    onTap: () => _service.launch(app.packageName),
+                    onTap: () => launchApp(context, app),
                     onLongPress: () => _remove(app.packageName),
                   ),
               ],

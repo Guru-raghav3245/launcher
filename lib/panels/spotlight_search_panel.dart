@@ -5,6 +5,7 @@ import '../search/app_result_row.dart';
 import '../search/app_search.dart';
 import '../search/app_search_bar.dart';
 import '../services/installed_apps_service.dart';
+import '../widgets/launch_app.dart';
 
 /// Spotlight Search panel (swipe down from Home): a search-first overlay
 /// for opening an app "with intention" — no browsing/sectioned list, just
@@ -81,7 +82,7 @@ class _SpotlightSearchPanelState extends State<SpotlightSearchPanel> {
                     itemCount: results.length,
                     itemBuilder: (context, index) {
                       final app = results[index];
-                      return AppResultRow(app: app, onTap: () => _service.launch(app.packageName));
+                      return AppResultRow(app: app, onTap: () => launchApp(context, app));
                     },
                   );
                 },

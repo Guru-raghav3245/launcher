@@ -5,6 +5,7 @@ import '../search/app_result_row.dart';
 import '../search/app_search.dart';
 import '../search/app_search_bar.dart';
 import '../services/installed_apps_service.dart';
+import '../widgets/launch_app.dart';
 
 const _headerHeight = 32.0;
 const _itemHeight = 64.0;
@@ -75,10 +76,10 @@ class _AppDrawerPanelState extends State<AppDrawerPanel> {
                     return _DrawerList(
                       apps: apps,
                       scrollController: _scrollController,
-                      onLaunch: _service.launch,
+                      onLaunch: (app) => launchApp(context, app),
                     );
                   }
-                  return _FlatList(apps: apps, onLaunch: _service.launch);
+                  return _FlatList(apps: apps, onLaunch: (app) => launchApp(context, app));
                 },
               ),
             ),
@@ -93,7 +94,7 @@ class _FlatList extends StatelessWidget {
   const _FlatList({required this.apps, required this.onLaunch});
 
   final List<AppInfo> apps;
-  final ValueChanged<String> onLaunch;
+  final ValueChanged<AppInfo> onLaunch;
 
   @override
   Widget build(BuildContext context) {
@@ -104,7 +105,7 @@ class _FlatList extends StatelessWidget {
       itemCount: apps.length,
       itemBuilder: (context, index) {
         final app = apps[index];
-        return AppResultRow(app: app, onTap: () => onLaunch(app.packageName));
+        return AppResultRow(app: app, onTap: () => onLaunch(app));
       },
     );
   }
@@ -119,7 +120,7 @@ class _DrawerList extends StatelessWidget {
 
   final List<AppInfo> apps;
   final ScrollController scrollController;
-  final ValueChanged<String> onLaunch;
+  final ValueChanged<AppInfo> onLaunch;
 
   @override
   Widget build(BuildContext context) {
@@ -151,7 +152,7 @@ class _DrawerList extends StatelessWidget {
           itemBuilder: (context, index) {
             final item = flatItems[index];
             if (item is String) return _SectionHeader(letter: item);
-            return AppResultRow(app: item as AppInfo, onTap: () => onLaunch((item).packageName));
+            return AppResultRow(app: item as AppInfo, onTap: () => onLaunch(item));
           },
         ),
         Positioned(

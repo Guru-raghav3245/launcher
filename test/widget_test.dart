@@ -220,4 +220,37 @@ void main() {
     await tester.pumpAndSettle();
     expect(await const FocusModeService().essentials(), isEmpty);
   });
+
+  testWidgets('Focus Mode refuses non-essential launches with a message', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'focus_mode_active': true,
+      'focus_mode_essentials': ['com.clock'],
+    });
+    final started = <Object?>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('installed_apps'), (call) async {
+      if (call.method == 'startApp') {
+        started.add(call.arguments);
+        return true;
+      }
+      return [
+        {'name': 'Camera', 'package_name': 'com.camera'},
+        {'name': 'Clock', 'package_name': 'com.clock'},
+      ];
+    });
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up → App Drawer
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Camera'));
+    await tester.pumpAndSettle();
+    expect(find.text("Focus Mode is on · Camera isn't an essential app"), findsOneWidget);
+    expect(started, isEmpty);
+
+    await tester.tap(find.text('Clock'));
+    await tester.pumpAndSettle();
+    expect(started, hasLength(1));
+  });
 }
