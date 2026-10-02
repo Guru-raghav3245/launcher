@@ -41,4 +41,21 @@ void main() {
     expect(status.active, true);
     expect(status.remaining!.inMinutes, 9); // just under 10, clock ticked a bit
   });
+
+  test('essential apps stay launchable during a session; others are blocked', () async {
+    await service.setEssential('com.clock', true);
+    await service.start();
+    expect(await service.isBlocked('com.clock'), false);
+    expect(await service.isBlocked('com.camera'), true);
+
+    await service.setEssential('com.clock', false);
+    expect(await service.isBlocked('com.clock'), true);
+  });
+
+  test('essentials persist and start empty', () async {
+    expect(await service.essentials(), isEmpty);
+    await service.setEssential('com.clock', true);
+    await service.setEssential('com.phone', true);
+    expect(await service.essentials(), {'com.clock', 'com.phone'});
+  });
 }

@@ -15,12 +15,14 @@ class FocusStatus {
 /// Persists and enforces the single Focus Mode session shared by the Mind
 /// Space quick actions (Phase 4 task 6: Pause/Timer/Focus Mode all start or
 /// stop this same session) and Settings' Focus Mode toggle (Phase 5).
-/// [InstalledAppsService.launch] consults [isBlocked] before opening an app.
+/// [InstalledAppsService.launch] consults [isBlocked] before opening an app;
+/// apps in [essentials] are never blocked.
 class FocusModeService {
   const FocusModeService();
 
   static const _activeKey = 'focus_mode_active';
   static const _endsAtKey = 'focus_mode_ends_at';
+  static const _essentialsKey = 'focus_mode_essentials';
 
   /// Fires after every [start]/[stop], so each on-screen copy of the quick
   /// actions (Mind Space panel, Settings sheet) can re-read [status].
@@ -58,7 +60,23 @@ class FocusModeService {
     changes.value++;
   }
 
-  // ponytail: blocks every app with no exceptions; add an essential-apps
-  // allowlist once Phase 5's Settings screen has somewhere to configure one.
-  Future<bool> isBlocked(String packageName) async => (await status()).active;
+  /// Package names that stay launchable during a session. Starts empty.
+  Future<Set<String>> essentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    return (prefs.getStringList(_essentialsKey) ?? const []).toSet();
+  }
+
+  Future<void> setEssential(String packageName, bool essential) async {
+    final current = await essentials();
+    if (essential) {
+      current.add(packageName);
+    } else {
+      current.remove(packageName);
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_essentialsKey, current.toList());
+  }
+
+  Future<bool> isBlocked(String packageName) async =>
+      (await status()).active && !(await essentials()).contains(packageName);
 }
