@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../search/app_search.dart';
 import '../search/app_search_bar.dart';
 import '../state/app_settings_scope.dart';
+import '../widgets/segmented_toggle.dart';
 
 /// Opens Settings as a near-full-height bottom sheet over the launcher,
 /// matching the mockup (drag handle, dimmed status bar behind it).
@@ -18,14 +19,15 @@ Future<void> showSettingsScreen(BuildContext context) {
 }
 
 /// One searchable settings entry, shown as a row inside its [group].
-typedef _SettingsEntry = ({String group, IconData icon, String title});
+/// [onTap] is null for rows whose destination a later task builds.
+typedef _SettingsEntry = ({String group, IconData icon, String title, void Function(BuildContext)? onTap});
 
 /// Every entry the sheet can show, in display order. Later Phase 5 tasks
 /// add Toggles / Mind Space / Restart entries here so search covers them.
 const _entries = <_SettingsEntry>[
-  (group: 'Settings', icon: Icons.palette_outlined, title: 'Appearance'),
-  (group: 'Settings', icon: Icons.contrast, title: 'Launcher Settings'),
-  (group: 'Settings', icon: Icons.settings_outlined, title: 'System Settings'),
+  (group: 'Settings', icon: Icons.palette_outlined, title: 'Appearance', onTap: _showAppearance),
+  (group: 'Settings', icon: Icons.contrast, title: 'Launcher Settings', onTap: null),
+  (group: 'Settings', icon: Icons.settings_outlined, title: 'System Settings', onTap: null),
 ];
 
 /// Settings sheet: a search field over grouped, outlined rows with hairline
@@ -90,7 +92,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _SectionHeader(group, isDark: isDark),
             _SettingsGroup(
               isDark: isDark,
-              rows: [for (final e in entries) _SettingsRow(icon: e.icon, title: e.title)],
+              rows: [for (final e in entries) _SettingsRow(icon: e.icon, title: e.title, onTap: e.onTap)],
             ),
           ],
         ],
@@ -146,10 +148,11 @@ class _SettingsGroup extends StatelessWidget {
 }
 
 class _SettingsRow extends StatelessWidget {
-  const _SettingsRow({required this.icon, required this.title});
+  const _SettingsRow({required this.icon, required this.title, this.onTap});
 
   final IconData icon;
   final String title;
+  final void Function(BuildContext)? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -158,6 +161,44 @@ class _SettingsRow extends StatelessWidget {
       leading: Icon(icon),
       title: Text(title, style: const TextStyle(fontSize: 18, letterSpacing: 0.5)),
       trailing: const Icon(Icons.chevron_right),
+      onTap: onTap == null ? null : () => onTap!(context),
     );
   }
+}
+
+/// Appearance sub-sheet: the onboarding Light/Dark toggle, bound to the
+/// same [AppSettings.isDark] so both places stay in sync.
+void _showAppearance(BuildContext context) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (context) {
+      final settings = AppSettingsScope.of(context);
+      final isDark = settings.isDark;
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SectionHeader('Appearance', isDark: isDark),
+            Row(
+              children: [
+                const Expanded(child: Text('Theme', style: TextStyle(fontSize: 18, letterSpacing: 0.5))),
+                SegmentedToggle<bool>(
+                  value: isDark,
+                  onChanged: settings.setDark,
+                  options: const [
+                    (false, Icons.wb_sunny_outlined, 'Light'),
+                    (true, Icons.nightlight_round, 'Dark'),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    },
+  );
 }

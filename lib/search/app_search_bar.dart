@@ -24,15 +24,17 @@ class AppSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final iconColor = isDark ? Colors.white60 : Colors.black54;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.05),
+        color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(24),
       ),
       child: Row(
         children: [
-          const Icon(Icons.search, color: Colors.black54, size: 20),
+          Icon(Icons.search, color: iconColor, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
@@ -50,14 +52,14 @@ class AppSearchBar extends StatelessWidget {
             builder: (context, _) {
               if (controller.text.isEmpty) return const SizedBox.shrink();
               return IconButton(
-                icon: const Icon(Icons.close, color: Colors.black54, size: 20),
+                icon: Icon(Icons.close, color: iconColor, size: 20),
                 onPressed: controller.clear,
               );
             },
           ),
           if (showSortControl)
             PopupMenuButton<AppSortMode>(
-              icon: const Icon(Icons.tune, color: Colors.black54, size: 20),
+              icon: Icon(Icons.tune, color: iconColor, size: 20),
               initialValue: sortMode,
               onSelected: onSortModeChanged,
               itemBuilder: (context) => const [

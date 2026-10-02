@@ -78,4 +78,21 @@ void main() {
     expect(find.text('Launcher Settings'), findsNothing);
     expect(find.textContaining('No settings match'), findsOneWidget);
   });
+
+  testWidgets('Appearance toggle switches the app theme', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.longPress(find.byType(HomePanel));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Appearance'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Dark'));
+    await tester.pumpAndSettle();
+
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.themeMode, ThemeMode.dark);
+  });
 }

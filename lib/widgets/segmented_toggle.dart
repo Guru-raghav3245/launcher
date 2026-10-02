@@ -11,10 +11,11 @@ class SegmentedToggle<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.black26),
+        border: Border.all(color: isDark ? Colors.white24 : Colors.black26),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -48,9 +49,14 @@ class _Segment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? Colors.white : Colors.black54;
+    // Selected = solid ink fill with inverted text; ink is black in light
+    // theme and white in dark theme.
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ink = isDark ? Colors.white : Colors.black;
+    final paper = isDark ? Colors.black : Colors.white;
+    final color = selected ? paper : (isDark ? Colors.white60 : Colors.black54);
     return Material(
-      color: selected ? Colors.black : Colors.transparent,
+      color: selected ? ink : Colors.transparent,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
