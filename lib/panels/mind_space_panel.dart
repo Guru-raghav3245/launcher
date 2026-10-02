@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
 
+import '../mind_space/action_tab.dart';
 import '../search/app_result_row.dart';
 import '../services/focus_mode_service.dart';
 import '../services/installed_apps_service.dart';
@@ -179,6 +180,7 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
   List<PerAppUsage>? _perApp;
   HabitsInsight? _habits;
   Map<String, AppInfo> _appsByPackage = const {};
+  var _tab = _MindSpaceTab.awareness;
 
   @override
   void initState() {
@@ -227,43 +229,91 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
   Widget build(BuildContext context) {
     final isDark = AppSettingsScope.of(context).isDark;
     final hasAccess = _hasAccess;
+    final Widget awareness = hasAccess == null
+        ? const Center(child: CircularProgressIndicator())
+        : hasAccess
+        ? ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            children: [
+              _Totals(
+                totals: _totals ?? const MindSpaceTotals(screenTime: Duration.zero, pickups: 0),
+                isDark: isDark,
+              ),
+              const SizedBox(height: 40),
+              _HourlyChart(hourly: _hourly ?? const [], isDark: isDark),
+              const SizedBox(height: 40),
+              _PerAppBreakdown(perApp: _perApp ?? const [], appsByPackage: _appsByPackage, isDark: isDark),
+              const SizedBox(height: 40),
+              _HabitsSection(
+                habits: _habits ?? const HabitsInsight(topPackage: null, topCount: 0, totalUnlocks: 0),
+                appsByPackage: _appsByPackage,
+                isDark: isDark,
+              ),
+            ],
+          )
+        : Center(
+            child: FilledButton(onPressed: _service.requestAccess, child: const Text('Grant usage access')),
+          );
     return Container(
       color: isDark ? const Color(0xFF000000) : Colors.white,
       child: SafeArea(
-        child: hasAccess == null
-            ? const Center(child: CircularProgressIndicator())
-            : hasAccess
-            ? ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                children: [
-                  _Totals(
-                    totals: _totals ?? const MindSpaceTotals(screenTime: Duration.zero, pickups: 0),
-                    isDark: isDark,
+        child: Column(
+          children: [
+            Expanded(child: _tab == _MindSpaceTab.awareness ? awareness : const ActionTab()),
+            _BottomTabs(selected: _tab, isDark: isDark, onSelected: (tab) => setState(() => _tab = tab)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+enum _MindSpaceTab { awareness, action }
+
+/// Awareness / Action switch along the bottom of Mind Space: selected tab
+/// in full ink, the other faded (no accent color, per DESIGN_LANGUAGE.md).
+class _BottomTabs extends StatelessWidget {
+  const _BottomTabs({required this.selected, required this.isDark, required this.onSelected});
+
+  final _MindSpaceTab selected;
+  final bool isDark;
+  final ValueChanged<_MindSpaceTab> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = isDark ? Colors.white : Colors.black;
+    Widget tab(_MindSpaceTab value, IconData icon, String label) {
+      final color = value == selected ? ink : ink.withValues(alpha: 0.35);
+      return Expanded(
+        child: InkWell(
+          onTap: () => onSelected(value),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Column(
+              children: [
+                Icon(icon, color: color),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: value == selected ? FontWeight.bold : FontWeight.normal,
                   ),
-                  const SizedBox(height: 40),
-                  _HourlyChart(hourly: _hourly ?? const [], isDark: isDark),
-                  const SizedBox(height: 40),
-                  _PerAppBreakdown(
-                    perApp: _perApp ?? const [],
-                    appsByPackage: _appsByPackage,
-                    isDark: isDark,
-                  ),
-                  const SizedBox(height: 40),
-                  _HabitsSection(
-                    habits: _habits ?? const HabitsInsight(topPackage: null, topCount: 0, totalUnlocks: 0),
-                    appsByPackage: _appsByPackage,
-                    isDark: isDark,
-                  ),
-                  const SizedBox(height: 40),
-                  const FocusQuickActions(),
-                ],
-              )
-            : Center(
-                child: FilledButton(
-                  onPressed: _service.requestAccess,
-                  child: const Text('Grant usage access'),
                 ),
-              ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return DecoratedBox(
+      decoration: BoxDecoration(border: Border(top: BorderSide(color: ink.withValues(alpha: 0.08)))),
+      child: Row(
+        children: [
+          tab(_MindSpaceTab.awareness, Icons.lightbulb_outline, 'Awareness'),
+          tab(_MindSpaceTab.action, Icons.auto_awesome_outlined, 'Action'),
+        ],
       ),
     );
   }

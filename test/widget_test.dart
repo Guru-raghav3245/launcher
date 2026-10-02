@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:launcher/main.dart';
+import 'package:launcher/mind_space/tool_pages.dart';
 import 'package:launcher/onboarding/onboarding_flow.dart';
 import 'package:launcher/onboarding/steps/welcome_step.dart';
 import 'package:launcher/panels/home_panel.dart';
@@ -295,5 +296,39 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Mindful Pause'), findsNothing);
     expect(started, hasLength(1));
+  });
+
+  testWidgets('Action tab opens a tool through its one-time explainer', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('yinyang.launcher/usage'),
+      (call) async => call.method == 'hasAccess' ? false : null,
+    );
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(-400, 0), 1000); // swipe left → Mind Space
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Action'));
+    await tester.pumpAndSettle();
+
+    // First visit: the explainer, then the tool's page.
+    await tester.tap(find.text('Mindful Pause'));
+    await tester.pumpAndSettle();
+    expect(find.text('What it does'), findsOneWidget);
+    // The explainer's ListView builds lazily; scroll until the button exists.
+    await tester.scrollUntilVisible(find.text("Let's go"), 200, scrollable: find.byType(Scrollable).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("Let's go"));
+    await tester.pumpAndSettle();
+    expect(find.byType(MindfulPausePage), findsOneWidget);
+
+    // Later visits go straight to the page.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mindful Pause'));
+    await tester.pumpAndSettle();
+    expect(find.text('What it does'), findsNothing);
+    expect(find.byType(MindfulPausePage), findsOneWidget);
   });
 }
