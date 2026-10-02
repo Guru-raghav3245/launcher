@@ -1,38 +1,55 @@
 import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
 
-import '../search/app_result_row.dart';
-import '../search/app_search.dart';
-import '../search/app_search_bar.dart';
-import '../services/focus_mode_service.dart';
 import '../services/installed_apps_service.dart';
+import 'app_result_row.dart';
+import 'app_search.dart';
+import 'app_search_bar.dart';
 
-/// Picker for the apps Focus Mode lets through. Modeled on the App Folder
-/// tile's app picker: search + sort over installed apps, one checkbox each.
-Future<void> showEssentialAppsSheet(BuildContext context) {
+/// Checkbox picker over installed apps, for any feature that keeps a set of
+/// package names (Focus Mode's essential apps, Mindful Pause, ...). Modeled
+/// on the App Folder tile's single-app picker: search + sort, one checkbox
+/// per app. [load] reads the current selection; every toggle is saved
+/// immediately through [onChanged], so there's no Save button.
+Future<void> showAppMultiPicker(
+  BuildContext context, {
+  required String title,
+  required String subtitle,
+  required Future<Set<String>> Function() load,
+  required Future<void> Function(String packageName, bool selected) onChanged,
+}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-    builder: (context) => const _EssentialAppsSheet(),
+    builder: (context) => _AppMultiPickerSheet(title: title, subtitle: subtitle, load: load, onChanged: onChanged),
   );
 }
 
-class _EssentialAppsSheet extends StatefulWidget {
-  const _EssentialAppsSheet();
+class _AppMultiPickerSheet extends StatefulWidget {
+  const _AppMultiPickerSheet({
+    required this.title,
+    required this.subtitle,
+    required this.load,
+    required this.onChanged,
+  });
+
+  final String title;
+  final String subtitle;
+  final Future<Set<String>> Function() load;
+  final Future<void> Function(String packageName, bool selected) onChanged;
 
   @override
-  State<_EssentialAppsSheet> createState() => _EssentialAppsSheetState();
+  State<_AppMultiPickerSheet> createState() => _AppMultiPickerSheetState();
 }
 
-class _EssentialAppsSheetState extends State<_EssentialAppsSheet> {
-  final _focusMode = const FocusModeService();
+class _AppMultiPickerSheetState extends State<_AppMultiPickerSheet> {
   final _controller = TextEditingController();
   var _sortMode = AppSortMode.alphabetical;
   List<AppInfo>? _apps;
-  Set<String> _essentials = {};
+  Set<String> _selected = {};
 
-  /// Essentials as of opening the sheet. These sort to the top; the order
+  /// Selection as of opening the sheet. These sort to the top; the order
   /// is fixed while the sheet is open so rows don't jump when toggled.
   Set<String> _pinned = {};
 
@@ -43,18 +60,18 @@ class _EssentialAppsSheetState extends State<_EssentialAppsSheet> {
   }
 
   Future<void> _load() async {
-    final (apps, essentials) = await (const InstalledAppsService().loadApps(), _focusMode.essentials()).wait;
+    final (apps, selected) = await (const InstalledAppsService().loadApps(), widget.load()).wait;
     if (!mounted) return;
     setState(() {
       _apps = apps;
-      _essentials = essentials;
-      _pinned = {...essentials};
+      _selected = selected;
+      _pinned = {...selected};
     });
   }
 
-  Future<void> _toggle(String packageName, bool essential) async {
-    setState(() => essential ? _essentials.add(packageName) : _essentials.remove(packageName));
-    await _focusMode.setEssential(packageName, essential);
+  Future<void> _toggle(String packageName, bool selected) async {
+    setState(() => selected ? _selected.add(packageName) : _selected.remove(packageName));
+    await widget.onChanged(packageName, selected);
   }
 
   @override
@@ -76,16 +93,16 @@ class _EssentialAppsSheetState extends State<_EssentialAppsSheet> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Essential apps',
+              Text(
+                widget.title,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'These still open while Focus Mode is on.',
+              Text(
+                widget.subtitle,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
+                style: const TextStyle(color: Colors.grey),
               ),
               const SizedBox(height: 16),
               AppSearchBar(
@@ -109,12 +126,12 @@ class _EssentialAppsSheetState extends State<_EssentialAppsSheet> {
                             itemCount: ordered.length,
                             itemBuilder: (context, index) {
                               final app = ordered[index];
-                              final essential = _essentials.contains(app.packageName);
+                              final selected = _selected.contains(app.packageName);
                               return AppResultRow(
                                 app: app,
-                                onTap: () => _toggle(app.packageName, !essential),
+                                onTap: () => _toggle(app.packageName, !selected),
                                 trailing: Checkbox(
-                                  value: essential,
+                                  value: selected,
                                   activeColor: isDark ? Colors.white : Colors.black,
                                   checkColor: isDark ? Colors.black : Colors.white,
                                   onChanged: (value) => _toggle(app.packageName, value ?? false),
