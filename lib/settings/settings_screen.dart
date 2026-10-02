@@ -8,6 +8,7 @@ import '../onboarding/wallpaper_picker.dart';
 import '../panels/mind_space_panel.dart';
 import '../search/app_search.dart';
 import '../services/launcher_role_service.dart';
+import 'essential_apps_sheet.dart';
 import '../services/usage_stats_service.dart';
 import '../search/app_search_bar.dart';
 import '../state/app_settings.dart';
@@ -45,6 +46,7 @@ const _entries = <_SettingsEntry>[
   (group: 'Settings', icon: Icons.palette_outlined, title: 'Appearance', onTap: _showAppearance),
   (group: 'Settings', icon: Icons.contrast, title: 'Launcher Settings', onTap: _showLauncherSettings),
   (group: 'Settings', icon: Icons.settings_outlined, title: 'System Settings', onTap: _showSystemSettings),
+  (group: 'Settings', icon: Icons.verified_outlined, title: 'Essential apps', onTap: showEssentialAppsSheet),
 ];
 
 /// Settings sheet: a search field over grouped, outlined rows with hairline

@@ -194,4 +194,30 @@ void main() {
     await tester.pump();
     expect(calls, ['restart']);
   });
+
+  testWidgets('Essential apps picker saves checked apps', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('installed_apps'),
+      (call) async => [
+        {'name': 'Camera', 'package_name': 'com.camera'},
+        {'name': 'Clock', 'package_name': 'com.clock'},
+      ],
+    );
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.longPress(find.byType(HomePanel));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Essential apps'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Clock'));
+    await tester.pumpAndSettle();
+    expect(await const FocusModeService().essentials(), {'com.clock'});
+
+    await tester.tap(find.text('Clock'));
+    await tester.pumpAndSettle();
+    expect(await const FocusModeService().essentials(), isEmpty);
+  });
 }
