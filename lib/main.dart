@@ -32,11 +32,19 @@ class _YinYangLauncherAppState extends State<YinYangLauncherApp> {
             title: 'Yin Yang Launcher',
             debugShowCheckedModeBanner: false,
             themeMode: _settings.isDark ? ThemeMode.dark : ThemeMode.light,
-            theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.black)),
+            // Monochrome: the design has no accent hue (DESIGN_LANGUAGE.md);
+            // the default seeded scheme tinted sheets/buttons pink.
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: Colors.black,
+                dynamicSchemeVariant: DynamicSchemeVariant.monochrome,
+              ),
+            ),
             darkTheme: ThemeData(
               colorScheme: ColorScheme.fromSeed(
                 seedColor: Colors.black,
                 brightness: Brightness.dark,
+                dynamicSchemeVariant: DynamicSchemeVariant.monochrome,
               ),
             ),
             home: FutureBuilder<void>(
