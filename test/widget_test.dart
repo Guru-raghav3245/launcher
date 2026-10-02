@@ -253,4 +253,47 @@ void main() {
     await tester.pumpAndSettle();
     expect(started, hasLength(1));
   });
+
+  testWidgets('Mindful Pause delays a paused app, and skipping cancels it', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'mindful_pause_apps': ['com.chrome'],
+    });
+    final started = <Object?>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('installed_apps'), (call) async {
+      if (call.method == 'startApp') {
+        started.add(call.arguments);
+        return true;
+      }
+      return [
+        {'name': 'Chrome', 'package_name': 'com.chrome'},
+      ];
+    });
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up → App Drawer
+    await tester.pumpAndSettle();
+
+    // Skipping closes the pause without launching.
+    await tester.tap(find.text('Chrome'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('Mindful Pause'), findsOneWidget);
+    await tester.tap(find.text("I'll skip this time"));
+    // The exit animation starts on the frame after the tap, so give it two.
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Mindful Pause'), findsNothing);
+    expect(started, isEmpty);
+
+    // Waiting out the 10-second pause launches the app.
+    await tester.tap(find.text('Chrome'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 11));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Mindful Pause'), findsNothing);
+    expect(started, hasLength(1));
+  });
 }

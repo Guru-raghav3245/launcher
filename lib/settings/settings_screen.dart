@@ -10,6 +10,7 @@ import '../search/app_multi_picker_sheet.dart';
 import '../search/app_search.dart';
 import '../services/focus_mode_service.dart';
 import '../services/launcher_role_service.dart';
+import '../services/mindful_pause_service.dart';
 import '../services/usage_stats_service.dart';
 import '../search/app_search_bar.dart';
 import '../state/app_settings.dart';
@@ -48,6 +49,7 @@ const _entries = <_SettingsEntry>[
   (group: 'Settings', icon: Icons.contrast, title: 'Launcher Settings', onTap: _showLauncherSettings),
   (group: 'Settings', icon: Icons.settings_outlined, title: 'System Settings', onTap: _showSystemSettings),
   (group: 'Settings', icon: Icons.verified_outlined, title: 'Essential apps', onTap: _showEssentialApps),
+  (group: 'Settings', icon: Icons.self_improvement, title: 'Mindful Pause', onTap: _showMindfulPause),
 ];
 
 /// Settings sheet: a search field over grouped, outlined rows with hairline
@@ -442,6 +444,89 @@ class _StatusRow extends StatelessWidget {
       subtitle: Text(status),
       trailing: const Icon(Icons.chevron_right),
       onTap: onTap,
+    );
+  }
+}
+
+/// Mindful Pause: how long the breathing screen lasts, and which apps get
+/// it. Moves to Mind Space's Action tab in Phase 7 task 4.
+void _showMindfulPause(BuildContext context) {
+  _showSubSheet(context, 'Mindful Pause', (context, settings) => const [_MindfulPauseRows()]);
+}
+
+class _MindfulPauseRows extends StatefulWidget {
+  const _MindfulPauseRows();
+
+  @override
+  State<_MindfulPauseRows> createState() => _MindfulPauseRowsState();
+}
+
+class _MindfulPauseRowsState extends State<_MindfulPauseRows> {
+  final _pause = const MindfulPauseService();
+  int? _seconds;
+  int _appCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+  }
+
+  Future<void> _refresh() async {
+    final (seconds, apps) = await (_pause.seconds(), _pause.pausedApps()).wait;
+    if (!mounted) return;
+    setState(() {
+      _seconds = seconds;
+      _appCount = apps.length;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final seconds = _seconds;
+    if (seconds == null) return const SizedBox(height: 120);
+    final isDark = AppSettingsScope.of(context).isDark;
+    final ink = isDark ? Colors.white : Colors.black;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'A breath before the apps you choose. Pause for $seconds seconds.',
+          style: TextStyle(color: isDark ? Colors.white60 : Colors.black54),
+        ),
+        Slider(
+          value: seconds.toDouble(),
+          min: MindfulPauseService.minSeconds.toDouble(),
+          max: MindfulPauseService.maxSeconds.toDouble(),
+          divisions: (MindfulPauseService.maxSeconds - MindfulPauseService.minSeconds) ~/ 5,
+          label: '${seconds}s',
+          activeColor: ink,
+          inactiveColor: ink.withValues(alpha: 0.12),
+          onChanged: (value) => setState(() => _seconds = value.round()),
+          onChangeEnd: (value) => _pause.setSeconds(value.round()),
+        ),
+        const SizedBox(height: 8),
+        _SettingsGroup(
+          isDark: isDark,
+          rows: [
+            _StatusRow(
+              icon: Icons.apps,
+              title: 'Paused apps',
+              status: _appCount == 0 ? 'None yet' : '$_appCount ${_appCount == 1 ? 'app' : 'apps'}',
+              onTap: () async {
+                await showAppMultiPicker(
+                  context,
+                  title: 'Mindful Pause',
+                  subtitle: 'These open after a short breathing pause.',
+                  load: _pause.pausedApps,
+                  onChanged: _pause.setPaused,
+                );
+                await _refresh();
+              },
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
