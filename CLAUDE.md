@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-Phases 1-5 are complete (all tasks below), verified live on an Android emulator. Phase 6 (Focus Mode essential-apps allowlist) is complete too. Phases 7-10 come from a gap analysis against the real Yin Yang Launcher and haven't started. The intended product is documented below from UI mockups in `screenshots/`.
+Phases 1-5 are complete (all tasks below), verified live on an Android emulator. Phase 6 (Focus Mode essential-apps allowlist) is complete too. Phases 7-10 come from a gap analysis against the real Yin Yang Launcher; Phase 7 is in progress. The intended product is documented below from UI mockups in `screenshots/`.
 
 ## Product: Yin Yang Launcher
 
@@ -86,10 +86,10 @@ Focus Mode used to block every launch. This lets the user pick apps that stay la
 ### Gap analysis vs. the real Yin Yang Launcher
 Phases 7-10 come from driving the real app (v5.11.2, `com.yinyang.launcher`, installed from the Play Store on a separate `yinyang_playstore` emulator) screen by screen. "(Pro)" marks features the original gates behind its paid tier; we build them anyway unless noted, since we have no paywall. Deliberately out of scope: the paywall/Pro tier, account/profile page, app language, live and dynamic (animated) wallpapers, third-party icon packs, work-profile apps, and the review/invite/FAQ/support pages.
 
-### Phase 7 — Mind Space tools
+### Phase 7 — Mind Space tools — in progress
 The original's core identity: four tools that add friction to distracting apps. Like Focus Mode, they can only act on launches this launcher makes (see Phase 6's known limit). Tasks, in build order:
 
-1. ⬜ **Focus Mode starts with Phone and Messages allowed** — the original pre-allows them. Resolve the default dialer and SMS packages natively (`RoleManager` `ROLE_DIALER`/`ROLE_SMS` holders, falling back to `TelecomManager.defaultDialerPackage` / `Telephony.Sms.getDefaultSmsPackage`) and seed `FocusModeService` essentials once on first run, behind a flag so later removals stick
+1. ✅ **Focus Mode starts with Phone and Messages allowed** — `MainActivity.kt`'s role channel gained `defaultCommsPackages` (`TelecomManager.defaultDialerPackage` + `Telephony.Sms.getDefaultSmsPackage`; simpler than `RoleManager` role holders and works below Android 10), exposed as `LauncherRoleService.defaultCommsPackages`. `FocusModeService.essentials()` seeds the list from it the first time it's read, and the stored list's existence is the "seeded" flag: once written (even emptied), it's never re-seeded, so removals stick. If the channel is missing (tests), it starts empty. Tested with a mocked channel. Verified live: after removing the stored list, the Essential apps picker opened with Phone and Messages ticked; unticking Messages survived an app restart
 2. ⬜ **Reusable multi-app picker** — generalize `lib/settings/essential_apps_sheet.dart` into a picker that takes a title, subtitle, and a selected set, so Mindful Pause, Mindful Timer, and Productive apps reuse it instead of copying it
 3. ⬜ **Mindful Pause** — a service persisting the paused apps and a pause duration (10-60 s, default 10). `launchApp` checks it after Focus Mode: a paused app first shows a full-screen breathing overlay with a progress bar, that app's today usage and opens (from `computePerAppUsage`), and an "I'll skip this time" button; the app opens automatically when the pause ends. Original: one app free (Pro: unlimited)
 4. ⬜ **Mind Space Awareness/Action tabs** — split `mind_space_panel.dart` into bottom tabs: Awareness (today's existing stats) and Action (the tool list: Mindful Pause, Mindful Timer, Mindful Break, Focus Mode, each opening a short explainer page the first time, then its settings). Move the Pause/Timer/Focus tiles into Action
@@ -158,7 +158,7 @@ Do not add a `Co-Authored-By: Claude ...` (or similar AI-attribution) trailer to
 - `lib/services/` — platform-channel and persistence services (installed apps, onboarding flag, launcher role, My Space tiles, weather, app widgets, usage stats, Focus Mode); `installed_apps_service.dart`'s `launch` consults `focus_mode_service.dart` before opening an app — the one choke point all launch call sites (App Drawer, Spotlight Search, App Folder tile) route through
 - `lib/models/` — plain data models (`HomeLayoutMode`, `MySpaceTile`, `TileKind`)
 - `lib/widgets/` — small shared widgets (`SegmentedToggle`) and `launchApp`, the UI-side launch helper that explains Focus Mode refusals
-- `android/app/src/main/kotlin/.../MainActivity.kt` — native `RoleManager.ROLE_HOME` MethodChannel bridge (`yinyang.launcher/role`: `requestHomeRole`, `isDefaultLauncher`, `openHomeSettings`) plus the `yinyang.launcher/app` channel's `restart`; wires up `AppWidgetHostBridge`'s lifecycle/activity-result routing and attaches `UsageStatsBridge`
+- `android/app/src/main/kotlin/.../MainActivity.kt` — native `RoleManager.ROLE_HOME` MethodChannel bridge (`yinyang.launcher/role`: `requestHomeRole`, `isDefaultLauncher`, `openHomeSettings`, `defaultCommsPackages`) plus the `yinyang.launcher/app` channel's `restart`; wires up `AppWidgetHostBridge`'s lifecycle/activity-result routing and attaches `UsageStatsBridge`
 - `android/app/src/main/kotlin/.../AppWidgetHostBridge.kt` — native `AppWidgetHost`/`AppWidgetManager` bridge (`yinyang.launcher/appwidget` channel + `yinyang.launcher/appwidget_view` platform view) for the From-Apps tile
 - `android/app/src/main/kotlin/.../UsageStatsBridge.kt` — native `UsageStatsManager`/`AppOpsManager` bridge (`yinyang.launcher/usage` channel) for Mind Space
 - `test/` — widget tests; app startup is async (SharedPreferences), so tests use `SharedPreferences.setMockInitialValues` and `pumpAndSettle`

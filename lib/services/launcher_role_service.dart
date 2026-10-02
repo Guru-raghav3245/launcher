@@ -24,4 +24,8 @@ class LauncherRoleService {
   /// Opens the system Home-app picker (fire-and-forget, no result) so the
   /// user can switch default launcher in either direction.
   Future<void> openHomeSettings() => _channel.invokeMethod('openHomeSettings');
+
+  /// The default dialer and SMS app packages (either may be missing).
+  Future<List<String>> defaultCommsPackages() async =>
+      (await _channel.invokeListMethod<String>('defaultCommsPackages')) ?? const [];
 }

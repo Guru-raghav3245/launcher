@@ -1,8 +1,10 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:launcher/services/focus_mode_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   const service = FocusModeService();
 
   setUp(() {
@@ -57,5 +59,25 @@ void main() {
     await service.setEssential('com.clock', true);
     await service.setEssential('com.phone', true);
     expect(await service.essentials(), {'com.clock', 'com.phone'});
+  });
+
+  test('essentials are seeded once with the default dialer and SMS apps', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('yinyang.launcher/role'),
+      (call) async => call.method == 'defaultCommsPackages' ? ['com.dialer', 'com.sms'] : null,
+    );
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        const MethodChannel('yinyang.launcher/role'),
+        null,
+      ),
+    );
+
+    expect(await service.essentials(), {'com.dialer', 'com.sms'});
+
+    // Removing a default sticks: the list isn't re-seeded.
+    await service.setEssential('com.sms', false);
+    await service.setEssential('com.dialer', false);
+    expect(await service.essentials(), isEmpty);
   });
 }

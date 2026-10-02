@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'launcher_role_service.dart';
+
 /// A Focus Mode session: active with an optional end time (null means
 /// indefinite, stopped manually via [FocusModeService.stop]).
 class FocusStatus {
@@ -60,10 +62,26 @@ class FocusModeService {
     changes.value++;
   }
 
-  /// Package names that stay launchable during a session. Starts empty.
+  /// Package names that stay launchable during a session. On first use it
+  /// is seeded with the default dialer and SMS apps, like the original
+  /// launcher; once the list has been written (even emptied) it's never
+  /// re-seeded, so the user's removals stick.
   Future<Set<String>> essentials() async {
     final prefs = await SharedPreferences.getInstance();
-    return (prefs.getStringList(_essentialsKey) ?? const []).toSet();
+    final stored = prefs.getStringList(_essentialsKey);
+    if (stored != null) return stored.toSet();
+    final defaults = await _defaultEssentials();
+    await prefs.setStringList(_essentialsKey, defaults);
+    return defaults.toSet();
+  }
+
+  Future<List<String>> _defaultEssentials() async {
+    try {
+      return await const LauncherRoleService().defaultCommsPackages();
+    } catch (_) {
+      // No platform channel (tests, non-Android): start empty.
+      return const [];
+    }
   }
 
   Future<void> setEssential(String packageName, bool essential) async {
