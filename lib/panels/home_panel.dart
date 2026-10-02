@@ -4,6 +4,7 @@ import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
 
 import '../models/home_layout_mode.dart';
+import '../settings/settings_screen.dart';
 import '../state/app_settings_scope.dart';
 
 const _weekdayNames = [
@@ -104,22 +105,25 @@ class _HomePanelState extends State<HomePanel> {
         ? _formatDate(_now)
         : '${_formatDate(_now)}, $_batteryLevel%';
 
-    return Container(
-      // Dark theme always uses a near-black background; light theme uses
-      // the user's chosen wallpaper swatch as a subtle diagonal gradient.
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? const [Color(0xFF000000), Color(0xFF0B0B0D)]
-              : [settings.wallpaperColor, Color.lerp(settings.wallpaperColor, Colors.black, 0.06)!],
+    return GestureDetector(
+      onLongPress: () => showSettingsScreen(context),
+      child: Container(
+        // Dark theme always uses a near-black background; light theme uses
+        // the user's chosen wallpaper swatch as a subtle diagonal gradient.
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? const [Color(0xFF000000), Color(0xFF0B0B0D)]
+                : [settings.wallpaperColor, Color.lerp(settings.wallpaperColor, Colors.black, 0.06)!],
+          ),
         ),
-      ),
-      child: SafeArea(
-        child: settings.layoutMode == HomeLayoutMode.classic
-            ? _ClassicLayout(time: _formatTime(_now), subtitle: subtitle, isDark: isDark)
-            : _MinimalLayout(time: _formatTime(_now), subtitle: subtitle, isDark: isDark),
+        child: SafeArea(
+          child: settings.layoutMode == HomeLayoutMode.classic
+              ? _ClassicLayout(time: _formatTime(_now), subtitle: subtitle, isDark: isDark)
+              : _MinimalLayout(time: _formatTime(_now), subtitle: subtitle, isDark: isDark),
+        ),
       ),
     );
   }

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-Phases 1-4 are complete (all tasks below), verified live on an Android emulator. Phase 5 hasn't started; it's broken into build-ordered tasks below, same as the earlier phases. The intended product is documented below from UI mockups in `screenshots/`.
+Phases 1-4 are complete (all tasks below), verified live on an Android emulator. Phase 5 is in progress; it's broken into build-ordered tasks below, same as the earlier phases. The intended product is documented below from UI mockups in `screenshots/`.
 
 ## Product: Yin Yang Launcher
 
@@ -62,10 +62,10 @@ Needs `PACKAGE_USAGE_STATS` permission and accumulated usage data, so it follows
 5. ✅ **Habits & Reflexes** — `computeHabits` in `lib/panels/mind_space_panel.dart` finds the app most often opened first after unlocking (each `unlocked` event opens a window closed by the next `foreground` event, tallied by package; tested), surfaced via `_HabitsSection` as "After unlocking, you open X first N% of the time". Verified live end-to-end: set a PIN lock on the emulator (`adb shell locksettings set-pin`), locked/unlocked it to fire a real `KEYGUARD_HIDDEN` event, and confirmed the panel showed "1 pickups" and "After unlocking, you open launcher first 100% of the time (1 of 1 unlocks)."
 6. ✅ **Quick actions: Pause, Timer, Focus Mode** — `lib/services/focus_mode_service.dart` persists a single Focus Mode session (active + optional end time, auto-expiring; tested); `InstalledAppsService.launch` now consults it and refuses to launch while active (its one choke point — App Drawer, Spotlight Search, and the App Folder tile all route through it). `_QuickActions` in `mind_space_panel.dart` surfaces Pause/Timer/Focus Mode as three tiles (matching `screenshots/Screenshot 2026-09-18 at 7.26.41 PM.png`'s icons/labels) that collapse into a single "Focus Mode is on … Stop" row while a session is active; Timer opens a 15/30/60-minute picker sheet. No essential-apps allowlist yet — every launch is blocked while active — noted as a `ponytail:` comment for Phase 5's Settings screen to add. Verified live end-to-end on the emulator: tapped Pause, confirmed tapping Camera in the App Drawer did nothing (`topResumedActivity` stayed on the launcher, Camera's per-app time stayed 0m), then tapped Stop and confirmed the tile row returned.
 
-### Phase 5 — Settings
+### Phase 5 — Settings — in progress
 Aggregates toggles/controls introduced in earlier phases into one screen; do last since it has no independent surface of its own. Tasks, in build order (each depends on the ones above it):
 
-1. ⬜ **Settings screen shell** — new screen (e.g. `lib/settings/settings_screen.dart`) reachable via long-press on Home; wire the long-press gesture into `lib/panels/home_panel.dart`
+1. ✅ **Settings screen shell** — `lib/settings/settings_screen.dart`, a near-full-height modal bottom sheet (`showSettingsScreen`) opened by long-press on `HomePanel`; matches `screenshots/Screenshot 2026-09-18 at 7.26.41 PM.png`'s grouped outlined rows with hairline dividers. Only the "Settings" group (Appearance / Launcher Settings / System Settings rows, not yet tappable) exists so far — later tasks add search, Toggles, Mind Space quick actions, and Restart Launcher
 2. ⬜ **Settings search** — search across settings/modes/tools, adapting `lib/search/app_search_bar.dart`'s pattern to a static list of settings entries instead of installed apps
 3. ⬜ **Appearance group** — Theme (Light/Dark) toggle surfaced here, reusing `AppSettings.isDark`/`SegmentedToggle` from onboarding rather than rebuilding it; same for layout mode and wallpaper if grouped under Appearance
 4. ⬜ **Launcher Settings group** — layout mode (Classic/Minimal), wallpaper picker, and a way to re-run onboarding, reusing `lib/onboarding/wallpaper_picker.dart` and `AppSettings.layoutMode`
@@ -93,6 +93,7 @@ Do not add a `Co-Authored-By: Claude ...` (or similar AI-attribution) trailer to
 - `lib/panels/` — the 5 panel screens (Home, My Space, Mind Space, App Drawer, Spotlight Search)
 - `lib/onboarding/` — first-run flow (steps, phone mockup, wallpaper/segmented-toggle pickers)
 - `lib/my_space/` — My Space-specific widgets (Add New Tile sheet, built-in tile catalog, tile chrome); `lib/my_space/tiles/` holds the per-kind tile bodies (Notes, Todo, Weather, App Folder, From-Apps)
+- `lib/settings/` — Settings sheet opened by long-press on Home (Phase 5)
 - `lib/search/` — shared app search/filter logic and UI, used by App Drawer, Spotlight Search, and the App Folder/From-Apps picker sheets
 - `lib/state/` — `AppSettings` (theme/layout/wallpaper), exposed via `AppSettingsScope` (`InheritedNotifier`)
 - `lib/services/` — platform-channel and persistence services (installed apps, onboarding flag, launcher role, My Space tiles, weather, app widgets, usage stats, Focus Mode); `installed_apps_service.dart`'s `launch` consults `focus_mode_service.dart` before opening an app — the one choke point all launch call sites (App Drawer, Spotlight Search, App Folder tile) route through

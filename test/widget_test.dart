@@ -7,6 +7,7 @@ import 'package:launcher/onboarding/steps/welcome_step.dart';
 import 'package:launcher/panels/home_panel.dart';
 import 'package:launcher/panels/my_space_panel.dart';
 import 'package:launcher/panels/mind_space_panel.dart';
+import 'package:launcher/settings/settings_screen.dart';
 
 void main() {
   testWidgets('shows onboarding on first run', (WidgetTester tester) async {
@@ -43,5 +44,18 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(MySpacePanel), findsOneWidget);
+  });
+
+  testWidgets('long-pressing Home opens Settings', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.byType(HomePanel));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SettingsScreen), findsOneWidget);
+    expect(find.text('Launcher Settings'), findsOneWidget);
   });
 }
