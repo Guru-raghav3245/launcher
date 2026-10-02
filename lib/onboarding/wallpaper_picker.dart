@@ -16,6 +16,7 @@ class WallpaperPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ink = Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black;
     return SizedBox(
       height: 56,
       child: ListView.separated(
@@ -32,7 +33,7 @@ class WallpaperPicker extends StatelessWidget {
                 color: colors[index],
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: selected ? Colors.black : Colors.black26,
+                  color: selected ? ink : ink.withValues(alpha: 0.26),
                   width: selected ? 2 : 1,
                 ),
               ),

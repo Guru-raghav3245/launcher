@@ -95,4 +95,25 @@ void main() {
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.themeMode, ThemeMode.dark);
   });
+
+  testWidgets('Launcher Settings switches layout and re-runs onboarding', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.longPress(find.byType(HomePanel));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Launcher Settings'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Spotlight search'), findsOneWidget); // Classic layout
+    await tester.tap(find.text('Minimal'));
+    await tester.pumpAndSettle();
+    expect(find.text('Spotlight search'), findsNothing);
+
+    await tester.tap(find.text('Re-run onboarding'));
+    await tester.pumpAndSettle();
+    expect(find.byType(WelcomeStep), findsOneWidget);
+    expect(find.byType(SettingsScreen), findsNothing);
+  });
 }
