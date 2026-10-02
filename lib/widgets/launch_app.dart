@@ -22,5 +22,5 @@ Future<void> launchApp(BuildContext context, AppInfo app) async {
   if (await const InstalledAppsService().launch(app.packageName)) return;
   messenger
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text("Focus Mode is on · ${app.name} isn't an essential app")));
+    ..showSnackBar(SnackBar(content: Text("Focus Mode is on · ${app.name} isn't an allowed app")));
 }

@@ -47,7 +47,7 @@ const _entries = <_SettingsEntry>[
   (group: 'Settings', icon: Icons.palette_outlined, title: 'Appearance', onTap: _showAppearance),
   (group: 'Settings', icon: Icons.contrast, title: 'Launcher Settings', onTap: _showLauncherSettings),
   (group: 'Settings', icon: Icons.settings_outlined, title: 'System Settings', onTap: _showSystemSettings),
-  (group: 'Settings', icon: Icons.verified_outlined, title: 'Essential apps', onTap: _showEssentialApps),
+  (group: 'Settings', icon: Icons.verified_outlined, title: 'Allowed apps', onTap: _showAllowedApps),
 ];
 
 /// Settings sheet: a search field over grouped, outlined rows with hairline
@@ -243,12 +243,12 @@ Widget _labeled(String label, Widget control) {
   );
 }
 
-/// Focus Mode's essential apps: the ones that still open during a session.
-void _showEssentialApps(BuildContext context) {
+/// Focus Mode's allowed apps: the ones that still open during a session.
+void _showAllowedApps(BuildContext context) {
   const focusMode = FocusModeService();
   showAppMultiPicker(
     context,
-    title: 'Essential apps',
+    title: 'Allowed apps',
     subtitle: 'These still open while Focus Mode is on.',
     load: focusMode.essentials,
     onChanged: focusMode.setEssential,

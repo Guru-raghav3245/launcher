@@ -196,7 +196,7 @@ void main() {
     expect(calls, ['restart']);
   });
 
-  testWidgets('Essential apps picker saves checked apps', (WidgetTester tester) async {
+  testWidgets('Allowed apps picker saves checked apps', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       const MethodChannel('installed_apps'),
@@ -210,7 +210,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.longPress(find.byType(HomePanel));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Essential apps'));
+    await tester.tap(find.text('Allowed apps'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Clock'));
@@ -247,7 +247,7 @@ void main() {
 
     await tester.tap(find.text('Camera'));
     await tester.pumpAndSettle();
-    expect(find.text("Focus Mode is on · Camera isn't an essential app"), findsOneWidget);
+    expect(find.text("Focus Mode is on · Camera isn't an allowed app"), findsOneWidget);
     expect(started, isEmpty);
 
     await tester.tap(find.text('Clock'));
