@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -57,5 +58,24 @@ void main() {
 
     expect(find.byType(SettingsScreen), findsOneWidget);
     expect(find.text('Launcher Settings'), findsOneWidget);
+  });
+
+  testWidgets('Settings search filters entries by title', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.longPress(find.byType(HomePanel));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'launch');
+    await tester.pump();
+    expect(find.text('Launcher Settings'), findsOneWidget);
+    expect(find.text('Appearance'), findsNothing);
+
+    await tester.enterText(find.byType(TextField), 'zzz');
+    await tester.pump();
+    expect(find.text('Launcher Settings'), findsNothing);
+    expect(find.textContaining('No settings match'), findsOneWidget);
   });
 }
