@@ -173,13 +173,11 @@ class MindSpacePanel extends StatefulWidget {
 class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObserver {
   final _service = const UsageStatsService();
   final _appsService = const InstalledAppsService();
-  final _focusMode = const FocusModeService();
   bool? _hasAccess;
   MindSpaceTotals? _totals;
   List<Duration>? _hourly;
   List<PerAppUsage>? _perApp;
   HabitsInsight? _habits;
-  FocusStatus _focusStatus = const FocusStatus(active: false);
   Map<String, AppInfo> _appsByPackage = const {};
 
   @override
@@ -190,12 +188,6 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
       if (mounted) setState(() => _appsByPackage = {for (final app in apps) app.packageName: app});
     });
     _refresh();
-    _refreshFocusStatus();
-  }
-
-  Future<void> _refreshFocusStatus() async {
-    final status = await _focusMode.status();
-    if (mounted) setState(() => _focusStatus = status);
   }
 
   @override
@@ -208,10 +200,7 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Usage access has no runtime-permission callback — re-check when the
     // user comes back from Settings.
-    if (state == AppLifecycleState.resumed) {
-      _refresh();
-      _refreshFocusStatus();
-    }
+    if (state == AppLifecycleState.resumed) _refresh();
   }
 
   Future<void> _refresh() async {
@@ -231,28 +220,6 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
         _perApp = computePerAppUsage(events);
         _habits = computeHabits(events);
       });
-    }
-  }
-
-  Future<void> _startIndefinite() async {
-    await _focusMode.start();
-    await _refreshFocusStatus();
-  }
-
-  Future<void> _stopFocusMode() async {
-    await _focusMode.stop();
-    await _refreshFocusStatus();
-  }
-
-  Future<void> _pickTimer(BuildContext context) async {
-    final duration = await showModalBottomSheet<Duration>(
-      context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (context) => const _TimerPickerSheet(),
-    );
-    if (duration != null) {
-      await _focusMode.start(duration: duration);
-      await _refreshFocusStatus();
     }
   }
 
@@ -288,14 +255,7 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
                     isDark: isDark,
                   ),
                   const SizedBox(height: 40),
-                  _QuickActions(
-                    status: _focusStatus,
-                    isDark: isDark,
-                    onPause: _startIndefinite,
-                    onTimer: () => _pickTimer(context),
-                    onFocusMode: _startIndefinite,
-                    onStop: _stopFocusMode,
-                  ),
+                  const FocusQuickActions(),
                 ],
               )
             : Center(
@@ -434,46 +394,79 @@ class _HabitsSection extends StatelessWidget {
 /// [FocusModeService] session (Pause/Focus Mode start it indefinitely,
 /// Timer for a picked duration); while active, a single status row with a
 /// Stop button replaces the three tiles.
-class _QuickActions extends StatelessWidget {
-  const _QuickActions({
-    required this.status,
-    required this.isDark,
-    required this.onPause,
-    required this.onTimer,
-    required this.onFocusMode,
-    required this.onStop,
-  });
+/// Pause / Timer / Focus Mode tiles, collapsing to a "Focus Mode is on …
+/// Stop" row while a session is active. Self-contained (owns its
+/// [FocusModeService] status) so Mind Space and Settings share it.
+class FocusQuickActions extends StatefulWidget {
+  const FocusQuickActions({super.key});
 
-  final FocusStatus status;
-  final bool isDark;
-  final VoidCallback onPause;
-  final VoidCallback onTimer;
-  final VoidCallback onFocusMode;
-  final VoidCallback onStop;
+  @override
+  State<FocusQuickActions> createState() => _FocusQuickActionsState();
+}
+
+class _FocusQuickActionsState extends State<FocusQuickActions> {
+  final _focusMode = const FocusModeService();
+  late final AppLifecycleListener _lifecycle;
+  FocusStatus _status = const FocusStatus(active: false);
+
+  @override
+  void initState() {
+    super.initState();
+    // A timed session can expire while the app is backgrounded.
+    _lifecycle = AppLifecycleListener(onResume: _refresh);
+    FocusModeService.changes.addListener(_refresh);
+    _refresh();
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    FocusModeService.changes.removeListener(_refresh);
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    final status = await _focusMode.status();
+    if (mounted) setState(() => _status = status);
+  }
+
+  Future<void> _start([Duration? duration]) => _focusMode.start(duration: duration);
+
+  Future<void> _stop() => _focusMode.stop();
+
+  Future<void> _pickTimer() async {
+    final duration = await showModalBottomSheet<Duration>(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => const _TimerPickerSheet(),
+    );
+    if (duration != null) await _start(duration);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppSettingsScope.of(context).isDark;
     final primary = isDark ? Colors.white : Colors.black87;
-    if (status.active) {
-      final remaining = status.remaining;
+    if (_status.active) {
+      final remaining = _status.remaining;
       final label = remaining == null ? 'Focus Mode is on' : 'Focus Mode is on · ${formatScreenTime(remaining)} left';
       return Row(
         children: [
           Icon(Icons.center_focus_strong, color: primary, size: 20),
           const SizedBox(width: 12),
           Expanded(child: Text(label, style: TextStyle(fontSize: 14, color: primary))),
-          TextButton(onPressed: onStop, child: const Text('Stop')),
+          TextButton(onPressed: _stop, child: const Text('Stop')),
         ],
       );
     }
     return Row(
       children: [
         Expanded(
-          child: _QuickActionTile(icon: Icons.self_improvement, label: 'Pause', isDark: isDark, onTap: onPause),
+          child: _QuickActionTile(icon: Icons.self_improvement, label: 'Pause', isDark: isDark, onTap: _start),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _QuickActionTile(icon: Icons.timer_outlined, label: 'Timer', isDark: isDark, onTap: onTimer),
+          child: _QuickActionTile(icon: Icons.timer_outlined, label: 'Timer', isDark: isDark, onTap: _pickTimer),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -481,7 +474,7 @@ class _QuickActions extends StatelessWidget {
             icon: Icons.center_focus_strong,
             label: 'Focus Mode',
             isDark: isDark,
-            onTap: onFocusMode,
+            onTap: _start,
           ),
         ),
       ],

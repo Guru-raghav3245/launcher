@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// A Focus Mode session: active with an optional end time (null means
@@ -21,6 +22,10 @@ class FocusModeService {
   static const _activeKey = 'focus_mode_active';
   static const _endsAtKey = 'focus_mode_ends_at';
 
+  /// Fires after every [start]/[stop], so each on-screen copy of the quick
+  /// actions (Mind Space panel, Settings sheet) can re-read [status].
+  static final changes = ValueNotifier<int>(0);
+
   Future<FocusStatus> status() async {
     final prefs = await SharedPreferences.getInstance();
     if (!(prefs.getBool(_activeKey) ?? false)) return const FocusStatus(active: false);
@@ -43,12 +48,14 @@ class FocusModeService {
     } else {
       await prefs.setInt(_endsAtKey, DateTime.now().add(duration).millisecondsSinceEpoch);
     }
+    changes.value++;
   }
 
   Future<void> stop() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_activeKey, false);
     await prefs.remove(_endsAtKey);
+    changes.value++;
   }
 
   // ponytail: blocks every app with no exceptions; add an essential-apps

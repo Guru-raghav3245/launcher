@@ -9,6 +9,7 @@ import 'package:launcher/onboarding/steps/welcome_step.dart';
 import 'package:launcher/panels/home_panel.dart';
 import 'package:launcher/panels/my_space_panel.dart';
 import 'package:launcher/panels/mind_space_panel.dart';
+import 'package:launcher/services/focus_mode_service.dart';
 import 'package:launcher/settings/settings_screen.dart';
 
 void main() {
@@ -150,5 +151,27 @@ void main() {
     await tester.tap(find.text('Default launcher'));
     await tester.pump();
     expect(opened, contains('openHomeSettings'));
+  });
+
+  testWidgets('Settings Pause starts Focus Mode and Stop ends it', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.longPress(find.byType(HomePanel));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'pau');
+    await tester.pump();
+    expect(find.text('Appearance'), findsNothing);
+    await tester.tap(find.text('Pause'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Focus Mode is on'), findsOneWidget);
+    expect((await const FocusModeService().status()).active, isTrue);
+
+    await tester.tap(find.text('Stop'));
+    await tester.pumpAndSettle();
+    expect((await const FocusModeService().status()).active, isFalse);
   });
 }

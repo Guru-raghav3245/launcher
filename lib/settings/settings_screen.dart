@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import '../models/home_layout_mode.dart';
 import '../onboarding/onboarding_flow.dart';
 import '../onboarding/wallpaper_picker.dart';
+import '../panels/mind_space_panel.dart';
 import '../search/app_search.dart';
 import '../services/launcher_role_service.dart';
 import '../services/usage_stats_service.dart';
@@ -30,7 +31,11 @@ Future<void> showSettingsScreen(BuildContext context) {
 typedef _SettingsEntry = ({String group, IconData icon, String title, void Function(BuildContext)? onTap});
 
 /// Every entry the sheet can show, in display order. Later Phase 5 tasks
-/// add Toggles / Mind Space / Restart entries here so search covers them.
+/// add their entries here so search covers them; the Mind Space section
+/// isn't a row list, so it's matched by [_mindSpaceTerms] instead.
+/// Search terms that keep the Mind Space quick-actions section visible.
+const _mindSpaceTerms = ['mind space', 'pause', 'timer', 'focus mode'];
+
 const _entries = <_SettingsEntry>[
   (group: 'Settings', icon: Icons.palette_outlined, title: 'Appearance', onTap: _showAppearance),
   (group: 'Settings', icon: Icons.contrast, title: 'Launcher Settings', onTap: _showLauncherSettings),
@@ -71,6 +76,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     for (final entry in matches) {
       (groups[entry.group] ??= []).add(entry);
     }
+    final showMindSpace = _mindSpaceTerms.any((term) => term.contains(query));
 
     return Padding(
       // Keep the search field above the keyboard.
@@ -86,7 +92,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             sortMode: AppSortMode.alphabetical,
             onSortModeChanged: (_) {},
           ),
-          if (groups.isEmpty)
+          if (groups.isEmpty && !showMindSpace)
             Padding(
               padding: const EdgeInsets.only(top: 32),
               child: Text(
@@ -101,6 +107,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               isDark: isDark,
               rows: [for (final e in entries) _SettingsRow(icon: e.icon, title: e.title, onTap: e.onTap)],
             ),
+          ],
+          if (showMindSpace) ...[
+            _SectionHeader('Mind Space', isDark: isDark),
+            const FocusQuickActions(),
           ],
         ],
       ),
