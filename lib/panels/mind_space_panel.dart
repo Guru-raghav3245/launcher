@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
 
 import '../mind_space/action_tab.dart';
+import '../mind_space/focus_duration_sheet.dart';
 import '../search/app_result_row.dart';
 import '../services/focus_mode_service.dart';
 import '../services/installed_apps_service.dart';
@@ -485,11 +486,7 @@ class _FocusQuickActionsState extends State<FocusQuickActions> {
   Future<void> _stop() => _focusMode.stop();
 
   Future<void> _pickTimer() async {
-    final duration = await showModalBottomSheet<Duration>(
-      context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (context) => const _TimerPickerSheet(),
-    );
+    final duration = await showFocusDurationSheet(context);
     if (duration != null) await _start(duration);
   }
 
@@ -557,34 +554,6 @@ class _QuickActionTile extends StatelessWidget {
             Icon(icon, color: color, size: 22),
             const SizedBox(height: 8),
             Text(label, style: TextStyle(fontSize: 13, color: color)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Bottom sheet of preset durations for the Timer quick action.
-class _TimerPickerSheet extends StatelessWidget {
-  const _TimerPickerSheet();
-
-  static const _presets = [Duration(minutes: 15), Duration(minutes: 30), Duration(minutes: 60)];
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Pause apps for…', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            for (final preset in _presets)
-              ListTile(
-                title: Text('${preset.inMinutes} minutes'),
-                onTap: () => Navigator.of(context).pop(preset),
-              ),
           ],
         ),
       ),

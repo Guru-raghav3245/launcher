@@ -4,11 +4,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'launcher_role_service.dart';
 
 /// A Focus Mode session: active with an optional end time (null means
-/// indefinite, stopped manually via [FocusModeService.stop]).
+/// indefinite, stopped manually via [FocusModeService.stop]). [startedAt]
+/// drives the session screen's elapsed timer; it's null for sessions saved
+/// before it was recorded.
 class FocusStatus {
-  const FocusStatus({required this.active, this.endsAt});
+  const FocusStatus({required this.active, this.startedAt, this.endsAt});
 
   final bool active;
+  final DateTime? startedAt;
   final DateTime? endsAt;
 
   Duration? get remaining => endsAt?.difference(DateTime.now());
@@ -24,6 +27,7 @@ class FocusModeService {
 
   static const _activeKey = 'focus_mode_active';
   static const _endsAtKey = 'focus_mode_ends_at';
+  static const _startedAtKey = 'focus_mode_started_at';
   static const _essentialsKey = 'focus_mode_essentials';
 
   /// Fires after every [start]/[stop], so each on-screen copy of the quick
@@ -33,20 +37,23 @@ class FocusModeService {
   Future<FocusStatus> status() async {
     final prefs = await SharedPreferences.getInstance();
     if (!(prefs.getBool(_activeKey) ?? false)) return const FocusStatus(active: false);
+    final startedAtMillis = prefs.getInt(_startedAtKey);
+    final startedAt = startedAtMillis == null ? null : DateTime.fromMillisecondsSinceEpoch(startedAtMillis);
     final endsAtMillis = prefs.getInt(_endsAtKey);
-    if (endsAtMillis == null) return const FocusStatus(active: true);
+    if (endsAtMillis == null) return FocusStatus(active: true, startedAt: startedAt);
     final endsAt = DateTime.fromMillisecondsSinceEpoch(endsAtMillis);
     if (DateTime.now().isAfter(endsAt)) {
       await stop();
       return const FocusStatus(active: false);
     }
-    return FocusStatus(active: true, endsAt: endsAt);
+    return FocusStatus(active: true, startedAt: startedAt, endsAt: endsAt);
   }
 
   /// Starts a session. [duration] null means indefinite (stopped via [stop]).
   Future<void> start({Duration? duration}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_activeKey, true);
+    await prefs.setInt(_startedAtKey, DateTime.now().millisecondsSinceEpoch);
     if (duration == null) {
       await prefs.remove(_endsAtKey);
     } else {
@@ -59,6 +66,7 @@ class FocusModeService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_activeKey, false);
     await prefs.remove(_endsAtKey);
+    await prefs.remove(_startedAtKey);
     changes.value++;
   }
 

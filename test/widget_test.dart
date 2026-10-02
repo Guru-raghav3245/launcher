@@ -331,4 +331,45 @@ void main() {
     expect(find.text('What it does'), findsNothing);
     expect(find.byType(MindfulPausePage), findsOneWidget);
   });
+
+  testWidgets('Focus session replaces Home; press-and-hold exits to a summary', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'focus_mode_active': true,
+      'focus_mode_started_at': DateTime.now().subtract(const Duration(minutes: 5)).millisecondsSinceEpoch,
+      'focus_mode_essentials': ['com.phone'],
+    });
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('installed_apps'),
+      (call) async => [
+        {'name': 'Phone', 'package_name': 'com.phone'},
+        {'name': 'Camera', 'package_name': 'com.camera'},
+      ],
+    );
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    expect(find.text('FOCUS SESSION'), findsOneWidget);
+    expect(find.text('ELAPSED'), findsOneWidget);
+    expect(find.text('Spotlight search'), findsNothing); // the normal Home layout is hidden
+
+    await tester.tap(find.text('APPS'));
+    await tester.pumpAndSettle();
+    expect(find.text('Phone'), findsOneWidget);
+    expect(find.text('Camera'), findsNothing); // only allowed apps are listed
+
+    // A plain tap doesn't exit; holding does.
+    await tester.tap(find.text('Exit focus mode'));
+    await tester.pumpAndSettle();
+    expect(find.text('Exit focus mode'), findsOneWidget);
+    await tester.longPress(find.text('Exit focus mode'));
+    await tester.pumpAndSettle();
+    expect(find.text('YOU FOCUSED FOR'), findsOneWidget);
+    expect(find.text('5m'), findsOneWidget);
+
+    await tester.tap(find.text('DONE'));
+    await tester.pumpAndSettle();
+    expect(find.text('FOCUS SESSION'), findsNothing);
+    expect(find.text('Spotlight search'), findsOneWidget);
+  });
 }

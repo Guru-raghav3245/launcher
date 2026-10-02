@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
 
+import '../mind_space/focus_session_view.dart';
 import '../models/home_layout_mode.dart';
+import '../services/focus_mode_service.dart';
 import '../settings/settings_screen.dart';
 import '../state/app_settings_scope.dart';
 
@@ -68,15 +70,26 @@ class _HomePanelState extends State<HomePanel> {
   DateTime _now = DateTime.now();
   int? _batteryLevel;
   StreamSubscription<BatteryState>? _batterySub;
+  FocusStatus _focus = const FocusStatus(active: false);
 
   @override
   void initState() {
     super.initState();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() => _now = DateTime.now());
+      // A timed session ends on its own; status() notices and clears it.
+      final endsAt = _focus.endsAt;
+      if (endsAt != null && _now.isAfter(endsAt)) _refreshFocus();
     });
+    FocusModeService.changes.addListener(_refreshFocus);
+    _refreshFocus();
     _refreshBattery();
     _batterySub = _battery.onBatteryStateChanged.listen((_) => _refreshBattery());
+  }
+
+  Future<void> _refreshFocus() async {
+    final status = await const FocusModeService().status();
+    if (mounted) setState(() => _focus = status);
   }
 
   Future<void> _refreshBattery() async {
@@ -94,6 +107,7 @@ class _HomePanelState extends State<HomePanel> {
   void dispose() {
     _clockTimer.cancel();
     _batterySub?.cancel();
+    FocusModeService.changes.removeListener(_refreshFocus);
     super.dispose();
   }
 
@@ -120,7 +134,9 @@ class _HomePanelState extends State<HomePanel> {
           ),
         ),
         child: SafeArea(
-          child: settings.layoutMode == HomeLayoutMode.classic
+          child: _focus.active
+              ? FocusSessionView(status: _focus, now: _now)
+              : settings.layoutMode == HomeLayoutMode.classic
               ? _ClassicLayout(time: _formatTime(_now), subtitle: subtitle, isDark: isDark)
               : _MinimalLayout(time: _formatTime(_now), subtitle: subtitle, isDark: isDark),
         ),

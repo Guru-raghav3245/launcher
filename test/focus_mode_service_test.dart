@@ -80,4 +80,16 @@ void main() {
     await service.setEssential('com.dialer', false);
     expect(await service.essentials(), isEmpty);
   });
+
+  test('a session records when it started, and stop clears it', () async {
+    final before = DateTime.now();
+    await service.start(duration: const Duration(minutes: 30));
+    final status = await service.status();
+    expect(status.startedAt!.isBefore(before.subtract(const Duration(seconds: 1))), false);
+    expect(status.endsAt!.difference(status.startedAt!).inMinutes, 30);
+
+    await service.stop();
+    await service.start();
+    expect((await service.status()).startedAt, isNotNull);
+  });
 }
