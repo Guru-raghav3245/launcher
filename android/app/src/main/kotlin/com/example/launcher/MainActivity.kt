@@ -18,10 +18,17 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
-            if (call.method == "requestHomeRole") {
-                requestHomeRole(result)
-            } else {
-                result.notImplemented()
+            when (call.method) {
+                "requestHomeRole" -> requestHomeRole(result)
+                "isDefaultLauncher" -> result.success(isDefaultLauncher())
+                // Settings' system Home-app picker: lets the user switch to
+                // *or away from* this launcher (requestHomeRole is a no-op
+                // once the role is held).
+                "openHomeSettings" -> {
+                    startActivity(Intent(Settings.ACTION_HOME_SETTINGS))
+                    result.success(null)
+                }
+                else -> result.notImplemented()
             }
         }
         appWidgetBridge = AppWidgetHostBridge(this)
@@ -37,6 +44,13 @@ class MainActivity : FlutterActivity() {
     override fun onStop() {
         appWidgetBridge.stopListening()
         super.onStop()
+    }
+
+    // Asks the package manager which activity currently handles HOME, which
+    // works on every API level (RoleManager.isRoleHeld needs Q+).
+    private fun isDefaultLauncher(): Boolean {
+        val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        return packageManager.resolveActivity(home, 0)?.activityInfo?.packageName == packageName
     }
 
     // Returns true if the role is granted, false if the user cancelled the

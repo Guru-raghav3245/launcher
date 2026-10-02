@@ -17,4 +17,11 @@ class LauncherRoleService {
       return null;
     }
   }
+
+  /// Whether this app is currently the default HOME app.
+  Future<bool> isDefaultLauncher() async => (await _channel.invokeMethod<bool>('isDefaultLauncher')) ?? false;
+
+  /// Opens the system Home-app picker (fire-and-forget, no result) so the
+  /// user can switch default launcher in either direction.
+  Future<void> openHomeSettings() => _channel.invokeMethod('openHomeSettings');
 }

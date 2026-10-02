@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../models/home_layout_mode.dart';
 import '../onboarding/onboarding_flow.dart';
 import '../onboarding/wallpaper_picker.dart';
 import '../search/app_search.dart';
+import '../services/launcher_role_service.dart';
+import '../services/usage_stats_service.dart';
 import '../search/app_search_bar.dart';
 import '../state/app_settings.dart';
 import '../state/app_settings_scope.dart';
@@ -31,7 +34,7 @@ typedef _SettingsEntry = ({String group, IconData icon, String title, void Funct
 const _entries = <_SettingsEntry>[
   (group: 'Settings', icon: Icons.palette_outlined, title: 'Appearance', onTap: _showAppearance),
   (group: 'Settings', icon: Icons.contrast, title: 'Launcher Settings', onTap: _showLauncherSettings),
-  (group: 'Settings', icon: Icons.settings_outlined, title: 'System Settings', onTap: null),
+  (group: 'Settings', icon: Icons.settings_outlined, title: 'System Settings', onTap: _showSystemSettings),
 ];
 
 /// Settings sheet: a search field over grouped, outlined rows with hairline
@@ -276,4 +279,125 @@ void _showLauncherSettings(BuildContext context) {
       ),
     ],
   );
+}
+
+/// System Settings: the permissions other features depend on, plus the
+/// default-launcher switch. Each one is granted on a system screen, so
+/// statuses are re-read whenever the app resumes.
+void _showSystemSettings(BuildContext context) {
+  _showSubSheet(context, 'System Settings', (context, settings) => const [_SystemSettingsRows()]);
+}
+
+class _SystemSettingsRows extends StatefulWidget {
+  const _SystemSettingsRows();
+
+  @override
+  State<_SystemSettingsRows> createState() => _SystemSettingsRowsState();
+}
+
+class _SystemSettingsRowsState extends State<_SystemSettingsRows> {
+  final _role = const LauncherRoleService();
+  final _usage = const UsageStatsService();
+  late final AppLifecycleListener _lifecycle;
+
+  bool? _isDefault;
+  bool? _hasUsageAccess;
+  LocationPermission? _location;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycle = AppLifecycleListener(onResume: _refresh);
+    _refresh();
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    final (isDefault, usage, location) = await (
+      _role.isDefaultLauncher(),
+      _usage.hasAccess(),
+      Geolocator.checkPermission(),
+    ).wait;
+    if (!mounted) return;
+    setState(() {
+      _isDefault = isDefault;
+      _hasUsageAccess = usage;
+      _location = location;
+    });
+  }
+
+  bool get _hasLocation => _location == LocationPermission.whileInUse || _location == LocationPermission.always;
+
+  Future<void> _onLocationTap() async {
+    // Only "denied" can still show the runtime dialog; otherwise (granted,
+    // or denied forever) the app's system settings page is the only place
+    // to change it.
+    if (_location == LocationPermission.denied) {
+      await Geolocator.requestPermission();
+      await _refresh();
+    } else {
+      await Geolocator.openAppSettings();
+    }
+  }
+
+  String _status(bool? value, String yes, String no) => value == null ? '…' : (value ? yes : no);
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = AppSettingsScope.of(context).isDark;
+    return _SettingsGroup(
+      isDark: isDark,
+      rows: [
+        _StatusRow(
+          icon: Icons.home_outlined,
+          title: 'Default launcher',
+          status: _status(_isDefault, 'Yin Yang Launcher', 'Another app'),
+          onTap: _role.openHomeSettings,
+        ),
+        _StatusRow(
+          icon: Icons.insights_outlined,
+          title: 'Usage access',
+          status: _status(_hasUsageAccess, 'Allowed · used by Mind Space', 'Not allowed · Mind Space needs this'),
+          onTap: _usage.requestAccess,
+        ),
+        _StatusRow(
+          icon: Icons.location_on_outlined,
+          title: 'Location',
+          status: _status(
+            _location == null ? null : _hasLocation,
+            'Allowed · used by the Weather tile',
+            'Not allowed · the Weather tile needs this',
+          ),
+          onTap: _onLocationTap,
+        ),
+      ],
+    );
+  }
+}
+
+/// A settings row with a status subtitle under the title.
+class _StatusRow extends StatelessWidget {
+  const _StatusRow({required this.icon, required this.title, required this.status, required this.onTap});
+
+  final IconData icon;
+  final String title;
+  final String status;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      leading: Icon(icon),
+      title: Text(title, style: const TextStyle(fontSize: 18, letterSpacing: 0.5)),
+      subtitle: Text(status),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: onTap,
+    );
+  }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -115,5 +116,39 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(WelcomeStep), findsOneWidget);
     expect(find.byType(SettingsScreen), findsNothing);
+  });
+
+  testWidgets('System Settings shows permission and launcher status', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+    final messenger = tester.binding.defaultBinaryMessenger;
+    final opened = <String>[];
+    messenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/role'), (call) async {
+      opened.add(call.method);
+      return call.method == 'isDefaultLauncher' ? true : null;
+    });
+    messenger.setMockMethodCallHandler(
+      const MethodChannel('yinyang.launcher/usage'),
+      (call) async => call.method == 'hasAccess' ? false : null,
+    );
+    // LocationPermission.whileInUse.index
+    messenger.setMockMethodCallHandler(
+      const MethodChannel('flutter.baseflow.com/geolocator'),
+      (call) async => call.method == 'checkPermission' ? 2 : null,
+    );
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.longPress(find.byType(HomePanel));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('System Settings'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Yin Yang Launcher'), findsOneWidget);
+    expect(find.text('Not allowed · Mind Space needs this'), findsOneWidget);
+    expect(find.text('Allowed · used by the Weather tile'), findsOneWidget);
+
+    await tester.tap(find.text('Default launcher'));
+    await tester.pump();
+    expect(opened, contains('openHomeSettings'));
   });
 }
