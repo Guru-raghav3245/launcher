@@ -52,7 +52,7 @@ Tile bodies in `my_space_panel.dart`'s `_TileList` cover every `TileKind` now �
 
 **Weather tile pitfalls (if touching this code):** `LocationAccuracy.low` uses the network/fused provider, which doesn't respond to `adb emu geo fix` on an emulator — use `.high` with a time limit. The `geocoding` package's native reverse-geocode call blocked the Android main thread indefinitely on the test emulator (no Play Services geocoder backend) and caused an ANR; it was replaced with a timeout-bounded HTTP call instead.
 
-### Phase 4 — Mind Space (screen-time insights) — in progress
+### Phase 4 — Mind Space (screen-time insights) — done
 Needs `PACKAGE_USAGE_STATS` permission and accumulated usage data, so it follows the other panels. Tasks, in build order (each depends on the ones above it):
 
 1. ✅ **Usage-stats permission + data source** — `PACKAGE_USAGE_STATS` is a special permission with no runtime dialog, granted only via `Settings.ACTION_USAGE_ACCESS_SETTINGS`; `android/.../UsageStatsBridge.kt` exposes `hasAccess` (checked via `AppOpsManager`, not `checkSelfPermission`), `requestAccess` (opens the Settings redirect, fire-and-forget like `requestHomeRole`'s fallback branch), and `queryEvents(start, end)` (raw `foreground`/`background`/`unlocked` events from `UsageEvents`, filtered natively) via the `yinyang.launcher/usage` channel; `lib/services/usage_stats_service.dart` wraps it with a `UsageEvent`/`UsageEventType` model. Verified live: granted access via the emulator's Usage access settings screen and confirmed real event counts came back.
