@@ -174,4 +174,24 @@ void main() {
     await tester.pumpAndSettle();
     expect((await const FocusModeService().status()).active, isFalse);
   });
+
+  testWidgets('Restart Launcher calls the native restart', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+    final calls = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('yinyang.launcher/app'),
+      (call) async => calls.add(call.method),
+    );
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.longPress(find.byType(HomePanel));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'restart');
+    await tester.pump();
+    await tester.tap(find.text('Restart Launcher'));
+    await tester.pump();
+    expect(calls, ['restart']);
+  });
 }

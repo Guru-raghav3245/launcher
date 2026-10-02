@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../models/home_layout_mode.dart';
@@ -33,8 +34,12 @@ typedef _SettingsEntry = ({String group, IconData icon, String title, void Funct
 /// Every entry the sheet can show, in display order. Later Phase 5 tasks
 /// add their entries here so search covers them; the Mind Space section
 /// isn't a row list, so it's matched by [_mindSpaceTerms] instead.
-/// Search terms that keep the Mind Space quick-actions section visible.
+/// Search terms that keep the Mind Space quick-actions section visible
+/// (the Restart Launcher footer is matched the same way, by its label).
 const _mindSpaceTerms = ['mind space', 'pause', 'timer', 'focus mode'];
+
+/// Restarts the launcher process (see MainActivity.kt's `yinyang.launcher/app`).
+const _appChannel = MethodChannel('yinyang.launcher/app');
 
 const _entries = <_SettingsEntry>[
   (group: 'Settings', icon: Icons.palette_outlined, title: 'Appearance', onTap: _showAppearance),
@@ -77,6 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       (groups[entry.group] ??= []).add(entry);
     }
     final showMindSpace = _mindSpaceTerms.any((term) => term.contains(query));
+    final showRestart = 'restart launcher'.contains(query);
 
     return Padding(
       // Keep the search field above the keyboard.
@@ -92,7 +98,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             sortMode: AppSortMode.alphabetical,
             onSortModeChanged: (_) {},
           ),
-          if (groups.isEmpty && !showMindSpace)
+          if (groups.isEmpty && !showMindSpace && !showRestart)
             Padding(
               padding: const EdgeInsets.only(top: 32),
               child: Text(
@@ -111,6 +117,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
           if (showMindSpace) ...[
             _SectionHeader('Mind Space', isDark: isDark),
             const FocusQuickActions(),
+          ],
+          if (showRestart) ...[
+            const SizedBox(height: 24),
+            Divider(indent: 24, endIndent: 24, color: isDark ? Colors.white24 : Colors.black12),
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton.icon(
+                onPressed: () => _appChannel.invokeMethod('restart'),
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Restart Launcher', style: TextStyle(fontSize: 18, letterSpacing: 0.5)),
+                style: TextButton.styleFrom(foregroundColor: isDark ? Colors.white60 : Colors.black54),
+              ),
+            ),
           ],
         ],
       ),

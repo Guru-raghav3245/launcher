@@ -9,6 +9,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 private const val CHANNEL = "yinyang.launcher/role"
+private const val APP_CHANNEL = "yinyang.launcher/app"
 private const val REQUEST_HOME_ROLE = 4242
 
 class MainActivity : FlutterActivity() {
@@ -29,6 +30,17 @@ class MainActivity : FlutterActivity() {
                     result.success(null)
                 }
                 else -> result.notImplemented()
+            }
+        }
+        // Settings' "Restart Launcher": relaunch this activity in a fresh task,
+        // then kill the process so all Dart/native state starts over.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, APP_CHANNEL).setMethodCallHandler { call, result ->
+            if (call.method == "restart") {
+                startActivity(Intent.makeRestartActivityTask(componentName))
+                result.success(null)
+                Runtime.getRuntime().exit(0)
+            } else {
+                result.notImplemented()
             }
         }
         appWidgetBridge = AppWidgetHostBridge(this)
