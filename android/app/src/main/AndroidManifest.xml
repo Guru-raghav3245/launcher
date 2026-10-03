@@ -18,6 +18,8 @@
          requested on save; without it reminders fall back to inexact. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- Swipe down → notification shade (Phase 8 task 7); granted at install. -->
+    <uses-permission android:name="android.permission.EXPAND_STATUS_BAR"/>
     <application
         android:label="launcher"
         android:name="${applicationName}"
@@ -56,6 +58,32 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+        <!-- Double tap → lock (Phase 8 task 7): a lock-only accessibility
+             service (recommended), or device admin with only force-lock. -->
+        <service
+            android:name=".LockAccessibilityService"
+            android:exported="false"
+            android:label="Yin Yang double tap to lock"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/lock_accessibility_service" />
+        </service>
+        <receiver
+            android:name=".LockAdminReceiver"
+            android:exported="true"
+            android:label="Yin Yang double tap to lock"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/lock_device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
             </intent-filter>
         </receiver>
         <!-- Don't delete the meta-data below.

@@ -1,5 +1,6 @@
 package com.example.launcher
 
+import android.app.Activity
 import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
@@ -19,6 +20,11 @@ private const val CHANNEL = "yinyang.launcher/role"
 private const val APP_CHANNEL = "yinyang.launcher/app"
 private const val REQUEST_HOME_ROLE = 4242
 
+/// Opens a system (or other app's) screen in its own task. Started plainly,
+/// it would sit on top of this launcher in the launcher's task, so pressing
+/// Home would bring that screen back instead of Home.
+fun Activity.openExternal(intent: Intent) = startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+
 class MainActivity : FlutterActivity() {
     private var pendingResult: MethodChannel.Result? = null
     private lateinit var appWidgetBridge: AppWidgetHostBridge
@@ -35,7 +41,7 @@ class MainActivity : FlutterActivity() {
                 // *or away from* this launcher (requestHomeRole is a no-op
                 // once the role is held).
                 "openHomeSettings" -> {
-                    startActivity(Intent(Settings.ACTION_HOME_SETTINGS))
+                    openExternal(Intent(Settings.ACTION_HOME_SETTINGS))
                     result.success(null)
                 }
                 else -> result.notImplemented()
@@ -52,7 +58,7 @@ class MainActivity : FlutterActivity() {
                 }
                 // The App Drawer menu's "App info": the system page for one app.
                 "openAppInfo" -> {
-                    startActivity(
+                    openExternal(
                         Intent(
                             Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                             Uri.parse("package:${call.argument<String>("packageName")}"),
@@ -64,7 +70,7 @@ class MainActivity : FlutterActivity() {
                 // no app handles it.
                 "openClock" -> result.success(
                     try {
-                        startActivity(Intent(AlarmClock.ACTION_SHOW_ALARMS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        openExternal(Intent(AlarmClock.ACTION_SHOW_ALARMS))
                         true
                     } catch (_: ActivityNotFoundException) {
                         false
@@ -77,6 +83,7 @@ class MainActivity : FlutterActivity() {
         appWidgetBridge.attach(flutterEngine)
         UsageStatsBridge(this).attach(flutterEngine)
         MindfulTimerBridge(this).attach(flutterEngine)
+        GesturesBridge(this).attach(flutterEngine)
     }
 
     override fun onStart() {
@@ -142,7 +149,7 @@ class MainActivity : FlutterActivity() {
             pendingResult = result
             startActivityForResult(roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME), REQUEST_HOME_ROLE)
         } else {
-            startActivity(Intent(Settings.ACTION_HOME_SETTINGS))
+            openExternal(Intent(Settings.ACTION_HOME_SETTINGS))
             result.success(null)
         }
     }

@@ -29,6 +29,13 @@ enum DrawerOption {
   hideUnusedApps,
 }
 
+/// What swiping down on Home does (Phase 8 task 7).
+enum SwipeDownAction { spotlight, notifications, none }
+
+/// What double-tapping Home does. The lock methods match the original:
+/// accessibility (recommended, keeps fingerprint unlock) or device admin.
+enum DoubleTapAction { none, lockAccessibility, lockDeviceAdmin }
+
 /// Shared, persisted app settings — theme, home layout mode, wallpaper,
 /// and the drawer options. Written by the onboarding pickers now and by Settings
 /// (Phase 5) later; read anywhere via [AppSettingsScope.of].
@@ -47,6 +54,15 @@ class AppSettings extends ChangeNotifier {
   int get wallpaperIndex => _wallpaperIndex;
   Color get wallpaperColor => wallpaperPresets[_wallpaperIndex];
 
+  static const _swipeDownKey = 'settings_swipe_down';
+  static const _doubleTapKey = 'settings_double_tap';
+
+  SwipeDownAction _swipeDown = SwipeDownAction.spotlight;
+  SwipeDownAction get swipeDown => _swipeDown;
+
+  DoubleTapAction _doubleTap = DoubleTapAction.none;
+  DoubleTapAction get doubleTap => _doubleTap;
+
   final Set<DrawerOption> _drawerOptions = {};
   bool drawerOption(DrawerOption option) => _drawerOptions.contains(option);
 
@@ -55,6 +71,8 @@ class AppSettings extends ChangeNotifier {
     _drawerOptions
       ..clear()
       ..addAll(DrawerOption.values.where((o) => prefs.getBool('settings_drawer_${o.name}') ?? false));
+    _swipeDown = SwipeDownAction.values.byName(prefs.getString(_swipeDownKey) ?? SwipeDownAction.spotlight.name);
+    _doubleTap = DoubleTapAction.values.byName(prefs.getString(_doubleTapKey) ?? DoubleTapAction.none.name);
     _isDark = prefs.getBool(_isDarkKey) ?? false;
     _layoutMode = HomeLayoutMode.values.byName(
       prefs.getString(_layoutModeKey) ?? HomeLayoutMode.classic.name,
@@ -96,5 +114,21 @@ class AppSettings extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('settings_drawer_${option.name}', on);
+  }
+
+  Future<void> setSwipeDown(SwipeDownAction value) async {
+    if (_swipeDown == value) return;
+    _swipeDown = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_swipeDownKey, value.name);
+  }
+
+  Future<void> setDoubleTap(DoubleTapAction value) async {
+    if (_doubleTap == value) return;
+    _doubleTap = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_doubleTapKey, value.name);
   }
 }

@@ -16,6 +16,7 @@ import '../search/app_search_bar.dart';
 import '../state/app_settings.dart';
 import '../state/app_settings_scope.dart';
 import '../widgets/segmented_toggle.dart';
+import 'lock_gesture.dart';
 
 /// Opens Settings as a near-full-height bottom sheet over the launcher,
 /// matching the mockup (drag handle, dimmed status bar behind it).
@@ -48,6 +49,7 @@ const _entries = <_SettingsEntry>[
   (group: 'Settings', icon: Icons.palette_outlined, title: 'Appearance', onTap: _showAppearance),
   (group: 'Settings', icon: Icons.contrast, title: 'Launcher Settings', onTap: _showLauncherSettings),
   (group: 'Settings', icon: Icons.apps, title: 'App Drawer & Search', onTap: _showDrawerSettings),
+  (group: 'Settings', icon: Icons.swipe_outlined, title: 'Gestures', onTap: _showGestures),
   (group: 'Settings', icon: Icons.settings_outlined, title: 'System Settings', onTap: _showSystemSettings),
   (group: 'Settings', icon: Icons.verified_outlined, title: 'Allowed apps', onTap: _showAllowedApps),
   (group: 'Settings', icon: Icons.visibility_off_outlined, title: 'Hidden apps', onTap: _showHiddenApps),
@@ -316,6 +318,53 @@ void _showDrawerSettings(BuildContext context) {
         'Hide unused apps',
         "Leave out apps you haven't opened in 30 days; search still finds them (needs usage access)",
       ),
+    ];
+  });
+}
+
+/// Gestures: what swiping down and double-tapping on Home do. Picking a
+/// lock method sets up its permission straight away.
+void _showGestures(BuildContext context) {
+  _showSubSheet(context, 'Gestures', (context, settings) {
+    final ink = settings.isDark ? Colors.white : Colors.black;
+    Widget group<T>(String label, T value, ValueChanged<T> onChanged, List<(T, String, String)> choices) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontSize: 13, color: ink.withValues(alpha: 0.6))),
+        RadioGroup<T>(
+          groupValue: value,
+          onChanged: (v) => onChanged(v as T),
+          child: Column(
+            children: [
+              for (final (choice, title, subtitle) in choices)
+                RadioListTile<T>(
+                  contentPadding: EdgeInsets.zero,
+                  value: choice,
+                  activeColor: ink,
+                  title: Text(title, style: const TextStyle(fontSize: 17)),
+                  subtitle: Text(subtitle),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    return [
+      group('Swipe down', settings.swipeDown, settings.setSwipeDown, [
+        (SwipeDownAction.spotlight, 'Spotlight Search', 'Quickly search apps from your home screen'),
+        (SwipeDownAction.notifications, 'Notification tray', 'Pull down to see notifications and toggles'),
+        (SwipeDownAction.none, 'None', 'Disable this gesture'),
+      ]),
+      const SizedBox(height: 16),
+      group('Double tap', settings.doubleTap, (action) {
+        settings.setDoubleTap(action);
+        setUpLock(context, action);
+      }, [
+        (DoubleTapAction.none, 'None', 'Disable this gesture'),
+        (DoubleTapAction.lockAccessibility, 'Lock screen (Accessibility)', 'Recommended; works with fingerprint or face unlock'),
+        (DoubleTapAction.lockDeviceAdmin, 'Lock screen (Device admin)', 'Legacy method; may disable fingerprint unlock'),
+      ]),
     ];
   });
 }

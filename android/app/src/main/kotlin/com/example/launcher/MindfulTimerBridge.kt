@@ -40,7 +40,7 @@ class MindfulTimerBridge(private val activity: MainActivity) {
             when (call.method) {
                 "canDrawOverlays" -> result.success(canDrawOverlays())
                 "requestOverlay" -> {
-                    activity.startActivity(
+                    activity.openExternal(
                         Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${activity.packageName}")),
                     )
                     result.success(null)

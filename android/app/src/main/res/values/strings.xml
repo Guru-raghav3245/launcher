@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lock_accessibility_description">Lets you double-tap the home screen to lock your phone. It only sends the lock-screen action; it reads no screen content, text, or notifications.</string>
+    <string name="lock_device_admin_description">Lets you double-tap the home screen to lock your phone. Only the lock-screen policy is used.</string>
+</resources>

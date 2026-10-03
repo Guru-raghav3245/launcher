@@ -12,7 +12,9 @@ import '../services/app_customizations_service.dart';
 import '../services/dock_service.dart';
 import '../services/installed_apps_service.dart';
 import '../services/focus_mode_service.dart';
+import '../settings/lock_gesture.dart';
 import '../settings/settings_screen.dart';
+import '../state/app_settings.dart';
 import '../state/app_settings_scope.dart';
 import '../widgets/launch_app.dart';
 
@@ -162,6 +164,9 @@ class _HomePanelState extends State<HomePanel> {
 
     return GestureDetector(
       onLongPress: () => showSettingsScreen(context),
+      // Only listened for when set: a double-tap recognizer makes every
+      // single tap on Home wait out the double-tap window first.
+      onDoubleTap: settings.doubleTap == DoubleTapAction.none ? null : () => lockScreen(context, settings.doubleTap),
       child: Container(
         // Dark theme always uses a near-black background; light theme uses
         // the user's chosen wallpaper swatch as a subtle diagonal gradient.

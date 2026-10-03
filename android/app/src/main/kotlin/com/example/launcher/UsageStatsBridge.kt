@@ -25,7 +25,7 @@ class UsageStatsBridge(private val activity: MainActivity) {
             when (call.method) {
                 "hasAccess" -> result.success(hasAccess())
                 "requestAccess" -> {
-                    activity.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                    activity.openExternal(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
                     result.success(null)
                 }
                 "queryEvents" -> result.success(

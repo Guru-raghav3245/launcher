@@ -7,8 +7,10 @@ import 'package:launcher/main.dart';
 import 'package:launcher/mind_space/tool_pages.dart';
 import 'package:launcher/onboarding/onboarding_flow.dart';
 import 'package:launcher/onboarding/steps/welcome_step.dart';
+import 'package:launcher/panels/app_drawer_panel.dart';
 import 'package:launcher/panels/home_panel.dart';
 import 'package:launcher/panels/my_space_panel.dart';
+import 'package:launcher/panels/spotlight_search_panel.dart';
 import 'package:launcher/panels/mind_space_panel.dart';
 import 'package:launcher/services/app_customizations_service.dart';
 import 'package:launcher/services/dock_service.dart';
@@ -193,6 +195,71 @@ void main() {
     await tester.tap(find.textContaining(RegExp(r'^\d\d:\d\d$')));
     await tester.pump();
     expect(calls, ['openClock']);
+  });
+
+  testWidgets('swipe down can open the notification tray instead of Spotlight', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true, 'settings_swipe_down': 'notifications'});
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('installed_apps'),
+      (call) async => <Object>[],
+    );
+    final calls = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/gestures'), (
+      call,
+    ) async {
+      calls.add(call.method);
+      return true;
+    });
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    expect(find.byType(SpotlightSearchPanel), findsNothing);
+    await tester.fling(find.byType(HomePanel), const Offset(0, 400), 1000);
+    await tester.pumpAndSettle();
+    expect(calls, ['expandNotifications']);
+    expect(find.byType(HomePanel), findsOneWidget); // still on Home
+
+    // Swipe up still reaches the App Drawer.
+    await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000);
+    await tester.pumpAndSettle();
+    expect(find.byType(AppDrawerPanel), findsOneWidget);
+  });
+
+  testWidgets('double tap locks, or explains and opens Accessibility settings first', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true, 'settings_double_tap': 'lockAccessibility'});
+    final calls = <String>[];
+    var ready = false;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/gestures'), (
+      call,
+    ) async {
+      calls.add(call.method);
+      return switch (call.method) {
+        'accessibilityLockReady' || 'lockWithAccessibility' => ready,
+        _ => null,
+      };
+    });
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    Future<void> doubleTap() async {
+      await tester.tap(find.byType(HomePanel));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.byType(HomePanel));
+      await tester.pumpAndSettle();
+    }
+
+    // Not switched on yet: the explainer, then Android's settings.
+    await doubleTap();
+    expect(find.text('Accessibility service'), findsOneWidget);
+    await tester.tap(find.text('Allow'));
+    await tester.pumpAndSettle();
+    expect(calls.last, 'openAccessibilitySettings');
+
+    // Switched on: it just locks.
+    ready = true;
+    calls.clear();
+    await doubleTap();
+    expect(calls, ['lockWithAccessibility']);
   });
 
   testWidgets('Restart Launcher calls the native restart', (WidgetTester tester) async {
