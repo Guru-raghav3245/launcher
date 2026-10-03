@@ -325,6 +325,21 @@ Widget _labeled(String label, Widget control) {
   );
 }
 
+/// For controls too wide to share a row with their label (three segments).
+Widget _labeledAbove(String label, Widget control) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 18, letterSpacing: 0.5)),
+        const SizedBox(height: 8),
+        control,
+      ],
+    ),
+  );
+}
+
 /// Focus Mode's allowed apps: the ones that still open during a session.
 void _showAllowedApps(BuildContext context) {
   const focusMode = FocusModeService();
@@ -449,8 +464,8 @@ void _showGestures(BuildContext context) {
   });
 }
 
-/// Launcher Settings: home layout, wallpaper, and re-running onboarding,
-/// reusing the onboarding Customize step's controls.
+/// Launcher Settings: home layout, clock style and position, the search and
+/// status bars, wallpaper, and re-running onboarding.
 void _showLauncherSettings(BuildContext context) {
   _showSubSheet(
     context,
@@ -467,6 +482,43 @@ void _showLauncherSettings(BuildContext context) {
           ],
         ),
       ),
+      _labeledAbove(
+        'Clock',
+        SegmentedToggle<ClockStyle>(
+          value: settings.clockStyle,
+          onChanged: settings.setClockStyle,
+          options: const [
+            (ClockStyle.standard, Icons.schedule, 'Standard'),
+            (ClockStyle.large, Icons.format_size, 'Large'),
+            (ClockStyle.compact, Icons.short_text, 'Compact'),
+          ],
+        ),
+      ),
+      _labeledAbove(
+        'Clock position',
+        SegmentedToggle<ClockPosition>(
+          value: settings.clockPositionFor(settings.layoutMode),
+          onChanged: settings.setClockPosition,
+          options: const [
+            (ClockPosition.top, Icons.vertical_align_top, 'Top'),
+            (ClockPosition.center, Icons.vertical_align_center, 'Center'),
+            (ClockPosition.bottom, Icons.vertical_align_bottom, 'Bottom'),
+          ],
+        ),
+      ),
+      for (final (title, value, onChanged) in [
+        if (settings.layoutMode == HomeLayoutMode.classic)
+          ('Spotlight search bar', settings.showSearchBar, settings.setShowSearchBar),
+        ('Status bar', settings.showStatusBar, settings.setShowStatusBar),
+      ])
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(title, style: const TextStyle(fontSize: 18, letterSpacing: 0.5)),
+          value: value,
+          activeThumbColor: settings.isDark ? Colors.black : Colors.white,
+          activeTrackColor: settings.isDark ? Colors.white : Colors.black,
+          onChanged: onChanged,
+        ),
       const SizedBox(height: 8),
       Text(
         settings.isDark ? 'Wallpaper (shown in light theme)' : 'Wallpaper',

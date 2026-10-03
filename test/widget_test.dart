@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:launcher/main.dart';
+import 'package:launcher/models/home_layout_mode.dart';
+import 'package:launcher/state/app_settings.dart';
 import 'package:launcher/models/tile_kind.dart';
 import 'package:launcher/mind_space/tool_pages.dart';
 import 'package:launcher/onboarding/onboarding_flow.dart';
@@ -150,6 +152,46 @@ void main() {
     await tester.tap(find.widgetWithText(SwitchListTile, 'Focus Mode'));
     await tester.pumpAndSettle();
     expect((await const FocusModeService().status()).active, false);
+  });
+
+  testWidgets('Home honours the clock style, position, search bar, and status bar settings', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'settings_clock_style': 'large',
+      'settings_clock_position': 'bottom',
+      'settings_show_search_bar': false,
+      'settings_show_status_bar': false,
+    });
+    final appCalls = <MethodCall>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/app'), (
+      call,
+    ) async {
+      appCalls.add(call);
+      return null;
+    });
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+
+    // Large: hours and minutes as separate lines.
+    final now = DateTime.now();
+    expect(find.text(now.hour.toString().padLeft(2, '0')), findsOneWidget);
+    // Bottom: the clock sits below the middle of Home.
+    final clockY = tester.getCenter(find.text(now.minute.toString().padLeft(2, '0'))).dy;
+    expect(clockY, greaterThan(tester.getSize(find.byType(HomePanel)).height / 2));
+    expect(find.text('Spotlight search'), findsNothing);
+    expect(appCalls.where((c) => c.method == 'setStatusBarVisible').last.arguments, {'visible': false});
+  });
+
+  testWidgets('without a chosen position, each layout keeps its own clock placement', (WidgetTester tester) async {
+    final settings = AppSettings();
+    expect(settings.clockPositionFor(HomeLayoutMode.classic), ClockPosition.top);
+    expect(settings.clockPositionFor(HomeLayoutMode.minimal), ClockPosition.center);
+    SharedPreferences.setMockInitialValues({});
+    await settings.setClockPosition(ClockPosition.bottom);
+    expect(settings.clockPositionFor(HomeLayoutMode.minimal), ClockPosition.bottom);
   });
 
   testWidgets('Launcher Settings switches layout and re-runs onboarding', (WidgetTester tester) async {

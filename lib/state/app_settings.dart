@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/home_layout_mode.dart';
@@ -35,6 +36,12 @@ enum SwipeDownAction { spotlight, notifications, none }
 /// What double-tapping Home does. The lock methods match the original:
 /// accessibility (recommended, keeps fingerprint unlock) or device admin.
 enum DoubleTapAction { none, lockAccessibility, lockDeviceAdmin }
+
+/// How Home draws its clock (Phase 10 task 2).
+enum ClockStyle { standard, large, compact }
+
+/// Where Home's clock sits.
+enum ClockPosition { top, center, bottom }
 
 /// The theme the user picked; [auto] follows the phone's dark mode.
 enum ThemeChoice { light, dark, auto }
@@ -76,6 +83,26 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
   DoubleTapAction _doubleTap = DoubleTapAction.none;
   DoubleTapAction get doubleTap => _doubleTap;
 
+  ClockStyle _clockStyle = ClockStyle.standard;
+  ClockStyle get clockStyle => _clockStyle;
+
+  ClockPosition? _clockPosition;
+
+  /// Null until the user picks one: each layout then keeps its own default
+  /// (Classic at the top, Minimal centred). See [clockPositionFor].
+  ClockPosition? get clockPosition => _clockPosition;
+
+  ClockPosition clockPositionFor(HomeLayoutMode layout) =>
+      _clockPosition ?? (layout == HomeLayoutMode.classic ? ClockPosition.top : ClockPosition.center);
+
+  bool _showSearchBar = true;
+
+  /// Classic layout's Spotlight search pill.
+  bool get showSearchBar => _showSearchBar;
+
+  bool _showStatusBar = true;
+  bool get showStatusBar => _showStatusBar;
+
   final Set<DrawerOption> _drawerOptions = {};
   bool drawerOption(DrawerOption option) => _drawerOptions.contains(option);
 
@@ -84,6 +111,12 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
     _drawerOptions
       ..clear()
       ..addAll(DrawerOption.values.where((o) => prefs.getBool('settings_drawer_${o.name}') ?? false));
+    _clockStyle = ClockStyle.values.byName(prefs.getString('settings_clock_style') ?? ClockStyle.standard.name);
+    final position = prefs.getString('settings_clock_position');
+    _clockPosition = position == null ? null : ClockPosition.values.byName(position);
+    _showSearchBar = prefs.getBool('settings_show_search_bar') ?? true;
+    _showStatusBar = prefs.getBool('settings_show_status_bar') ?? true;
+    if (!_showStatusBar) _applyStatusBar(); // shown is the window's default
     _swipeDown = SwipeDownAction.values.byName(prefs.getString(_swipeDownKey) ?? SwipeDownAction.spotlight.name);
     _doubleTap = DoubleTapAction.values.byName(prefs.getString(_doubleTapKey) ?? DoubleTapAction.none.name);
     // Before Auto existed only the dark flag was stored.
@@ -166,5 +199,43 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_doubleTapKey, value.name);
+  }
+
+  Future<void> setClockStyle(ClockStyle value) =>
+      _save(_clockStyle != value, () => _clockStyle = value, (p) => p.setString('settings_clock_style', value.name));
+
+  Future<void> setClockPosition(ClockPosition value) => _save(
+    _clockPosition != value,
+    () => _clockPosition = value,
+    (p) => p.setString('settings_clock_position', value.name),
+  );
+
+  Future<void> setShowSearchBar(bool value) =>
+      _save(_showSearchBar != value, () => _showSearchBar = value, (p) => p.setBool('settings_show_search_bar', value));
+
+  Future<void> setShowStatusBar(bool value) async {
+    await _save(
+      _showStatusBar != value,
+      () => _showStatusBar = value,
+      (p) => p.setBool('settings_show_status_bar', value),
+    );
+    _applyStatusBar();
+  }
+
+  /// Hiding the status bar keeps the navigation bar, and only affects the
+  /// launcher's own window (see MainActivity.setStatusBarVisible).
+  Future<void> _applyStatusBar() async {
+    try {
+      await const MethodChannel('yinyang.launcher/app').invokeMethod('setStatusBarVisible', {'visible': _showStatusBar});
+    } on MissingPluginException {
+      // Tests and non-Android hosts.
+    }
+  }
+
+  Future<void> _save(bool changed, void Function() apply, Future<bool> Function(SharedPreferences) write) async {
+    if (!changed) return;
+    apply();
+    notifyListeners();
+    await write(await SharedPreferences.getInstance());
   }
 }

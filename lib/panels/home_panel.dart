@@ -187,6 +187,7 @@ class _HomePanelState extends State<HomePanel> {
                   time: _formatTime(_now),
                   subtitle: subtitle,
                   isDark: isDark,
+                  settings: settings,
                   dock: _dock,
                   onOpen: _openSlot,
                   onChange: _changeSlot,
@@ -195,6 +196,7 @@ class _HomePanelState extends State<HomePanel> {
                   time: _formatTime(_now),
                   subtitle: subtitle,
                   isDark: isDark,
+                  settings: settings,
                   dock: _dock,
                   onOpen: _openSlot,
                   onChange: _changeSlot,
@@ -210,33 +212,63 @@ class _Clock extends StatelessWidget {
     required this.time,
     required this.subtitle,
     required this.isDark,
+    required this.style,
     this.fontSize = 56,
   });
 
   final String time;
   final String subtitle;
   final bool isDark;
+  final ClockStyle style;
   final double fontSize;
 
   @override
   Widget build(BuildContext context) {
     final primary = isDark ? Colors.white : Colors.black87;
     final secondary = isDark ? Colors.white60 : Colors.black54;
+    final date = Text(subtitle, style: TextStyle(fontSize: 15, color: secondary));
     // Tapping the clock or date opens the clock app, as on most launchers.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: const InstalledAppsService().openClock,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            time,
-            style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w500, color: primary),
+      child: switch (style) {
+        ClockStyle.standard => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              time,
+              style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w500, color: primary),
+            ),
+            const SizedBox(height: 4),
+            date,
+          ],
+        ),
+        // Hours over minutes, big and light.
+        ClockStyle.large => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final part in time.split(':'))
+              Text(
+                part,
+                style: TextStyle(fontSize: 96, height: 1, fontWeight: FontWeight.w200, color: primary),
+              ),
+            const SizedBox(height: 12),
+            date,
+          ],
+        ),
+        // Time and date on one quiet line.
+        ClockStyle.compact => Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: time,
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: primary),
+              ),
+              TextSpan(text: '   $subtitle', style: TextStyle(fontSize: 15, color: secondary)),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(subtitle, style: TextStyle(fontSize: 15, color: secondary)),
-        ],
-      ),
+        ),
+      },
     );
   }
 }
@@ -246,6 +278,7 @@ class _ClassicLayout extends StatelessWidget {
     required this.time,
     required this.subtitle,
     required this.isDark,
+    required this.settings,
     required this.dock,
     required this.onOpen,
     required this.onChange,
@@ -254,6 +287,7 @@ class _ClassicLayout extends StatelessWidget {
   final String time;
   final String subtitle;
   final bool isDark;
+  final AppSettings settings;
   final List<_DockItem> dock;
   final ValueChanged<int> onOpen;
   final ValueChanged<int> onChange;
@@ -261,16 +295,20 @@ class _ClassicLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tint = isDark ? Colors.white : Colors.black;
+    final clock = _Clock(time: time, subtitle: subtitle, isDark: isDark, style: settings.clockStyle, fontSize: 40);
     final iconColor = isDark ? Colors.white : Colors.black87;
     final textColor = isDark ? Colors.white70 : Colors.black54;
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
       child: Column(
         children: [
-          _Clock(time: time, subtitle: subtitle, isDark: isDark, fontSize: 40),
-          const Spacer(),
+          ...switch (settings.clockPositionFor(HomeLayoutMode.classic)) {
+            ClockPosition.top => [clock, const Spacer()],
+            ClockPosition.center => [const Spacer(), clock, const Spacer()],
+            ClockPosition.bottom => [const Spacer(), clock, const SizedBox(height: 32)],
+          },
           // Placeholder pill; wired to real Spotlight Search in task 8.
-          Container(
+          if (settings.showSearchBar) Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: tint.withValues(alpha: 0.12),
@@ -284,7 +322,7 @@ class _ClassicLayout extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          if (settings.showSearchBar) const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -323,6 +361,7 @@ class _MinimalLayout extends StatelessWidget {
     required this.time,
     required this.subtitle,
     required this.isDark,
+    required this.settings,
     required this.dock,
     required this.onOpen,
     required this.onChange,
@@ -331,6 +370,7 @@ class _MinimalLayout extends StatelessWidget {
   final String time;
   final String subtitle;
   final bool isDark;
+  final AppSettings settings;
   final List<_DockItem> dock;
   final ValueChanged<int> onOpen;
   final ValueChanged<int> onChange;
@@ -338,25 +378,27 @@ class _MinimalLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textColor = isDark ? Colors.white : Colors.black87;
-    return Column(
-      children: [
-        const Spacer(flex: 2),
-        _Clock(time: time, subtitle: subtitle, isDark: isDark),
-        const Spacer(flex: 2),
-        for (final (i, item) in dock.indexed)
-          GestureDetector(
-            onTap: () => onOpen(i),
-            onLongPress: () => onChange(i),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 24),
-              child: Text(
-                item.app?.name ?? 'Add app',
-                style: TextStyle(fontSize: 20, color: item.app == null ? textColor.withValues(alpha: 0.4) : textColor),
-              ),
+    final clock = _Clock(time: time, subtitle: subtitle, isDark: isDark, style: settings.clockStyle);
+    final apps = [
+      for (final (i, item) in dock.indexed)
+        GestureDetector(
+          onTap: () => onOpen(i),
+          onLongPress: () => onChange(i),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 24),
+            child: Text(
+              item.app?.name ?? 'Add app',
+              style: TextStyle(fontSize: 20, color: item.app == null ? textColor.withValues(alpha: 0.4) : textColor),
             ),
           ),
-        const Spacer(flex: 3),
-      ],
+        ),
+    ];
+    return Column(
+      children: switch (settings.clockPositionFor(HomeLayoutMode.minimal)) {
+        ClockPosition.top => [const SizedBox(height: 48), clock, const Spacer(flex: 2), ...apps, const Spacer(flex: 3)],
+        ClockPosition.center => [const Spacer(flex: 2), clock, const Spacer(flex: 2), ...apps, const Spacer(flex: 3)],
+        ClockPosition.bottom => [const Spacer(flex: 2), ...apps, const Spacer(flex: 2), clock, const SizedBox(height: 48)],
+      },
     );
   }
 }

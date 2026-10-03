@@ -12,6 +12,9 @@ import android.provider.MediaStore
 import android.provider.Settings
 import android.provider.Telephony
 import android.telecom.TelecomManager
+import android.view.View
+import android.view.WindowInsets
+import android.view.WindowInsetsController
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -67,6 +70,10 @@ class MainActivity : FlutterActivity() {
                     )
                     result.success(null)
                 }
+                "setStatusBarVisible" -> {
+                    setStatusBarVisible(call.argument<Boolean>("visible")!!)
+                    result.success(null)
+                }
                 // Tapping Home's clock: the clock app's alarms screen. False if
                 // no app handles it.
                 "openClock" -> result.success(
@@ -98,6 +105,25 @@ class MainActivity : FlutterActivity() {
     override fun onStop() {
         appWidgetBridge.stopListening()
         super.onStop()
+    }
+
+    // Settings' "Status bar" switch (Phase 10 task 2). Through the window's
+    // insets controller rather than Flutter's SystemChrome modes, which are
+    // ignored for apps targeting API 36; a swipe from the top still shows the
+    // bar briefly.
+    private fun setStatusBarVisible(visible: Boolean) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val controller = window.insetsController ?: return
+            if (visible) {
+                controller.show(WindowInsets.Type.statusBars())
+            } else {
+                controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                controller.hide(WindowInsets.Type.statusBars())
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = if (visible) 0 else View.SYSTEM_UI_FLAG_FULLSCREEN
+        }
     }
 
     // Asks the package manager which activity currently handles HOME, which
