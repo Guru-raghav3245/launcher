@@ -25,6 +25,9 @@ class InstalledAppsService {
   Future<void> openAppInfo(String packageName) =>
       const MethodChannel('yinyang.launcher/app').invokeMethod('openAppInfo', {'packageName': packageName});
 
+  /// Opens the clock app (its alarms screen), for taps on Home's clock.
+  Future<void> openClock() => const MethodChannel('yinyang.launcher/app').invokeMethod('openClock');
+
   /// Launches [packageName], unless Focus Mode is active, in which case the
   /// launch is refused (returns false) and no app opens.
   Future<bool> launch(String packageName) async {

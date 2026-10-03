@@ -34,7 +34,8 @@ class PhoneMockup extends StatelessWidget {
             // the host device's actual (much larger) screen size.
             child: MediaQuery(
               data: const MediaQueryData(size: _designSize),
-              child: child,
+              // A preview only: the real Home inside must not take taps.
+              child: IgnorePointer(child: child),
             ),
           ),
         ),

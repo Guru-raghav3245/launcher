@@ -178,6 +178,23 @@ void main() {
     expect((await const FocusModeService().status()).active, isFalse);
   });
 
+  testWidgets('tapping the Home clock opens the clock app', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+    final calls = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/app'), (
+      call,
+    ) async {
+      calls.add(call.method);
+      return true;
+    });
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining(RegExp(r'^\d\d:\d\d$')));
+    await tester.pump();
+    expect(calls, ['openClock']);
+  });
+
   testWidgets('Restart Launcher calls the native restart', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
     final calls = <String>[];

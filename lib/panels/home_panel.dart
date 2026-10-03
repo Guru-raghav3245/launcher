@@ -10,6 +10,7 @@ import '../search/app_picker_sheet.dart';
 import '../search/app_result_row.dart';
 import '../services/app_customizations_service.dart';
 import '../services/dock_service.dart';
+import '../services/installed_apps_service.dart';
 import '../services/focus_mode_service.dart';
 import '../settings/settings_screen.dart';
 import '../state/app_settings_scope.dart';
@@ -216,16 +217,21 @@ class _Clock extends StatelessWidget {
   Widget build(BuildContext context) {
     final primary = isDark ? Colors.white : Colors.black87;
     final secondary = isDark ? Colors.white60 : Colors.black54;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          time,
-          style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w500, color: primary),
-        ),
-        const SizedBox(height: 4),
-        Text(subtitle, style: TextStyle(fontSize: 15, color: secondary)),
-      ],
+    // Tapping the clock or date opens the clock app, as on most launchers.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: const InstalledAppsService().openClock,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            time,
+            style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w500, color: primary),
+          ),
+          const SizedBox(height: 4),
+          Text(subtitle, style: TextStyle(fontSize: 15, color: secondary)),
+        ],
+      ),
     );
   }
 }

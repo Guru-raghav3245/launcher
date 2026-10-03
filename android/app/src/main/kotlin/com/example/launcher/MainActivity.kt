@@ -1,10 +1,12 @@
 package com.example.launcher
 
 import android.app.role.RoleManager
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.provider.AlarmClock
 import android.provider.MediaStore
 import android.provider.Settings
 import android.provider.Telephony
@@ -58,6 +60,16 @@ class MainActivity : FlutterActivity() {
                     )
                     result.success(null)
                 }
+                // Tapping Home's clock: the clock app's alarms screen. False if
+                // no app handles it.
+                "openClock" -> result.success(
+                    try {
+                        startActivity(Intent(AlarmClock.ACTION_SHOW_ALARMS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        true
+                    } catch (_: ActivityNotFoundException) {
+                        false
+                    },
+                )
                 else -> result.notImplemented()
             }
         }
