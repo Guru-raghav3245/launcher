@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../models/my_space_tile.dart';
 import '../models/tile_kind.dart';
 import '../panels/mind_space_panel.dart';
+import '../services/calendar_service.dart';
 import 'tile_card.dart';
+import 'tiles/calendar_tile.dart';
 import 'tiles/hydration_tile.dart';
 import 'tiles/quote_tile.dart';
 import 'tiles/screen_time_tile.dart';
@@ -127,6 +129,39 @@ final builtInTileSpecs = [
           (PerAppUsage(packageName: 'Maps', opens: 3, duration: Duration(minutes: 15)), null),
         ],
       ),
+    ),
+  ),
+  BuiltInTileSpec(
+    kind: TileKind.calendar,
+    icon: Icons.event_outlined,
+    title: 'Calendar',
+    subtitle: 'Your next events',
+    defaultData: () => {},
+    preview: CalendarBody(
+      now: DateTime(2026, 1, 5, 8),
+      events: [
+        CalendarEvent(
+          id: 0,
+          title: 'Team standup',
+          begin: DateTime(2026, 1, 5, 9, 30),
+          end: DateTime(2026, 1, 5, 10),
+          allDay: false,
+        ),
+        CalendarEvent(
+          id: 0,
+          title: 'Lunch with Sam',
+          begin: DateTime(2026, 1, 5, 13),
+          end: DateTime(2026, 1, 5, 14),
+          allDay: false,
+        ),
+        CalendarEvent(
+          id: 0,
+          title: "Mum's birthday",
+          begin: DateTime(2026, 1, 6),
+          end: DateTime(2026, 1, 7),
+          allDay: true,
+        ),
+      ],
     ),
   ),
 ];

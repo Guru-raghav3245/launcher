@@ -873,6 +873,51 @@ void main() {
     expect(find.text('1 open · 30m'), findsOneWidget);
   });
 
+  testWidgets('the Calendar tile asks for access, then lists events by day', (WidgetTester tester) async {
+    final now = DateTime.now();
+    final later = DateTime(now.year, now.month, now.day, 23, 30);
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'my_space_tiles': '[{"id":"c","kind":"calendar","data":{}}]',
+    });
+    var granted = false;
+    final opened = <Object?>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/calendar'), (
+      call,
+    ) async {
+      switch (call.method) {
+        case 'hasAccess':
+          return granted;
+        case 'requestAccess':
+          return granted = true;
+        case 'openEvent':
+          opened.add((call.arguments as Map)['id']);
+          return null;
+        default:
+          return [
+            {'id': 1, 'title': 'Standup', 'begin': later.millisecondsSinceEpoch, 'end': later.millisecondsSinceEpoch, 'allDay': false},
+            {'id': 2, 'title': 'Trip', 'begin': tomorrow.millisecondsSinceEpoch, 'end': tomorrow.millisecondsSinceEpoch, 'allDay': true},
+          ];
+      }
+    });
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(400, 0), 1000); // swipe right → My Space
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Allow calendar access'));
+    await tester.pumpAndSettle();
+    expect(find.text('TODAY'), findsOneWidget);
+    expect(find.text('Standup'), findsOneWidget);
+    expect(find.text('TOMORROW'), findsOneWidget);
+    expect(find.text('All day'), findsOneWidget);
+
+    await tester.tap(find.text('Trip'));
+    expect(opened, [2]);
+  });
+
   testWidgets('Manage tiles reorders and removes tiles', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
       'onboarding_complete': true,

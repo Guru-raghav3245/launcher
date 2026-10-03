@@ -28,6 +28,7 @@ fun Activity.openExternal(intent: Intent) = startActivity(intent.addFlags(Intent
 class MainActivity : FlutterActivity() {
     private var pendingResult: MethodChannel.Result? = null
     private lateinit var appWidgetBridge: AppWidgetHostBridge
+    private lateinit var calendarBridge: CalendarBridge
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -84,6 +85,8 @@ class MainActivity : FlutterActivity() {
         UsageStatsBridge(this).attach(flutterEngine)
         MindfulTimerBridge(this).attach(flutterEngine)
         GesturesBridge(this).attach(flutterEngine)
+        calendarBridge = CalendarBridge(this)
+        calendarBridge.attach(flutterEngine)
     }
 
     override fun onStart() {
@@ -151,6 +154,13 @@ class MainActivity : FlutterActivity() {
         } else {
             openExternal(Intent(Settings.ACTION_HOME_SETTINGS))
             result.success(null)
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_CALENDAR) {
+            calendarBridge.onPermissionResult(grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED)
         }
     }
 

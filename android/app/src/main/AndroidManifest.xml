@@ -20,6 +20,8 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <!-- Swipe down → notification shade (Phase 8 task 7); granted at install. -->
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR"/>
+    <!-- Calendar tile (Phase 9 task 5); asked for from the tile itself. -->
+    <uses-permission android:name="android.permission.READ_CALENDAR"/>
     <application
         android:label="launcher"
         android:name="${applicationName}"
