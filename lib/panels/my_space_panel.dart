@@ -10,6 +10,7 @@ import '../my_space/tiles/from_app_tile.dart';
 import '../my_space/tiles/hydration_tile.dart';
 import '../my_space/tiles/notes_tile.dart';
 import '../my_space/tiles/quote_tile.dart';
+import '../my_space/tiles/screen_time_tile.dart';
 import '../my_space/tiles/todo_tile.dart';
 import '../my_space/tiles/weather_tile.dart';
 import '../services/my_space_service.dart';
@@ -131,6 +132,7 @@ class _TileList extends StatelessWidget {
                 TileKind.fromApp => FromAppTile(tile: tile),
                 TileKind.quote => QuoteTile(tile: tile, onChanged: (data) => onUpdate(tile.id, data)),
                 TileKind.hydration => HydrationTile(tile: tile, onChanged: (data) => onUpdate(tile.id, data)),
+                TileKind.screenTime => const ScreenTimeTile(),
               },
             );
           },

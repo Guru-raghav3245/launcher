@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../models/my_space_tile.dart';
 import '../models/tile_kind.dart';
+import '../panels/mind_space_panel.dart';
 import 'tile_card.dart';
 import 'tiles/hydration_tile.dart';
 import 'tiles/quote_tile.dart';
+import 'tiles/screen_time_tile.dart';
 
 /// Describes one row in the "Add New Tile" sheet's Built-in tab: what the
 /// tile is called, the data a new one starts with, and a sample of how it
@@ -109,6 +111,23 @@ final builtInTileSpecs = [
     subtitle: 'Count your glasses of water',
     defaultData: () => {'goal': defaultGlassGoal},
     preview: const HydrationBody(glasses: 3, goal: defaultGlassGoal),
+  ),
+  BuiltInTileSpec(
+    kind: TileKind.screenTime,
+    icon: Icons.hourglass_empty,
+    title: 'Screen Time',
+    subtitle: "Today's screen time and top apps",
+    defaultData: () => {},
+    preview: const ScreenTimeBody(
+      summary: (
+        totals: MindSpaceTotals(screenTime: Duration(hours: 2, minutes: 14), pickups: 37),
+        topApps: [
+          (PerAppUsage(packageName: 'Browser', opens: 21, duration: Duration(minutes: 48)), null),
+          (PerAppUsage(packageName: 'Messages', opens: 34, duration: Duration(minutes: 22)), null),
+          (PerAppUsage(packageName: 'Maps', opens: 3, duration: Duration(minutes: 15)), null),
+        ],
+      ),
+    ),
   ),
 ];
 

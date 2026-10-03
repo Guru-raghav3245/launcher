@@ -828,6 +828,51 @@ void main() {
     expect(find.text('3 of 6 glasses today'), findsOneWidget);
   });
 
+  testWidgets('the Screen Time tile shows today, top three apps, and skips productive ones', (
+    WidgetTester tester,
+  ) async {
+    final today = DateTime.now();
+    final start = DateTime(today.year, today.month, today.day);
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'mind_space_productive_apps': ['com.work'],
+      'my_space_tiles': '[{"id":"s","kind":"screenTime","data":{}}]',
+    });
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(
+      const MethodChannel('installed_apps'),
+      (call) async => [
+        for (final (name, pkg) in [('Feed', 'com.feed'), ('Chat', 'com.chat'), ('Maps', 'com.maps'), ('Work', 'com.work')])
+          {'name': name, 'package_name': pkg},
+      ],
+    );
+    messenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/usage'), (call) async {
+      if (call.method == 'hasAccess') return true;
+      var at = start;
+      return [
+        for (final (pkg, minutes) in [('com.feed', 30), ('com.work', 20), ('com.chat', 10), ('com.maps', 5), ('com.x', 1)])
+          for (final type in ['foreground', 'background'])
+            {
+              'packageName': pkg,
+              'type': type,
+              'timestamp': (at = at.add(Duration(minutes: type == 'background' ? minutes : 1))).millisecondsSinceEpoch,
+            },
+      ];
+    });
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(400, 0), 1000); // swipe right → My Space
+    await tester.pumpAndSettle();
+
+    expect(find.text('46m'), findsOneWidget); // 30 + 10 + 5 + 1; Work's 20 left out
+    expect(find.text('Feed'), findsOneWidget);
+    expect(find.text('Chat'), findsOneWidget);
+    expect(find.text('Maps'), findsOneWidget);
+    expect(find.text('Work'), findsNothing);
+    expect(find.text('1 open · 30m'), findsOneWidget);
+  });
+
   testWidgets('Manage tiles reorders and removes tiles', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
       'onboarding_complete': true,
