@@ -36,16 +36,29 @@ enum SwipeDownAction { spotlight, notifications, none }
 /// accessibility (recommended, keeps fingerprint unlock) or device admin.
 enum DoubleTapAction { none, lockAccessibility, lockDeviceAdmin }
 
+/// The theme the user picked; [auto] follows the phone's dark mode.
+enum ThemeChoice { light, dark, auto }
+
 /// Shared, persisted app settings — theme, home layout mode, wallpaper,
 /// and the drawer options. Written by the onboarding pickers now and by Settings
 /// (Phase 5) later; read anywhere via [AppSettingsScope.of].
-class AppSettings extends ChangeNotifier {
+class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
+  static const _themeKey = 'settings_theme';
+
+  /// The *effective* darkness, kept in step for native code that draws in
+  /// the launcher's colours (Mindful Timer's "Time's up" overlay).
   static const _isDarkKey = 'settings_is_dark';
   static const _layoutModeKey = 'settings_layout_mode';
   static const _wallpaperIndexKey = 'settings_wallpaper_index';
 
-  bool _isDark = false;
-  bool get isDark => _isDark;
+  ThemeChoice _theme = ThemeChoice.light;
+  ThemeChoice get theme => _theme;
+
+  /// What every screen reads: the chosen theme, or the phone's for Auto.
+  bool get isDark =>
+      _theme == ThemeChoice.dark ||
+      (_theme == ThemeChoice.auto &&
+          WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark);
 
   HomeLayoutMode _layoutMode = HomeLayoutMode.classic;
   HomeLayoutMode get layoutMode => _layoutMode;
@@ -73,7 +86,13 @@ class AppSettings extends ChangeNotifier {
       ..addAll(DrawerOption.values.where((o) => prefs.getBool('settings_drawer_${o.name}') ?? false));
     _swipeDown = SwipeDownAction.values.byName(prefs.getString(_swipeDownKey) ?? SwipeDownAction.spotlight.name);
     _doubleTap = DoubleTapAction.values.byName(prefs.getString(_doubleTapKey) ?? DoubleTapAction.none.name);
-    _isDark = prefs.getBool(_isDarkKey) ?? false;
+    // Before Auto existed only the dark flag was stored.
+    _theme = ThemeChoice.values.byName(
+      prefs.getString(_themeKey) ?? ((prefs.getBool(_isDarkKey) ?? false) ? 'dark' : 'light'),
+    );
+    WidgetsBinding.instance
+      ..removeObserver(this)
+      ..addObserver(this);
     _layoutMode = HomeLayoutMode.values.byName(
       prefs.getString(_layoutModeKey) ?? HomeLayoutMode.classic.name,
     );
@@ -84,12 +103,29 @@ class AppSettings extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setDark(bool value) async {
-    if (_isDark == value) return;
-    _isDark = value;
+  /// Light or Dark (the onboarding toggles); Settings offers Auto too.
+  Future<void> setDark(bool value) => setTheme(value ? ThemeChoice.dark : ThemeChoice.light);
+
+  Future<void> setTheme(ThemeChoice value) async {
+    if (_theme == value) return;
+    _theme = value;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_isDarkKey, value);
+    await prefs.setString(_themeKey, value.name);
+    await _syncDarkFlag();
+  }
+
+  // Auto follows the phone as it switches between light and dark.
+  @override
+  void didChangePlatformBrightness() {
+    if (_theme != ThemeChoice.auto) return;
+    notifyListeners();
+    _syncDarkFlag();
+  }
+
+  Future<void> _syncDarkFlag() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_isDarkKey, isDark);
   }
 
   Future<void> setLayoutMode(HomeLayoutMode value) async {

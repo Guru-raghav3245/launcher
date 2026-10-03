@@ -105,6 +105,53 @@ void main() {
     expect(app.themeMode, ThemeMode.dark);
   });
 
+  testWidgets('Auto theme follows the phone as it changes', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true, 'settings_theme': 'auto'});
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    ThemeMode mode() => tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode!;
+    expect(mode(), ThemeMode.light);
+
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    await tester.pumpAndSettle();
+    expect(mode(), ThemeMode.dark);
+    expect((await SharedPreferences.getInstance()).getBool('settings_is_dark'), true); // for the native overlay
+  });
+
+  testWidgets('a dark flag saved before Auto existed loads as Dark', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true, 'settings_is_dark': true});
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode, ThemeMode.dark);
+  });
+
+  testWidgets('Toggles cycle the theme and switch Focus Mode', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.longPress(find.byType(HomePanel));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Theme · Light'), findsOneWidget);
+    await tester.tap(find.text('Theme · Light'));
+    await tester.pumpAndSettle();
+    expect(find.text('Theme · Dark'), findsOneWidget);
+    await tester.tap(find.text('Theme · Dark'));
+    await tester.pumpAndSettle();
+    expect(find.text('Follows your phone'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(SwitchListTile, 'Focus Mode'));
+    await tester.pumpAndSettle();
+    expect((await const FocusModeService().status()).active, true);
+    await tester.tap(find.widgetWithText(SwitchListTile, 'Focus Mode'));
+    await tester.pumpAndSettle();
+    expect((await const FocusModeService().status()).active, false);
+  });
+
   testWidgets('Launcher Settings switches layout and re-runs onboarding', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
 
@@ -147,6 +194,8 @@ void main() {
     await tester.pumpWidget(const YinYangLauncherApp());
     await tester.pumpAndSettle();
     await tester.longPress(find.byType(HomePanel));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('System Settings')); // below the Toggles group
     await tester.pumpAndSettle();
     await tester.tap(find.text('System Settings'));
     await tester.pumpAndSettle();
@@ -298,6 +347,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.longPress(find.byType(HomePanel));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Allowed apps')); // below the Toggles group
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Allowed apps'));
     await tester.pumpAndSettle();
 
@@ -326,6 +377,8 @@ void main() {
     await tester.pumpWidget(const YinYangLauncherApp());
     await tester.pumpAndSettle();
     await tester.longPress(find.byType(HomePanel));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Hidden apps')); // below the Toggles group
     await tester.pumpAndSettle();
     await tester.tap(find.text('Hidden apps'));
     await tester.pumpAndSettle();

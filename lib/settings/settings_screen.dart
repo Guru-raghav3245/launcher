@@ -42,6 +42,9 @@ typedef _SettingsEntry = ({String group, IconData icon, String title, void Funct
 /// (the Restart Launcher footer is matched the same way, by its label).
 const _mindSpaceTerms = ['mind space', 'pause', 'timer', 'focus mode'];
 
+/// Search terms that keep the Toggles group (Theme, Focus Mode) visible.
+const _toggleTerms = ['toggles', 'theme', 'dark', 'light', 'focus mode'];
+
 /// Restarts the launcher process (see MainActivity.kt's `yinyang.launcher/app`).
 const _appChannel = MethodChannel('yinyang.launcher/app');
 
@@ -90,6 +93,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       (groups[entry.group] ??= []).add(entry);
     }
     final showMindSpace = _mindSpaceTerms.any((term) => term.contains(query));
+    final showToggles = _toggleTerms.any((term) => term.contains(query));
     final showRestart = 'restart launcher'.contains(query);
 
     return Padding(
@@ -106,7 +110,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             sortMode: AppSortMode.alphabetical,
             onSortModeChanged: (_) {},
           ),
-          if (groups.isEmpty && !showMindSpace && !showRestart)
+          if (groups.isEmpty && !showMindSpace && !showRestart && !showToggles)
             Padding(
               padding: const EdgeInsets.only(top: 32),
               child: Text(
@@ -115,6 +119,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 style: TextStyle(color: isDark ? Colors.white60 : Colors.black54),
               ),
             ),
+          if (showToggles) ...[
+            _SectionHeader('Toggles', isDark: isDark),
+            _SettingsGroup(isDark: isDark, rows: const [_ThemeToggleRow(), _FocusToggleRow()]),
+          ],
           for (final MapEntry(key: group, value: entries) in groups.entries) ...[
             _SectionHeader(group, isDark: isDark),
             _SettingsGroup(
@@ -210,6 +218,75 @@ class _SettingsRow extends StatelessWidget {
   }
 }
 
+/// Toggles: the theme at a tap, cycling Light → Dark → Auto.
+class _ThemeToggleRow extends StatelessWidget {
+  const _ThemeToggleRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = AppSettingsScope.of(context);
+    final (_, icon, label) = _themeOptions.firstWhere((o) => o.$1 == settings.theme);
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      leading: Icon(icon),
+      title: Text('Theme · $label', style: const TextStyle(fontSize: 18, letterSpacing: 0.5)),
+      subtitle: Text(switch (settings.theme) {
+        ThemeChoice.light => 'Always light',
+        ThemeChoice.dark => 'Always dark',
+        ThemeChoice.auto => 'Follows your phone',
+      }),
+      onTap: () => settings.setTheme(ThemeChoice.values[(settings.theme.index + 1) % ThemeChoice.values.length]),
+    );
+  }
+}
+
+/// Toggles: Focus Mode on (indefinitely) or off. A strict session can't be
+/// switched off here, as anywhere else.
+class _FocusToggleRow extends StatefulWidget {
+  const _FocusToggleRow();
+
+  @override
+  State<_FocusToggleRow> createState() => _FocusToggleRowState();
+}
+
+class _FocusToggleRowState extends State<_FocusToggleRow> {
+  final _focusMode = const FocusModeService();
+  FocusStatus _status = const FocusStatus(active: false);
+
+  @override
+  void initState() {
+    super.initState();
+    FocusModeService.changes.addListener(_refresh);
+    _refresh();
+  }
+
+  @override
+  void dispose() {
+    FocusModeService.changes.removeListener(_refresh);
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    final status = await _focusMode.status();
+    if (mounted) setState(() => _status = status);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = AppSettingsScope.of(context).isDark;
+    return SwitchListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      secondary: const Icon(Icons.center_focus_strong),
+      title: const Text('Focus Mode', style: TextStyle(fontSize: 18, letterSpacing: 0.5)),
+      subtitle: _status.strict ? const Text('Strict session: on until it ends') : null,
+      value: _status.active,
+      activeThumbColor: isDark ? Colors.black : Colors.white,
+      activeTrackColor: isDark ? Colors.white : Colors.black,
+      onChanged: _status.strict ? null : (on) => on ? _focusMode.start() : _focusMode.stop(),
+    );
+  }
+}
+
 /// Opens a short sub-sheet titled [title] whose rows are rebuilt from the
 /// live [AppSettings] each time it changes.
 void _showSubSheet(BuildContext context, String title, List<Widget> Function(BuildContext, AppSettings) rows) {
@@ -273,8 +350,15 @@ Future<void> _showHiddenApps(BuildContext context) async {
   );
 }
 
-/// Appearance: the onboarding Light/Dark toggle, bound to the same
-/// [AppSettings.isDark] so both places stay in sync.
+/// The theme options, shared by Appearance and the Toggles row.
+const _themeOptions = [
+  (ThemeChoice.light, Icons.wb_sunny_outlined, 'Light'),
+  (ThemeChoice.dark, Icons.nightlight_round, 'Dark'),
+  (ThemeChoice.auto, Icons.brightness_auto_outlined, 'Auto'),
+];
+
+/// Appearance: Light / Dark / Auto, bound to [AppSettings.theme] (the
+/// onboarding toggle offers just Light and Dark).
 void _showAppearance(BuildContext context) {
   _showSubSheet(
     context,
@@ -282,11 +366,7 @@ void _showAppearance(BuildContext context) {
     (context, settings) => [
       _labeled(
         'Theme',
-        SegmentedToggle<bool>(
-          value: settings.isDark,
-          onChanged: settings.setDark,
-          options: const [(false, Icons.wb_sunny_outlined, 'Light'), (true, Icons.nightlight_round, 'Dark')],
-        ),
+        SegmentedToggle<ThemeChoice>(value: settings.theme, onChanged: settings.setTheme, options: _themeOptions),
       ),
     ],
   );
