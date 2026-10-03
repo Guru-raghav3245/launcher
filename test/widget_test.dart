@@ -4,8 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:launcher/main.dart';
+import 'package:launcher/models/drawer_look.dart';
 import 'package:launcher/models/home_layout_mode.dart';
 import 'package:launcher/state/app_settings.dart';
+import 'package:launcher/state/app_settings_scope.dart';
 import 'package:launcher/models/tile_kind.dart';
 import 'package:launcher/mind_space/tool_pages.dart';
 import 'package:launcher/onboarding/onboarding_flow.dart';
@@ -19,6 +21,7 @@ import 'package:launcher/services/app_customizations_service.dart';
 import 'package:launcher/services/dock_service.dart';
 import 'package:launcher/services/focus_mode_service.dart';
 import 'package:launcher/services/my_space_service.dart';
+import 'package:launcher/settings/drawer_look_page.dart';
 import 'package:launcher/settings/settings_screen.dart';
 
 void main() {
@@ -1154,6 +1157,59 @@ void main() {
     await tester.tap(find.text('Remove'));
     await tester.pumpAndSettle();
     expect((await const MySpaceService().loadTiles()).map((t) => t.id), ['t']);
+  });
+
+  testWidgets('the drawer lays apps out as a grid without headers when chosen', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'settings_drawer_look': '{"grid":true,"columns":3,"headers":false}',
+    });
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('installed_apps'),
+      (call) async => [
+        for (final name in ['Camera', 'Chrome', 'Clock', 'Drive']) {'name': name, 'package_name': 'com.$name'},
+      ],
+    );
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up → App Drawer
+    await tester.pumpAndSettle();
+
+    double y(String name) => tester.getTopLeft(find.text(name)).dy;
+    expect(y('Chrome'), y('Camera')); // three to a row
+    expect(y('Clock'), y('Camera'));
+    expect(y('Drive'), greaterThan(y('Camera'))); // the fourth wraps
+    // No section header (the index strip on the side still lists C).
+    expect(find.byWidgetPredicate((w) => w is Text && w.data == 'C' && w.style?.fontSize == 13), findsNothing);
+  });
+
+  testWidgets('the Drawer look editor saves changes and resets them', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('installed_apps'),
+      (call) async => [
+        {'name': 'Camera', 'package_name': 'com.camera'},
+      ],
+    );
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(HomePanel), warnIfMissed: false);
+    final settings = AppSettingsScope.of(tester.element(find.byType(HomePanel)));
+    await tester.pumpWidget(
+      AppSettingsScope(settings: settings, child: const MaterialApp(home: DrawerLookPage())),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Grid'));
+    await tester.pumpAndSettle();
+    expect(settings.drawerLook.grid, true);
+    expect(find.text('Columns'), findsOneWidget);
+
+    await tester.tap(find.text('Reset'));
+    await tester.pumpAndSettle();
+    expect(settings.drawerLook, const DrawerLook());
   });
 
   testWidgets('Action tab opens a tool through its one-time explainer', (WidgetTester tester) async {

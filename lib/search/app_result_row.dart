@@ -13,6 +13,9 @@ class AppResultRow extends StatelessWidget {
     required this.onTap,
     this.onLongPress,
     this.height = 64,
+    this.iconSize = 40,
+    this.labelSize = 16,
+    this.labelLines = 1,
     this.trailing,
   });
 
@@ -20,6 +23,11 @@ class AppResultRow extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
   final double height;
+
+  /// 0 hides the icon; [labelSize] 0 hides the name (the Drawer look editor).
+  final double iconSize;
+  final double labelSize;
+  final int labelLines;
   final Widget? trailing;
 
   @override
@@ -33,15 +41,17 @@ class AppResultRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             children: [
-              AppIcon(icon: app.icon),
-              const SizedBox(width: 16),
+              if (iconSize > 0) AppIcon(icon: app.icon, size: iconSize),
+              if (iconSize > 0 && labelSize > 0) const SizedBox(width: 16),
               Expanded(
-                child: Text(
-                  app.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 16),
-                ),
+                child: labelSize == 0
+                    ? const SizedBox.shrink()
+                    : Text(
+                        app.name,
+                        maxLines: labelLines,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: labelSize),
+                      ),
               ),
               ?trailing,
             ],

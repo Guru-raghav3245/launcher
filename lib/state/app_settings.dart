@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/drawer_look.dart';
 import '../models/home_layout_mode.dart';
 import '../models/wallpaper.dart';
 
@@ -164,6 +167,9 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
   /// Classic layout's Spotlight search pill.
   bool get showSearchBar => _showSearchBar;
 
+  DrawerLook _drawerLook = const DrawerLook();
+  DrawerLook get drawerLook => _drawerLook;
+
   IconTint _iconTint = IconTint.grayscale;
   IconTint get iconTint => _iconTint;
 
@@ -197,6 +203,8 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
     _clockStyle = ClockStyle.values.byName(prefs.getString('settings_clock_style') ?? ClockStyle.standard.name);
     final position = prefs.getString('settings_clock_position');
     _clockPosition = position == null ? null : ClockPosition.values.byName(position);
+    final look = prefs.getString('settings_drawer_look');
+    _drawerLook = look == null ? const DrawerLook() : DrawerLook.fromJson(jsonDecode(look) as Map<String, dynamic>);
     _iconTint = IconTint.values.byName(prefs.getString('settings_icon_tint') ?? IconTint.grayscale.name);
     _font = LauncherFont.values.byName(prefs.getString('settings_font') ?? LauncherFont.roboto.name);
     _textSize = TextSize.values.byName(prefs.getString('settings_text_size') ?? TextSize.normal.name);
@@ -292,6 +300,12 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
     _clockPosition != value,
     () => _clockPosition = value,
     (p) => p.setString('settings_clock_position', value.name),
+  );
+
+  Future<void> setDrawerLook(DrawerLook value) => _save(
+    _drawerLook != value,
+    () => _drawerLook = value,
+    (p) => p.setString('settings_drawer_look', jsonEncode(value.toJson())),
   );
 
   Future<void> setIconTint(IconTint value) =>

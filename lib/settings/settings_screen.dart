@@ -16,6 +16,7 @@ import '../state/app_settings.dart';
 import '../state/app_settings_scope.dart';
 import '../widgets/segmented_toggle.dart';
 import '../widgets/wallpaper_gallery.dart';
+import 'drawer_look_page.dart';
 import 'lock_gesture.dart';
 
 /// Opens Settings as a near-full-height bottom sheet over the launcher,
@@ -504,6 +505,14 @@ void _showDrawerSettings(BuildContext context) {
         DrawerOption.hideUnusedApps,
         'Hide unused apps',
         "Leave out apps you haven't opened in 30 days; search still finds them (needs usage access)",
+      ),
+      ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: const Icon(Icons.tune),
+        title: const Text('Drawer look', style: TextStyle(fontSize: 18, letterSpacing: 0.5)),
+        subtitle: const Text('List or grid, icons, labels, spacing'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const DrawerLookPage())),
       ),
     ];
   });
