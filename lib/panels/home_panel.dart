@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:installed_apps/app_info.dart';
@@ -22,35 +21,15 @@ import '../state/launcher_theme.dart';
 import '../widgets/launch_app.dart';
 import '../widgets/tour.dart';
 
-const _weekdayNames = [
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-  'Sunday',
-];
+const _weekdayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-const _monthNames = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
+const _monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-/// "20:30" in 24-hour, "8:30" in 12-hour (no AM/PM on Home's big clock,
-/// like most launchers; the format follows Settings → Time & units).
+/// "20:30" in 24-hour, "08:30" in 12-hour: zero-padded either way and no
+/// AM/PM on Home's big clock, as in the original (the format follows
+/// Settings → Time & units).
 String _formatTime(DateTime time, {required bool use24}) {
-  final hour = use24 ? time.hour.toString().padLeft(2, '0') : '${time.hour % 12 == 0 ? 12 : time.hour % 12}';
+  final hour = (use24 ? time.hour : (time.hour % 12 == 0 ? 12 : time.hour % 12)).toString().padLeft(2, '0');
   final minute = time.minute.toString().padLeft(2, '0');
   return '$hour:$minute';
 }
@@ -63,8 +42,8 @@ String _formatDate(DateTime date) {
 
 const _glyphIcons = {
   DockGlyph.phone: Icons.call_outlined,
-  DockGlyph.messages: Icons.chat_bubble_outline,
-  DockGlyph.browser: Icons.public,
+  DockGlyph.messages: Icons.chat_outlined,
+  DockGlyph.browser: Icons.language,
   DockGlyph.camera: Icons.camera_alt_outlined,
 };
 
@@ -72,7 +51,7 @@ const _glyphIcons = {
 /// installed) and the glyph to draw instead of the app's icon, if any.
 typedef _DockItem = ({AppInfo? app, IconData? glyph});
 
-/// Home panel: wallpaper background, live clock, date, battery, and
+/// Home panel: wallpaper background, live clock, date, and
 /// pinned apps in either Classic or Minimal layout.
 class HomePanel extends StatefulWidget {
   const HomePanel({super.key});
@@ -82,11 +61,8 @@ class HomePanel extends StatefulWidget {
 }
 
 class _HomePanelState extends State<HomePanel> {
-  final _battery = Battery();
   late final Timer _clockTimer;
   DateTime _now = DateTime.now();
-  int? _batteryLevel;
-  StreamSubscription<BatteryState>? _batterySub;
   FocusStatus _focus = const FocusStatus(active: false);
   List<_DockItem> _dock = const [];
   var _offerTour = false;
@@ -108,8 +84,6 @@ class _HomePanelState extends State<HomePanel> {
     });
     FocusModeService.changes.addListener(_refreshFocus);
     _refreshFocus();
-    _refreshBattery();
-    _batterySub = _battery.onBatteryStateChanged.listen((_) => _refreshBattery());
   }
 
   Future<void> _refreshFocus() async {
@@ -147,21 +121,9 @@ class _HomePanelState extends State<HomePanel> {
     if (mounted) setState(() => _offerTour = offer);
   }
 
-  Future<void> _refreshBattery() async {
-    // ponytail: batteryLevel throws on platforms/emulators without a
-    // battery (e.g. some desktop targets) — swallow and just hide the %.
-    try {
-      final level = await _battery.batteryLevel;
-      if (mounted) setState(() => _batteryLevel = level);
-    } catch (_) {
-      if (mounted) setState(() => _batteryLevel = null);
-    }
-  }
-
   @override
   void dispose() {
     _clockTimer.cancel();
-    _batterySub?.cancel();
     FocusModeService.changes.removeListener(_refreshFocus);
     DockService.changes.removeListener(_refreshDock);
     TourService.changes.removeListener(_refreshTour);
@@ -176,9 +138,7 @@ class _HomePanelState extends State<HomePanel> {
     // text even in the light theme, as in the original.
     final wallpaper = settings.wallpaper;
     final isDark = wallpaper.isDark;
-    final subtitle = _batteryLevel == null
-        ? _formatDate(_now)
-        : '${_formatDate(_now)}, $_batteryLevel%';
+    final subtitle = _formatDate(_now);
 
     final tourChip = _offerTour ? TourChip(ink: Theme.of(context).colorScheme.onSurface) : null;
 
@@ -199,7 +159,10 @@ class _HomePanelState extends State<HomePanel> {
             child: ValueListenableBuilder<Tour?>(
               valueListenable: TourService.active,
               builder: (context, tour, content) => Stack(
-                children: [content!, if (tour != null) TourOverlay(tour: tour, isDark: isDark)],
+                children: [
+                  content!,
+                  if (tour != null) TourOverlay(tour: tour, isDark: isDark),
+                ],
               ),
               child: SafeArea(
                 child: _focus.active
@@ -240,20 +203,20 @@ class _Clock extends StatelessWidget {
     required this.subtitle,
     required this.isDark,
     required this.style,
-    this.fontSize = 56,
   });
 
   final String time;
   final String subtitle;
   final bool isDark;
   final ClockStyle style;
-  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.onSurface;
     final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
     final date = Text(subtitle, style: TextStyle(fontSize: 15, color: secondary));
+    // Original: the date in full ink above a big medium-weight time, both in
+    // Roboto whatever the app font is.
     // Tapping the clock or date opens the clock app, as on most launchers.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -263,11 +226,13 @@ class _Clock extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              time,
-              style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w500, color: primary),
+              subtitle,
+              style: TextStyle(fontFamily: 'Roboto', fontSize: 19, fontWeight: FontWeight.w600, color: primary),
             ),
-            const SizedBox(height: 4),
-            date,
+            Text(
+              time,
+              style: TextStyle(fontFamily: 'Roboto', fontSize: 87, height: 1.05, fontWeight: FontWeight.w500, color: primary),
+            ),
           ],
         ),
         // Hours over minutes, big and light.
@@ -291,7 +256,10 @@ class _Clock extends StatelessWidget {
                 text: time,
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: primary),
               ),
-              TextSpan(text: '   $subtitle', style: TextStyle(fontSize: 15, color: secondary)),
+              TextSpan(
+                text: '   $subtitle',
+                style: TextStyle(fontSize: 15, color: secondary),
+              ),
             ],
           ),
         ),
@@ -325,12 +293,17 @@ class _ClassicLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tint = isDark ? Colors.white : Colors.black;
-    final clock = _Clock(time: time, subtitle: subtitle, isDark: isDark, style: settings.clockStyle, fontSize: 40);
-    final iconColor = Theme.of(context).colorScheme.onSurface;
-    final textColor = Theme.of(context).colorScheme.onSurfaceVariant;
+    final colors = Theme.of(context).colorScheme;
+    final clock = _Clock(time: time, subtitle: subtitle, isDark: isDark, style: settings.clockStyle);
+    final iconColor = colors.onSurface;
+    // Outlined on the card fill, like the original's pill and dock tiles.
+    BoxDecoration outlined(double radius, double width) => BoxDecoration(
+      color: colors.surfaceContainer,
+      border: Border.all(color: colors.outline, width: width),
+      borderRadius: BorderRadius.circular(radius),
+    );
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+      padding: const EdgeInsets.fromLTRB(16, 32, 16, 24),
       child: Column(
         children: [
           ...switch (settings.clockPositionFor(HomeLayoutMode.classic)) {
@@ -339,48 +312,46 @@ class _ClassicLayout extends StatelessWidget {
             ClockPosition.bottom => [const Spacer(), clock, const SizedBox(height: 32)],
           },
           if (tourChip case final chip?) ...[chip, const SizedBox(height: 12)],
-          // Placeholder pill; wired to real Spotlight Search in task 8.
-          if (settings.showSearchBar) Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: tint.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(24),
+          if (settings.showSearchBar)
+            Container(
+              height: 46,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: outlined(23, 1),
+              child: Row(
+                children: [
+                  Icon(Icons.search, color: iconColor, size: 24),
+                  const SizedBox(width: 14),
+                  Text('Spotlight search', style: TextStyle(fontSize: 18, color: colors.onSurfaceVariant)),
+                ],
+              ),
             ),
+          if (settings.showSearchBar) const SizedBox(height: 42),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(Icons.search, color: textColor, size: 20),
-                const SizedBox(width: 8),
-                Text('Spotlight search', style: TextStyle(color: textColor)),
+                // Tap opens the app (or picks one for an empty slot); long-press
+                // swaps it. Default slots keep their line glyph; others show
+                // the app's icon.
+                for (final (i, item) in dock.indexed)
+                  GestureDetector(
+                    onTap: () => onOpen(i),
+                    onLongPress: () => onChange(i),
+                    child: Container(
+                      width: 70,
+                      height: 70,
+                      alignment: Alignment.center,
+                      decoration: outlined(12, 1.5),
+                      child: switch (item) {
+                        (glyph: final glyph?, app: _?) => Icon(glyph, color: iconColor, size: 26),
+                        (app: final app?, glyph: _) => AppIcon(icon: app.icon, size: 36),
+                        _ => Icon(Icons.add, color: colors.onSurfaceVariant, size: 26),
+                      },
+                    ),
+                  ),
               ],
             ),
-          ),
-          if (settings.showSearchBar) const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Tap opens the app (or picks one for an empty slot); long-press
-              // swaps it. Default slots keep their line glyph; others show
-              // the app's icon.
-              for (final (i, item) in dock.indexed)
-                GestureDetector(
-                  onTap: () => onOpen(i),
-                  onLongPress: () => onChange(i),
-                  child: Container(
-                    width: 50,
-                    height: 50,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: tint.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: switch (item) {
-                      (glyph: final glyph?, app: _?) => Icon(glyph, color: iconColor, size: 22),
-                      (app: final app?, glyph: _) => AppIcon(icon: app.icon, size: 28),
-                      _ => Icon(Icons.add, color: iconColor.withValues(alpha: 0.5), size: 22),
-                    },
-                  ),
-                ),
-            ],
           ),
         ],
       ),
@@ -434,7 +405,13 @@ class _MinimalLayout extends StatelessWidget {
       children: switch (settings.clockPositionFor(HomeLayoutMode.minimal)) {
         ClockPosition.top => [const SizedBox(height: 48), clock, const Spacer(flex: 2), ...apps, const Spacer(flex: 3)],
         ClockPosition.center => [const Spacer(flex: 2), clock, const Spacer(flex: 2), ...apps, const Spacer(flex: 3)],
-        ClockPosition.bottom => [const Spacer(flex: 2), ...apps, const Spacer(flex: 2), clock, const SizedBox(height: 48)],
+        ClockPosition.bottom => [
+          const Spacer(flex: 2),
+          ...apps,
+          const Spacer(flex: 2),
+          clock,
+          const SizedBox(height: 48),
+        ],
       },
     );
   }

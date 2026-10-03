@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../panels/app_drawer_panel.dart';
 import '../panels/home_panel.dart';
@@ -37,8 +38,25 @@ class _LauncherShellState extends State<LauncherShell> {
   bool? _hasSpotlight;
   var _pulledDown = false;
 
+  static const _appChannel = MethodChannel('yinyang.launcher/app');
+
+  @override
+  void initState() {
+    super.initState();
+    // The Home key, pressed while the launcher is already up (MainActivity's
+    // onNewIntent): close any sheet or page and go back to the Home panel.
+    _appChannel.setMethodCallHandler((call) async {
+      if (call.method != 'home' || !mounted) return;
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      const duration = Duration(milliseconds: 300);
+      _verticalController?.animateToPage(_hasSpotlight! ? 1 : 0, duration: duration, curve: Curves.easeOut);
+      _rowController.animateToPage(1, duration: duration, curve: Curves.easeOut);
+    });
+  }
+
   @override
   void dispose() {
+    _appChannel.setMethodCallHandler(null);
     _rowController.dispose();
     _verticalController?.dispose();
     _spotlightShown.dispose();

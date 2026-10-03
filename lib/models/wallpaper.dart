@@ -21,21 +21,15 @@ class Wallpaper {
       colors: [edge, band, edge],
       stops: const [0.1, 0.55, 1],
     ),
-    // Classic: a near-flat diagonal, as before.
-    null => LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [
-        edge,
-        Color.lerp(edge, isDark ? const Color(0xFFFFFFFF) : const Color(0xFF000000), isDark ? 0.04 : 0.06)!,
-      ],
-    ),
+    // Classic: perfectly flat, like the original's.
+    null => LinearGradient(colors: [edge, edge]),
   };
 }
 
-/// Classic flats for the light theme (the original five; `light-0` is the
-/// default).
+/// Classic flats for the light theme: plain white (the original's default,
+/// Phase 11), then our first five `light-0`..`light-4`.
 const classicLight = [
+  Wallpaper('light-white', Color(0xFFFFFFFF)),
   Wallpaper('light-0', Color(0xFFF3F1F6)),
   Wallpaper('light-1', Color(0xFFDCDEE3)),
   Wallpaper('light-2', Color(0xFFAEB8CB)),

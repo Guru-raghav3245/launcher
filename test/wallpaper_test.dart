@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/painting.dart';
 import 'package:launcher/models/wallpaper.dart';
 import 'package:launcher/state/app_settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,6 +22,14 @@ void main() {
     await settings.load();
     expect(settings.lightWallpaper.id, 'light-2');
     expect(settings.darkWallpaper.id, 'dark-0'); // black, as dark mode was before
+  });
+
+  test('a fresh install starts on plain white and black, like the original', () async {
+    SharedPreferences.setMockInitialValues({});
+    final settings = AppSettings();
+    await settings.load();
+    expect(settings.lightWallpaper.edge, const Color(0xFFFFFFFF));
+    expect(settings.darkWallpaper.edge, const Color(0xFF000000));
   });
 
   test('each theme keeps its own wallpaper', () async {

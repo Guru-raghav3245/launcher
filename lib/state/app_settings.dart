@@ -226,8 +226,11 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
     _layoutMode = HomeLayoutMode.values.byName(
       prefs.getString(_layoutModeKey) ?? HomeLayoutMode.classic.name,
     );
-    final legacy = (prefs.getInt(_legacyWallpaperIndexKey) ?? 0).clamp(0, classicLight.length - 1);
-    _lightWallpaper = wallpaperById(prefs.getString('settings_wallpaper_light') ?? '') ?? classicLight[legacy];
+    // The pre-Phase 10 index pointed into the five `light-N` flats.
+    final legacy = prefs.getInt(_legacyWallpaperIndexKey);
+    _lightWallpaper =
+        wallpaperById(prefs.getString('settings_wallpaper_light') ?? '') ??
+        (legacy == null ? classicLight.first : wallpaperById('light-${legacy.clamp(0, 4)}')!);
     _darkWallpaper = wallpaperById(prefs.getString('settings_wallpaper_dark') ?? '') ?? classicDark.first;
     notifyListeners();
   }

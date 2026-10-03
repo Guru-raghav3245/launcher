@@ -32,6 +32,7 @@ class MainActivity : FlutterActivity() {
     private var pendingResult: MethodChannel.Result? = null
     private lateinit var appWidgetBridge: AppWidgetHostBridge
     private lateinit var calendarBridge: CalendarBridge
+    private var appChannel: MethodChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -51,7 +52,8 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, APP_CHANNEL).setMethodCallHandler { call, result ->
+        appChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, APP_CHANNEL)
+        appChannel!!.setMethodCallHandler { call, result ->
             when (call.method) {
                 // Settings' "Restart Launcher": relaunch this activity in a fresh
                 // task, then kill the process so all Dart/native state starts over.
@@ -95,6 +97,13 @@ class MainActivity : FlutterActivity() {
         calendarBridge = CalendarBridge(this)
         calendarBridge.attach(flutterEngine)
         MusicBridge(this).attach(flutterEngine)
+    }
+
+    // Pressing Home while this launcher is already running (singleTop) lands
+    // here: tell Dart to close sheets and return to the Home panel.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent.hasCategory(Intent.CATEGORY_HOME)) appChannel?.invokeMethod("home", null)
     }
 
     override fun onStart() {

@@ -214,14 +214,14 @@ void main() {
     expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode, ThemeMode.light);
   });
 
-  testWidgets('a 12-hour time format drops the leading zero on Home and applies app-wide', (WidgetTester tester) async {
+  testWidgets('a 12-hour time format shows Home as zero-padded 12-hour time and applies app-wide', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true, 'settings_time_format': 'h12'});
 
     await tester.pumpWidget(const YinYangLauncherApp());
     await tester.pumpAndSettle();
     final now = DateTime.now();
     final hour12 = now.hour % 12 == 0 ? 12 : now.hour % 12;
-    expect(find.text('$hour12:${now.minute.toString().padLeft(2, '0')}'), findsOneWidget);
+    expect(find.text('${hour12.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}'), findsOneWidget);
     expect(MediaQuery.alwaysUse24HourFormatOf(tester.element(find.byType(HomePanel))), false);
   });
 
@@ -1365,5 +1365,24 @@ void main() {
     expect(theme.scaffoldBackgroundColor, Colors.black);
     expect(theme.colorScheme.onSurface, const Color(0xFFEBEBEB));
     expect(theme.colorScheme.onSurfaceVariant, const Color(0xFF757575));
+  });
+
+  testWidgets('the Home key brings any panel back to Home', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(-400, 0), 1000);
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(find.byType(MindSpacePanel)).dx, 0);
+
+    // What MainActivity.onNewIntent sends for a HOME intent.
+    await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+      'yinyang.launcher/app',
+      const StandardMethodCodec().encodeMethodCall(const MethodCall('home')),
+      (_) {},
+    );
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(find.byType(HomePanel)).dx, 0);
   });
 }
