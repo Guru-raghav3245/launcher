@@ -10,6 +10,7 @@ import 'package:launcher/onboarding/steps/welcome_step.dart';
 import 'package:launcher/panels/home_panel.dart';
 import 'package:launcher/panels/my_space_panel.dart';
 import 'package:launcher/panels/mind_space_panel.dart';
+import 'package:launcher/services/app_customizations_service.dart';
 import 'package:launcher/services/focus_mode_service.dart';
 import 'package:launcher/settings/settings_screen.dart';
 
@@ -220,6 +221,33 @@ void main() {
     await tester.tap(find.text('Clock'));
     await tester.pumpAndSettle();
     expect(await const FocusModeService().essentials(), isEmpty);
+  });
+
+  testWidgets('Hidden apps in Settings lists hidden apps, and unticking one unhides it', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'apps_hidden': ['com.camera'],
+    });
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('installed_apps'),
+      (call) async => [
+        {'name': 'Camera', 'package_name': 'com.camera'},
+        {'name': 'Clock', 'package_name': 'com.clock'},
+      ],
+    );
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.longPress(find.byType(HomePanel));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Hidden apps'));
+    await tester.pumpAndSettle();
+    final checkbox = find.byType(Checkbox);
+    expect(tester.widget<Checkbox>(checkbox.first).value, true); // Camera, ticked at the top
+
+    await tester.tap(find.text('Camera'));
+    await tester.pumpAndSettle();
+    expect((await const AppCustomizationsService().load()).hidden, isEmpty);
   });
 
   testWidgets('Focus Mode refuses non-essential launches with a message', (WidgetTester tester) async {

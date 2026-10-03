@@ -8,6 +8,7 @@ import '../onboarding/wallpaper_picker.dart';
 import '../panels/mind_space_panel.dart';
 import '../search/app_multi_picker_sheet.dart';
 import '../search/app_search.dart';
+import '../services/app_customizations_service.dart';
 import '../services/focus_mode_service.dart';
 import '../services/launcher_role_service.dart';
 import '../services/usage_stats_service.dart';
@@ -48,6 +49,7 @@ const _entries = <_SettingsEntry>[
   (group: 'Settings', icon: Icons.contrast, title: 'Launcher Settings', onTap: _showLauncherSettings),
   (group: 'Settings', icon: Icons.settings_outlined, title: 'System Settings', onTap: _showSystemSettings),
   (group: 'Settings', icon: Icons.verified_outlined, title: 'Allowed apps', onTap: _showAllowedApps),
+  (group: 'Settings', icon: Icons.visibility_off_outlined, title: 'Hidden apps', onTap: _showHiddenApps),
 ];
 
 /// Settings sheet: a search field over grouped, outlined rows with hairline
@@ -252,6 +254,19 @@ void _showAllowedApps(BuildContext context) {
     subtitle: 'These still open while Focus Mode is on.',
     load: focusMode.essentials,
     onChanged: focusMode.setEssential,
+  );
+}
+
+/// Hidden apps: the ones kept out of the App Drawer and Spotlight, ticked at
+/// the top; untick one to bring it back (or tick more to hide them).
+Future<void> _showHiddenApps(BuildContext context) async {
+  const customizations = AppCustomizationsService();
+  await showAppMultiPicker(
+    context,
+    title: 'Hidden apps',
+    subtitle: "Ticked apps don't show in the App Drawer or search.",
+    load: () async => (await customizations.load()).hidden,
+    onChanged: customizations.setHidden,
   );
 }
 
