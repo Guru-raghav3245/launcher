@@ -61,6 +61,10 @@ class UsageStatsBridge(private val activity: MainActivity) {
         val event = UsageEvents.Event()
         while (events.hasNextEvent()) {
             events.getNextEvent(event)
+            // Time on this launcher's own screens isn't the screen time anyone
+            // wants to cut, and it would top every list; leave it out here,
+            // where every Mind Space number comes from.
+            if (event.packageName == activity.packageName) continue
             val type = when (event.eventType) {
                 UsageEvents.Event.MOVE_TO_FOREGROUND -> "foreground"
                 UsageEvents.Event.MOVE_TO_BACKGROUND -> "background"
