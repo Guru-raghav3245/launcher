@@ -785,6 +785,26 @@ void main() {
     expect(tiles.single.kind, TileKind.notes);
   });
 
+  testWidgets('the Quote tile shows a quote and refreshes to another', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'my_space_tiles': '[{"id":"q","kind":"quote","data":{}}]',
+    });
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(400, 0), 1000); // swipe right → My Space
+    await tester.pumpAndSettle();
+    // Compare the quote itself: neighbouring quotes can share an author.
+    String quote() => tester.widget<Text>(find.textContaining('“')).data!;
+    final first = quote();
+
+    await tester.tap(find.byTooltip('Another quote'));
+    await tester.pumpAndSettle();
+    expect(quote(), isNot(first));
+    expect((await const MySpaceService().loadTiles()).single.data['shift'], 1);
+  });
+
   testWidgets('Manage tiles reorders and removes tiles', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
       'onboarding_complete': true,

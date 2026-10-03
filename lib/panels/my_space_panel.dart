@@ -8,6 +8,7 @@ import '../my_space/tile_card.dart';
 import '../my_space/tiles/app_folder_tile.dart';
 import '../my_space/tiles/from_app_tile.dart';
 import '../my_space/tiles/notes_tile.dart';
+import '../my_space/tiles/quote_tile.dart';
 import '../my_space/tiles/todo_tile.dart';
 import '../my_space/tiles/weather_tile.dart';
 import '../services/my_space_service.dart';
@@ -127,6 +128,7 @@ class _TileList extends StatelessWidget {
                   onChanged: (data) => onUpdate(tile.id, data),
                 ),
                 TileKind.fromApp => FromAppTile(tile: tile),
+                TileKind.quote => QuoteTile(tile: tile, onChanged: (data) => onUpdate(tile.id, data)),
               },
             );
           },

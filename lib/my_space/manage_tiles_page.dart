@@ -4,6 +4,7 @@ import '../models/my_space_tile.dart';
 import '../models/tile_kind.dart';
 import '../services/app_widget_service.dart';
 import 'built_in_tile_specs.dart';
+import 'tiles/quote_tile.dart';
 
 /// One line describing what a tile holds, so similar tiles can be told apart.
 String _summary(MySpaceTile tile) {
@@ -22,6 +23,8 @@ String _summary(MySpaceTile tile) {
       return (data['snapshot'] as Map?)?['locationName'] as String? ?? 'Your location';
     case TileKind.fromApp:
       return 'App widget';
+    case TileKind.quote:
+      return 'Today: ${quotes[quoteIndex(data, DateTime.now())].$2}';
   }
 }
 

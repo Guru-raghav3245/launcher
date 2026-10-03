@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/my_space_tile.dart';
 import '../models/tile_kind.dart';
 import 'tile_card.dart';
+import 'tiles/quote_tile.dart';
 
 /// Describes one row in the "Add New Tile" sheet's Built-in tab: what the
 /// tile is called, the data a new one starts with, and a sample of how it
@@ -87,6 +88,17 @@ final builtInTileSpecs = [
         SizedBox(height: 6),
         Text('☐  Evening run', style: TextStyle(fontSize: 16)),
       ],
+    ),
+  ),
+  BuiltInTileSpec(
+    kind: TileKind.quote,
+    icon: Icons.format_quote,
+    title: 'Quote',
+    subtitle: 'A thought for the day',
+    defaultData: () => {},
+    preview: const QuoteBody(
+      text: 'How we spend our days is, of course, how we spend our lives.',
+      author: 'Annie Dillard',
     ),
   ),
 ];
