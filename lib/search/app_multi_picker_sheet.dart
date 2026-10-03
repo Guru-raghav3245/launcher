@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
 
-import '../services/installed_apps_service.dart';
+import '../services/app_customizations_service.dart';
 import 'app_result_row.dart';
 import 'app_search.dart';
 import 'app_search_bar.dart';
@@ -60,7 +60,7 @@ class _AppMultiPickerSheetState extends State<_AppMultiPickerSheet> {
   }
 
   Future<void> _load() async {
-    final (apps, selected) = await (const InstalledAppsService().loadApps(), widget.load()).wait;
+    final (apps, selected) = await (loadCustomizedApps(includeHidden: true), widget.load()).wait;
     if (!mounted) return;
     setState(() {
       _apps = apps;

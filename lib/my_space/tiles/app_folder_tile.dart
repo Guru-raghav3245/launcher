@@ -4,6 +4,7 @@ import 'package:installed_apps/app_info.dart';
 import '../../models/my_space_tile.dart';
 import '../../search/app_picker_sheet.dart';
 import '../../search/app_result_row.dart';
+import '../../services/app_customizations_service.dart';
 import '../../services/installed_apps_service.dart';
 import '../../widgets/launch_app.dart';
 import '../tile_card.dart';
@@ -24,6 +25,7 @@ class AppFolderTile extends StatefulWidget {
 class _AppFolderTileState extends State<AppFolderTile> {
   final _service = const InstalledAppsService();
   List<AppInfo>? _apps;
+  AppCustomizations _customizations = const AppCustomizations();
 
   @override
   void initState() {
@@ -31,6 +33,19 @@ class _AppFolderTileState extends State<AppFolderTile> {
     _service.loadApps().then((apps) {
       if (mounted) setState(() => _apps = apps);
     });
+    AppCustomizationsService.changes.addListener(_loadCustomizations);
+    _loadCustomizations();
+  }
+
+  @override
+  void dispose() {
+    AppCustomizationsService.changes.removeListener(_loadCustomizations);
+    super.dispose();
+  }
+
+  Future<void> _loadCustomizations() async {
+    final loaded = await const AppCustomizationsService().load();
+    if (mounted) setState(() => _customizations = loaded);
   }
 
   List<String> get _packages => (widget.tile.data['packages'] as List).cast<String>();
@@ -40,7 +55,8 @@ class _AppFolderTileState extends State<AppFolderTile> {
   Future<void> _pickApp() async {
     final apps = _apps;
     if (apps == null) return;
-    final available = apps.where((a) => !_packages.contains(a.packageName)).toList();
+    // Hidden apps aren't offered, but ones already in the folder stay.
+    final available = _customizations.apply(apps).where((a) => !_packages.contains(a.packageName)).toList();
     final picked = await showAppPicker(context, available);
     if (picked != null) _setPackages([..._packages, picked.packageName]);
   }
@@ -50,10 +66,11 @@ class _AppFolderTileState extends State<AppFolderTile> {
   @override
   Widget build(BuildContext context) {
     final apps = _apps;
+    final shown = apps == null ? null : _customizations.apply(apps, includeHidden: true);
     final selected = [
       for (final package in _packages)
-        if (apps != null)
-          for (final app in apps)
+        if (shown != null)
+          for (final app in shown)
             if (app.packageName == package) app,
     ];
 

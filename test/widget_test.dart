@@ -452,6 +452,40 @@ void main() {
     expect(find.text('45m'), findsOneWidget);
   });
 
+  testWidgets('hidden and renamed apps show up that way in the drawer and Spotlight', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'apps_hidden': ['com.camera'],
+      'apps_renames': '{"com.chrome":"Web"}',
+    });
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('installed_apps'),
+      (call) async => [
+        {'name': 'Camera', 'package_name': 'com.camera'},
+        {'name': 'Chrome', 'package_name': 'com.chrome'},
+        {'name': 'Clock', 'package_name': 'com.clock'},
+      ],
+    );
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up → App Drawer
+    await tester.pumpAndSettle();
+    expect(find.text('Web'), findsOneWidget);
+    expect(find.text('Chrome'), findsNothing);
+    expect(find.text('Camera'), findsNothing);
+    expect(find.text('Clock'), findsOneWidget);
+
+    await tester.fling(find.text('Clock'), const Offset(0, 400), 1000); // back to Home
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(0, 400), 1000); // swipe down → Spotlight
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'c');
+    await tester.pumpAndSettle();
+    expect(find.text('Clock'), findsOneWidget);
+    expect(find.text('Camera'), findsNothing);
+  });
+
   testWidgets('Action tab opens a tool through its one-time explainer', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
