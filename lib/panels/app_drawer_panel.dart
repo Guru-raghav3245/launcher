@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
 
+import '../mind_space/break_filter.dart';
 import '../search/app_result_row.dart';
 import '../search/app_search.dart';
 import '../search/app_search_bar.dart';
@@ -27,7 +28,7 @@ class AppDrawerPanel extends StatefulWidget {
   State<AppDrawerPanel> createState() => _AppDrawerPanelState();
 }
 
-class _AppDrawerPanelState extends State<AppDrawerPanel> {
+class _AppDrawerPanelState extends State<AppDrawerPanel> with HidesAppsOnBreak {
   final _service = const InstalledAppsService();
   late final Future<List<AppInfo>> _appsFuture;
   final _scrollController = ScrollController();
@@ -70,7 +71,11 @@ class _AppDrawerPanelState extends State<AppDrawerPanel> {
                   }
                   final query = _searchController.text;
                   final showSections = query.trim().isEmpty && _sortMode == AppSortMode.alphabetical;
-                  final apps = filterAndSortApps(snapshot.data!, query: query, sortMode: _sortMode);
+                  final apps = filterAndSortApps(
+                    withoutAppsOnBreak(snapshot.data!),
+                    query: query,
+                    sortMode: _sortMode,
+                  );
 
                   if (showSections) {
                     return _DrawerList(

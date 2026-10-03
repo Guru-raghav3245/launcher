@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'tool_intro.dart';
 import 'tool_pages.dart';
 
-/// The tools in Mind Space's Action tab, in display order. Mindful Break
-/// joins this list in Phase 7 task 7.
+/// The tools in Mind Space's Action tab, in display order.
 final mindSpaceTools = [
   MindSpaceTool(
     id: 'mindful_pause',
@@ -37,6 +36,22 @@ final mindSpaceTools = [
         'Make a timer: name it, pick its apps, set the daily limit and an optional cooldown between '
         "sessions. Once the limit is used up, those apps won't open from this launcher until tomorrow.",
     page: (context) => const MindfulTimerPage(),
+  ),
+  MindSpaceTool(
+    id: 'mindful_break',
+    icon: Icons.bedtime_outlined,
+    title: 'Mindful Break',
+    summary: 'Put one app away for a while.',
+    whatItDoes:
+        'Hides an app from your App Drawer and search for 1, 3, 7, or 30 days. Opening it any other way '
+        "shows a quiet screen with when it's back.",
+    whyItMatters:
+        "Some apps are easier to leave than to limit. Out of sight for a few days, you'll find out whether "
+        'you miss it, or just the habit of opening it.',
+    howItWorks:
+        'Pick an app and how long its break lasts. It comes back on its own when the time is up, or end '
+        'the break early from this page.',
+    page: (context) => const MindfulBreakPage(),
   ),
   MindSpaceTool(
     id: 'focus_mode',

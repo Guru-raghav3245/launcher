@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
 
+import '../mind_space/break_filter.dart';
 import '../search/app_result_row.dart';
 import '../search/app_search.dart';
 import '../search/app_search_bar.dart';
@@ -17,7 +18,7 @@ class SpotlightSearchPanel extends StatefulWidget {
   State<SpotlightSearchPanel> createState() => _SpotlightSearchPanelState();
 }
 
-class _SpotlightSearchPanelState extends State<SpotlightSearchPanel> {
+class _SpotlightSearchPanelState extends State<SpotlightSearchPanel> with HidesAppsOnBreak {
   final _service = const InstalledAppsService();
   late final Future<List<AppInfo>> _appsFuture;
   final _searchController = TextEditingController();
@@ -69,7 +70,7 @@ class _SpotlightSearchPanelState extends State<SpotlightSearchPanel> {
                     );
                   }
                   final results = filterAndSortApps(
-                    snapshot.data!,
+                    withoutAppsOnBreak(snapshot.data!),
                     query: query,
                     sortMode: AppSortMode.alphabetical,
                   );

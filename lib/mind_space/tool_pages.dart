@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:installed_apps/app_info.dart';
 
 import '../panels/mind_space_panel.dart';
 import '../search/app_multi_picker_sheet.dart';
+import '../search/app_picker_sheet.dart';
+import '../search/app_result_row.dart';
 import '../services/focus_mode_service.dart';
+import '../services/installed_apps_service.dart';
+import '../services/mindful_break_service.dart';
 import '../services/mindful_pause_service.dart';
 import '../services/mindful_timer_service.dart';
 import '../services/usage_stats_service.dart';
+import 'break_block_screen.dart';
 import 'timer_group_editor.dart';
 
 /// Mindful Pause settings: how long the breathing screen lasts, and which
@@ -201,7 +207,10 @@ class _MindfulTimerPageState extends State<MindfulTimerPage> {
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Container(
-                decoration: BoxDecoration(border: Border.all(color: stroke), borderRadius: BorderRadius.circular(16)),
+                decoration: BoxDecoration(
+                  border: Border.all(color: stroke),
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 clipBehavior: Clip.antiAlias,
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
@@ -223,6 +232,123 @@ class _MindfulTimerPageState extends State<MindfulTimerPage> {
           label: const Text('New timer'),
           style: OutlinedButton.styleFrom(
             foregroundColor: isDark ? Colors.white : Colors.black,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Mindful Break: the apps currently put away, each with when it's back and
+/// a way to end the break early, plus "Take a break" to put one away.
+class MindfulBreakPage extends StatefulWidget {
+  const MindfulBreakPage({super.key});
+
+  @override
+  State<MindfulBreakPage> createState() => _MindfulBreakPageState();
+}
+
+class _MindfulBreakPageState extends State<MindfulBreakPage> {
+  final _break = const MindfulBreakService();
+  List<AppInfo>? _apps;
+  Map<String, DateTime> _breaks = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+  }
+
+  Future<void> _refresh() async {
+    final (apps, breaks) = await (
+      _apps == null ? const InstalledAppsService().loadApps() : Future.value(_apps!),
+      _break.breaks(),
+    ).wait;
+    if (!mounted) return;
+    setState(() {
+      _apps = apps;
+      _breaks = breaks;
+    });
+  }
+
+  Future<void> _takeBreak() async {
+    final apps = _apps;
+    if (apps == null) return;
+    final app = await showAppPicker(context, [
+      for (final a in apps)
+        if (!_breaks.containsKey(a.packageName)) a,
+    ], title: 'Take a break from');
+    if (app == null || !mounted) return;
+    final days = await showModalBottomSheet<int>(
+      context: context,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Put ${app.name} away for', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            for (final days in MindfulBreakService.lengthsInDays)
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+                title: Text(days == 7 ? '1 week' : '$days ${days == 1 ? 'day' : 'days'}'),
+                onTap: () => Navigator.of(context).pop(days),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (days == null) return;
+    await _break.start(app.packageName, days);
+    await _refresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final apps = _apps;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ink = isDark ? Colors.white : Colors.black;
+    final onBreak = [
+      if (apps != null)
+        for (final app in apps)
+          if (_breaks.containsKey(app.packageName)) app,
+    ];
+    return _ToolScaffold(
+      title: 'Mindful Break',
+      children: [
+        if (apps != null && onBreak.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Text(
+              'No apps on a break.',
+              style: TextStyle(fontSize: 16, color: isDark ? Colors.white60 : Colors.black54),
+            ),
+          ),
+        for (final app in onBreak)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: AppIcon(icon: app.icon),
+            title: Text(app.name),
+            subtitle: Text(breakEndLabel(context, _breaks[app.packageName]!)),
+            trailing: TextButton(
+              onPressed: () async {
+                await _break.end(app.packageName);
+                await _refresh();
+              },
+              style: TextButton.styleFrom(foregroundColor: ink),
+              child: const Text('End'),
+            ),
+          ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: apps == null ? null : _takeBreak,
+          icon: const Icon(Icons.add),
+          label: const Text('Take a break'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: ink,
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),

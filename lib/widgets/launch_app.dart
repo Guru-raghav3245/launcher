@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
 
+import '../mind_space/break_block_screen.dart';
 import '../mind_space/mindful_pause_overlay.dart';
 import '../mind_space/timer_session_sheet.dart';
 import '../services/focus_mode_service.dart';
 import '../services/installed_apps_service.dart';
+import '../services/mindful_break_service.dart';
 import '../services/mindful_pause_service.dart';
 import '../services/mindful_timer_service.dart';
 
-/// Launches [app] from any UI call site. A Mindful Pause app first gets its
+/// Launches [app] from any UI call site. An app on a Mindful Break gets a
+/// quiet block screen instead. A Mindful Pause app first gets its
 /// breathing screen (skipping it cancels the launch); a Mindful Timer app
 /// then asks for a session length (or is refused once its group's budget or
 /// cooldown says no); a launch Focus Mode refuses is explained with a
@@ -18,6 +21,12 @@ Future<void> launchApp(BuildContext context, AppInfo app) async {
   void explain(String message) => messenger
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(message)));
+
+  final breakEnds = await const MindfulBreakService().endsAt(app.packageName);
+  if (breakEnds != null) {
+    if (context.mounted) await showBreakBlock(context, app, breakEnds);
+    return;
+  }
 
   // No pause or timer for an app Focus Mode is about to refuse anyway.
   if (!await const FocusModeService().isBlocked(app.packageName)) {

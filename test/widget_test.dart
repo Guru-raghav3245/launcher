@@ -363,6 +363,49 @@ void main() {
     expect(started, hasLength(1));
   });
 
+  testWidgets('an app on a Mindful Break is hidden from the drawer and blocked elsewhere', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'mindful_break_apps':
+          '{"com.chrome":${DateTime.now().add(const Duration(days: 3)).millisecondsSinceEpoch}}',
+      'my_space_tiles': '[{"id":"1","kind":"appFolder","data":{"packages":["com.chrome"]}}]',
+    });
+    final started = <Object?>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('installed_apps'), (call) async {
+      if (call.method == 'startApp') {
+        started.add(call.arguments);
+        return true;
+      }
+      return [
+        {'name': 'Camera', 'package_name': 'com.camera'},
+        {'name': 'Chrome', 'package_name': 'com.chrome'},
+      ];
+    });
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+
+    // My Space's App Folder still shows it, but opening it shows the block screen.
+    await tester.fling(find.byType(HomePanel), const Offset(400, 0), 1000); // swipe right → My Space
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Chrome'));
+    await tester.pumpAndSettle();
+    expect(find.text('Chrome is on a break'), findsOneWidget);
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    expect(started, isEmpty);
+
+    // The App Drawer leaves it out.
+    await tester.fling(find.byType(MySpacePanel), const Offset(-400, 0), 1000); // back to Home
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up → App Drawer
+    await tester.pumpAndSettle();
+    expect(find.text('Camera'), findsOneWidget);
+    expect(find.text('Chrome'), findsNothing);
+  });
+
   testWidgets('Action tab opens a tool through its one-time explainer', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(

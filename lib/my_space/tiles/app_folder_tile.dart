@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
 
 import '../../models/my_space_tile.dart';
+import '../../search/app_picker_sheet.dart';
 import '../../search/app_result_row.dart';
-import '../../search/app_search.dart';
-import '../../search/app_search_bar.dart';
 import '../../services/installed_apps_service.dart';
 import '../../widgets/launch_app.dart';
 import '../tile_card.dart';
@@ -42,7 +41,7 @@ class _AppFolderTileState extends State<AppFolderTile> {
     final apps = _apps;
     if (apps == null) return;
     final available = apps.where((a) => !_packages.contains(a.packageName)).toList();
-    final picked = await _showAppPickerSheet(context, available);
+    final picked = await showAppPicker(context, available);
     if (picked != null) _setPackages([..._packages, picked.packageName]);
   }
 
@@ -110,86 +109,6 @@ class _AppShortcut extends StatelessWidget {
               style: const TextStyle(fontSize: 11),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Bottom sheet listing [apps] not yet in the folder, with search, so the
-/// user can pick one to add. Mirrors the App Drawer's search UI (Phase 1
-/// task 7) since it's browsing the same installed-apps list.
-Future<AppInfo?> _showAppPickerSheet(BuildContext context, List<AppInfo> apps) {
-  return showModalBottomSheet<AppInfo>(
-    context: context,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-    builder: (context) => _AppPickerSheet(apps: apps),
-  );
-}
-
-class _AppPickerSheet extends StatefulWidget {
-  const _AppPickerSheet({required this.apps});
-
-  final List<AppInfo> apps;
-
-  @override
-  State<_AppPickerSheet> createState() => _AppPickerSheetState();
-}
-
-class _AppPickerSheetState extends State<_AppPickerSheet> {
-  final _controller = TextEditingController();
-  var _sortMode = AppSortMode.alphabetical;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: SizedBox(
-        height: MediaQuery.of(context).size.height * 0.75,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Add App',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              AppSearchBar(
-                controller: _controller,
-                sortMode: _sortMode,
-                onSortModeChanged: (mode) => setState(() => _sortMode = mode),
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: ListenableBuilder(
-                  listenable: _controller,
-                  builder: (context, _) {
-                    final results = filterAndSortApps(
-                      widget.apps,
-                      query: _controller.text,
-                      sortMode: _sortMode,
-                    );
-                    return ListView.builder(
-                      itemCount: results.length,
-                      itemBuilder: (context, index) {
-                        final app = results[index];
-                        return AppResultRow(app: app, onTap: () => Navigator.of(context).pop(app));
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
