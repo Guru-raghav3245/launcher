@@ -6,10 +6,10 @@ import '../services/focus_mode_service.dart';
 
 /// Focus Mode's start sheet: a ruler-style duration picker (15 min to 4 h in
 /// 15-minute steps) showing when the session would end, a link to the
-/// allowed apps, and Start. Resolves to the chosen duration, or null if
-/// dismissed.
-Future<Duration?> showFocusDurationSheet(BuildContext context) {
-  return showModalBottomSheet<Duration>(
+/// allowed apps, a strict-mode switch, and Start. Resolves to the chosen
+/// duration and strictness, or null if dismissed.
+Future<({Duration duration, bool strict})?> showFocusDurationSheet(BuildContext context) {
+  return showModalBottomSheet<({Duration duration, bool strict})>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
@@ -32,6 +32,7 @@ class _FocusDurationSheet extends StatefulWidget {
 class _FocusDurationSheetState extends State<_FocusDurationSheet> {
   final _ruler = FixedExtentScrollController(initialItem: _initialStep);
   var _step = _initialStep;
+  var _strict = false;
 
   Duration get _duration => Duration(minutes: (_step + 1) * _stepMinutes);
 
@@ -107,11 +108,21 @@ class _FocusDurationSheetState extends State<_FocusDurationSheet> {
                 );
               },
             ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              secondary: const Icon(Icons.lock_outline),
+              title: const Text('Strict mode'),
+              subtitle: const Text("No way to end the session early"),
+              value: _strict,
+              activeThumbColor: isDark ? Colors.black : Colors.white,
+              activeTrackColor: ink,
+              onChanged: (value) => setState(() => _strict = value),
+            ),
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: () => Navigator.of(context).pop(_duration),
+                onPressed: () => Navigator.of(context).pop((duration: _duration, strict: _strict)),
                 style: FilledButton.styleFrom(
                   backgroundColor: ink,
                   foregroundColor: isDark ? Colors.black : Colors.white,

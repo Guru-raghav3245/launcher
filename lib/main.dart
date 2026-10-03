@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 
 import 'onboarding/onboarding_flow.dart';
+import 'services/focus_schedule_service.dart';
 import 'services/onboarding_service.dart';
 import 'shell/launcher_shell.dart';
 import 'state/app_settings.dart';
 import 'state/app_settings_scope.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Not awaited: reminders shouldn't hold up the first frame.
+  FocusScheduleService.init();
   runApp(const YinYangLauncherApp());
 }
 

@@ -12,6 +12,12 @@
     <!-- Mindful Timer's "Time's up" screen over the timed app (Phase 7
          task 6); granted on Settings.ACTION_MANAGE_OVERLAY_PERMISSION. -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+    <!-- Focus schedules' reminders (Phase 7 task 8, via
+         flutter_local_notifications): exact timing, and re-arming after a
+         reboot. SCHEDULE_EXACT_ALARM is user-granted on Android 14+, so it's
+         requested on save; without it reminders fall back to inexact. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <application
         android:label="launcher"
         android:name="${applicationName}"
@@ -43,6 +49,15 @@
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </activity>
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

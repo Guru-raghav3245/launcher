@@ -6,12 +6,14 @@ import '../search/app_multi_picker_sheet.dart';
 import '../search/app_picker_sheet.dart';
 import '../search/app_result_row.dart';
 import '../services/focus_mode_service.dart';
+import '../services/focus_schedule_service.dart';
 import '../services/installed_apps_service.dart';
 import '../services/mindful_break_service.dart';
 import '../services/mindful_pause_service.dart';
 import '../services/mindful_timer_service.dart';
 import '../services/usage_stats_service.dart';
 import 'break_block_screen.dart';
+import 'focus_schedules.dart';
 import 'timer_group_editor.dart';
 
 /// Mindful Pause settings: how long the breathing screen lasts, and which
@@ -84,8 +86,8 @@ class _MindfulPausePageState extends State<MindfulPausePage> {
   }
 }
 
-/// Focus Mode: start a session (Pause / Timer / Focus Mode tiles) and pick
-/// the apps that stay usable during one.
+/// Focus Mode: start a session (Pause / Timer / Focus Mode tiles), pick the
+/// apps that stay usable during one, and manage weekly schedules.
 class FocusModePage extends StatefulWidget {
   const FocusModePage({super.key});
 
@@ -96,6 +98,7 @@ class FocusModePage extends StatefulWidget {
 class _FocusModePageState extends State<FocusModePage> {
   final _focusMode = const FocusModeService();
   int _allowedCount = 0;
+  int _scheduleCount = 0;
 
   @override
   void initState() {
@@ -104,8 +107,12 @@ class _FocusModePageState extends State<FocusModePage> {
   }
 
   Future<void> _refresh() async {
-    final allowed = await _focusMode.essentials();
-    if (mounted) setState(() => _allowedCount = allowed.length);
+    final (allowed, schedules) = await (_focusMode.essentials(), const FocusScheduleService().schedules()).wait;
+    if (!mounted) return;
+    setState(() {
+      _allowedCount = allowed.length;
+      _scheduleCount = schedules.length;
+    });
   }
 
   @override
@@ -126,6 +133,18 @@ class _FocusModePageState extends State<FocusModePage> {
               load: _focusMode.essentials,
               onChanged: _focusMode.setEssential,
             );
+            await _refresh();
+          },
+        ),
+        const SizedBox(height: 12),
+        _OutlinedRow(
+          icon: Icons.event_repeat,
+          title: 'Schedules',
+          subtitle: _scheduleCount == 0
+              ? 'Get reminded to focus at set times'
+              : '$_scheduleCount ${_scheduleCount == 1 ? 'schedule' : 'schedules'}',
+          onTap: () async {
+            await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const FocusSchedulesPage()));
             await _refresh();
           },
         ),
@@ -382,6 +401,23 @@ class _AppsRow extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  Widget build(BuildContext context) => _OutlinedRow(
+    icon: Icons.apps,
+    title: title,
+    subtitle: count == 0 ? 'None yet' : '$count ${count == 1 ? 'app' : 'apps'}',
+    onTap: onTap,
+  );
+}
+
+class _OutlinedRow extends StatelessWidget {
+  const _OutlinedRow({required this.icon, required this.title, required this.subtitle, required this.onTap});
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
@@ -392,9 +428,9 @@ class _AppsRow extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-        leading: const Icon(Icons.apps),
+        leading: Icon(icon),
         title: Text(title, style: const TextStyle(fontSize: 18)),
-        subtitle: Text(count == 0 ? 'None yet' : '$count ${count == 1 ? 'app' : 'apps'}'),
+        subtitle: Text(subtitle),
         trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
       ),

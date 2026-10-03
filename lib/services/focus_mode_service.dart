@@ -6,13 +6,15 @@ import 'launcher_role_service.dart';
 /// A Focus Mode session: active with an optional end time (null means
 /// indefinite, stopped manually via [FocusModeService.stop]). [startedAt]
 /// drives the session screen's elapsed timer; it's null for sessions saved
-/// before it was recorded.
+/// before it was recorded. A [strict] session (always timed) can't be
+/// ended early: every exit control is hidden until [endsAt].
 class FocusStatus {
-  const FocusStatus({required this.active, this.startedAt, this.endsAt});
+  const FocusStatus({required this.active, this.startedAt, this.endsAt, this.strict = false});
 
   final bool active;
   final DateTime? startedAt;
   final DateTime? endsAt;
+  final bool strict;
 
   Duration? get remaining => endsAt?.difference(DateTime.now());
 }
@@ -28,6 +30,7 @@ class FocusModeService {
   static const _activeKey = 'focus_mode_active';
   static const _endsAtKey = 'focus_mode_ends_at';
   static const _startedAtKey = 'focus_mode_started_at';
+  static const _strictKey = 'focus_mode_strict';
   static const _essentialsKey = 'focus_mode_essentials';
 
   /// Fires after every [start]/[stop], so each on-screen copy of the quick
@@ -46,13 +49,15 @@ class FocusModeService {
       await stop();
       return const FocusStatus(active: false);
     }
-    return FocusStatus(active: true, startedAt: startedAt, endsAt: endsAt);
+    return FocusStatus(active: true, startedAt: startedAt, endsAt: endsAt, strict: prefs.getBool(_strictKey) ?? false);
   }
 
   /// Starts a session. [duration] null means indefinite (stopped via [stop]).
-  Future<void> start({Duration? duration}) async {
+  /// [strict] only applies to a timed session.
+  Future<void> start({Duration? duration, bool strict = false}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_activeKey, true);
+    await prefs.setBool(_strictKey, strict && duration != null);
     await prefs.setInt(_startedAtKey, DateTime.now().millisecondsSinceEpoch);
     if (duration == null) {
       await prefs.remove(_endsAtKey);
@@ -67,6 +72,7 @@ class FocusModeService {
     await prefs.setBool(_activeKey, false);
     await prefs.remove(_endsAtKey);
     await prefs.remove(_startedAtKey);
+    await prefs.remove(_strictKey);
     changes.value++;
   }
 

@@ -92,4 +92,12 @@ void main() {
     await service.start();
     expect((await service.status()).startedAt, isNotNull);
   });
+
+  test('strict only sticks to timed sessions, and stop clears it', () async {
+    await service.start(duration: const Duration(minutes: 30), strict: true);
+    expect((await service.status()).strict, true);
+    await service.stop();
+    await service.start(strict: true); // indefinite: strict would never end
+    expect((await service.status()).strict, false);
+  });
 }

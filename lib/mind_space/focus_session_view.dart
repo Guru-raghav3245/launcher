@@ -67,7 +67,7 @@ class FocusSessionView extends StatelessWidget {
           ],
           const Spacer(),
           OutlinedButton.icon(
-            onPressed: () => _showAllowedApps(context, elapsed),
+            onPressed: () => _showAllowedApps(context, elapsed, strictUntil: status.strict ? endsAt : null),
             icon: const Icon(Icons.apps, size: 18),
             label: const Text('APPS', style: TextStyle(letterSpacing: 2)),
             style: OutlinedButton.styleFrom(foregroundColor: ink, shape: const StadiumBorder()),
@@ -117,8 +117,9 @@ class _Circles extends StatelessWidget {
 }
 
 /// Bottom sheet listing the allowed apps (tap to open), plus the exit,
-/// which needs a press-and-hold so leaving early is a deliberate choice.
-Future<void> _showAllowedApps(BuildContext context, Duration? elapsed) async {
+/// which needs a press-and-hold so leaving early is a deliberate choice. A
+/// strict session has no exit, just when it ends ([strictUntil]).
+Future<void> _showAllowedApps(BuildContext context, Duration? elapsed, {DateTime? strictUntil}) async {
   const focusMode = FocusModeService();
   final (apps, allowed) = await (const InstalledAppsService().loadApps(), focusMode.essentials()).wait;
   if (!context.mounted) return;
@@ -129,6 +130,7 @@ Future<void> _showAllowedApps(BuildContext context, Duration? elapsed) async {
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
     builder: (sheetContext) => _AllowedAppsSheet(
       apps: allowedApps,
+      strictUntil: strictUntil,
       onOpen: (app) {
         Navigator.of(sheetContext).pop();
         launchApp(context, app);
@@ -142,9 +144,10 @@ Future<void> _showAllowedApps(BuildContext context, Duration? elapsed) async {
 }
 
 class _AllowedAppsSheet extends StatelessWidget {
-  const _AllowedAppsSheet({required this.apps, required this.onOpen});
+  const _AllowedAppsSheet({required this.apps, required this.onOpen, this.strictUntil});
 
   final List<AppInfo> apps;
+  final DateTime? strictUntil;
   final ValueChanged<AppInfo> onOpen;
 
   @override
@@ -177,22 +180,29 @@ class _AllowedAppsSheet extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                // A tap only explains; holding is what exits.
-                onPressed: () {},
-                onLongPress: () => Navigator.of(context).pop(true),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: ink,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            if (strictUntil case final until?)
+              Text(
+                'Strict session · ends at ${TimeOfDay.fromDateTime(until).format(context)}',
+                style: TextStyle(fontSize: 15, color: secondary),
+              )
+            else ...[
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  // A tap only explains; holding is what exits.
+                  onPressed: () {},
+                  onLongPress: () => Navigator.of(context).pop(true),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: ink,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Exit focus mode', style: TextStyle(fontSize: 16)),
                 ),
-                child: const Text('Exit focus mode', style: TextStyle(fontSize: 16)),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text('Press and hold to exit', style: TextStyle(fontSize: 13, color: secondary)),
+              const SizedBox(height: 6),
+              Text('Press and hold to exit', style: TextStyle(fontSize: 13, color: secondary)),
+            ],
           ],
         ),
       ),

@@ -486,8 +486,8 @@ class _FocusQuickActionsState extends State<FocusQuickActions> {
   Future<void> _stop() => _focusMode.stop();
 
   Future<void> _pickTimer() async {
-    final duration = await showFocusDurationSheet(context);
-    if (duration != null) await _start(duration);
+    final choice = await showFocusDurationSheet(context);
+    if (choice != null) await _focusMode.start(duration: choice.duration, strict: choice.strict);
   }
 
   @override
@@ -502,7 +502,7 @@ class _FocusQuickActionsState extends State<FocusQuickActions> {
           Icon(Icons.center_focus_strong, color: primary, size: 20),
           const SizedBox(width: 12),
           Expanded(child: Text(label, style: TextStyle(fontSize: 14, color: primary))),
-          TextButton(onPressed: _stop, child: const Text('Stop')),
+          if (!_status.strict) TextButton(onPressed: _stop, child: const Text('Stop')),
         ],
       );
     }

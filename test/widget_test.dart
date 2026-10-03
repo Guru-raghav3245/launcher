@@ -440,6 +440,38 @@ void main() {
     expect(find.byType(MindfulPausePage), findsOneWidget);
   });
 
+  testWidgets('a strict Focus session has no way to exit early', (WidgetTester tester) async {
+    final now = DateTime.now();
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'focus_mode_active': true,
+      'focus_mode_strict': true,
+      'focus_mode_started_at': now.millisecondsSinceEpoch,
+      'focus_mode_ends_at': now.add(const Duration(hours: 1)).millisecondsSinceEpoch,
+      'focus_mode_essentials': <String>[],
+    });
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('installed_apps'),
+      (call) async => <Object>[],
+    );
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('APPS'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Strict session · ends at'), findsOneWidget);
+    expect(find.text('Exit focus mode'), findsNothing);
+
+    // Mind Space's quick actions don't offer Stop either.
+    Navigator.of(tester.element(find.textContaining('Strict session'))).pop();
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(-400, 0), 1000); // swipe left → Mind Space
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Action'));
+    await tester.pumpAndSettle();
+    expect(find.text('Stop'), findsNothing);
+  });
+
   testWidgets('Focus session replaces Home; press-and-hold exits to a summary', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
       'onboarding_complete': true,
