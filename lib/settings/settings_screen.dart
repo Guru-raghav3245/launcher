@@ -8,6 +8,7 @@ import '../panels/mind_space_panel.dart';
 import '../search/app_multi_picker_sheet.dart';
 import '../search/app_search.dart';
 import '../services/app_customizations_service.dart';
+import '../services/tour_service.dart';
 import '../services/focus_mode_service.dart';
 import '../services/launcher_role_service.dart';
 import '../services/usage_stats_service.dart';
@@ -15,6 +16,7 @@ import '../search/app_search_bar.dart';
 import '../state/app_settings.dart';
 import '../state/app_settings_scope.dart';
 import '../widgets/segmented_toggle.dart';
+import '../widgets/tour.dart';
 import '../widgets/wallpaper_gallery.dart';
 import 'drawer_look_page.dart';
 import 'lock_gesture.dart';
@@ -22,6 +24,8 @@ import 'lock_gesture.dart';
 /// Opens Settings as a near-full-height bottom sheet over the launcher,
 /// matching the mockup (drag handle, dimmed status bar behind it).
 Future<void> showSettingsScreen(BuildContext context) {
+  // Press and hold is how the "Customize my home" tour ends.
+  TourService.complete(Tour.customizeHome);
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -58,6 +62,7 @@ const _entries = <_SettingsEntry>[
   (group: 'Settings', icon: Icons.settings_outlined, title: 'System Settings', onTap: _showSystemSettings),
   (group: 'Settings', icon: Icons.verified_outlined, title: 'Allowed apps', onTap: _showAllowedApps),
   (group: 'Settings', icon: Icons.visibility_off_outlined, title: 'Hidden apps', onTap: _showHiddenApps),
+  (group: 'Settings', icon: Icons.contrast, title: 'Take a look around', onTap: _showTours),
 ];
 
 /// Settings sheet: a search field over grouped, outlined rows with hairline
@@ -355,6 +360,14 @@ void _showAllowedApps(BuildContext context) {
     load: focusMode.essentials,
     onChanged: focusMode.setEssential,
   );
+}
+
+/// The guided tours, reopenable anytime: closes Settings first so the
+/// chosen tour's hint shows on Home.
+void _showTours(BuildContext context) {
+  final navigator = Navigator.of(context);
+  navigator.pop();
+  showTourPicker(navigator.context);
 }
 
 /// Hidden apps: the ones kept out of the App Drawer and Spotlight, ticked at

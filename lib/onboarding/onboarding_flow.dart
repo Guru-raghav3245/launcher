@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../services/onboarding_service.dart';
 import 'steps/customize_step.dart';
-import 'steps/tutorial_step.dart';
 import 'steps/welcome_step.dart';
 
-/// First-run flow: Welcome -> Customize (mockup + pickers + set-as-launcher)
-/// -> Tutorial. Forward-only stepping, no swipe navigation (this isn't the
-/// 5-panel shell).
+/// First-run flow: Welcome -> Customize (mockup + pickers + set-as-launcher).
+/// Forward-only stepping, no swipe navigation (this isn't the 5-panel
+/// shell). The tutorial that used to follow is now Home's "Take a look
+/// around" tours (Phase 10 task 8).
 class OnboardingFlow extends StatefulWidget {
   const OnboardingFlow({super.key, required this.onFinished});
 
@@ -33,8 +33,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     return Scaffold(
       body: switch (_step) {
         0 => WelcomeStep(onNext: _next),
-        1 => CustomizeStep(onNext: _next),
-        _ => TutorialStep(onFinish: _finish),
+        _ => CustomizeStep(onNext: _finish),
       },
     );
   }

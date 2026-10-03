@@ -6,6 +6,7 @@ import '../panels/mind_space_panel.dart';
 import '../panels/my_space_panel.dart';
 import '../panels/spotlight_search_panel.dart';
 import '../services/gestures_service.dart';
+import '../services/tour_service.dart';
 import '../state/app_settings.dart';
 import '../state/app_settings_scope.dart';
 
@@ -82,12 +83,19 @@ class _LauncherShellState extends State<LauncherShell> {
           onPageChanged: (page) {
             _spotlightShown.value = hasSpotlight && page == 0;
             _drawerShown.value = page == 1 + spotlightPages;
+            if (_drawerShown.value) TourService.complete(Tour.findApps);
           },
           children: [
             if (hasSpotlight) SpotlightSearchPanel(shown: _spotlightShown),
             PageView(
               controller: _rowController,
               physics: const ClampingScrollPhysics(),
+              // A running tour is done once its page arrives.
+              onPageChanged: (page) => switch (page) {
+                0 => TourService.complete(Tour.organizeDay),
+                2 => TourService.complete(Tour.usePhoneLess),
+                _ => null,
+              },
               children: const [MySpacePanel(), HomePanel(), MindSpacePanel()],
             ),
             AppDrawerPanel(shown: _drawerShown),

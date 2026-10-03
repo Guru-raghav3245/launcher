@@ -12,6 +12,7 @@ import '../search/app_result_row.dart';
 import '../services/app_customizations_service.dart';
 import '../services/dock_service.dart';
 import '../services/installed_apps_service.dart';
+import '../services/tour_service.dart';
 import '../services/focus_mode_service.dart';
 import '../settings/lock_gesture.dart';
 import '../settings/settings_screen.dart';
@@ -19,6 +20,7 @@ import '../state/app_settings.dart';
 import '../state/app_settings_scope.dart';
 import '../state/launcher_theme.dart';
 import '../widgets/launch_app.dart';
+import '../widgets/tour.dart';
 
 const _weekdayNames = [
   'Monday',
@@ -87,6 +89,7 @@ class _HomePanelState extends State<HomePanel> {
   StreamSubscription<BatteryState>? _batterySub;
   FocusStatus _focus = const FocusStatus(active: false);
   List<_DockItem> _dock = const [];
+  var _offerTour = false;
   List<AppInfo> _apps = const [];
 
   @override
@@ -95,6 +98,8 @@ class _HomePanelState extends State<HomePanel> {
     DockService.changes.addListener(_refreshDock);
     AppCustomizationsService.changes.addListener(_refreshDock);
     _refreshDock();
+    TourService.changes.addListener(_refreshTour);
+    _refreshTour();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() => _now = DateTime.now());
       // A timed session ends on its own; status() notices and clears it.
@@ -137,6 +142,11 @@ class _HomePanelState extends State<HomePanel> {
     if (app != null) await const DockService().setSlot(index, app.packageName);
   }
 
+  Future<void> _refreshTour() async {
+    final offer = await const TourService().offerChip();
+    if (mounted) setState(() => _offerTour = offer);
+  }
+
   Future<void> _refreshBattery() async {
     // ponytail: batteryLevel throws on platforms/emulators without a
     // battery (e.g. some desktop targets) — swallow and just hide the %.
@@ -154,6 +164,7 @@ class _HomePanelState extends State<HomePanel> {
     _batterySub?.cancel();
     FocusModeService.changes.removeListener(_refreshFocus);
     DockService.changes.removeListener(_refreshDock);
+    TourService.changes.removeListener(_refreshTour);
     AppCustomizationsService.changes.removeListener(_refreshDock);
     super.dispose();
   }
@@ -169,6 +180,8 @@ class _HomePanelState extends State<HomePanel> {
         ? _formatDate(_now)
         : '${_formatDate(_now)}, $_batteryLevel%';
 
+    final tourChip = _offerTour ? TourChip(ink: isDark ? Colors.white : Colors.black87) : null;
+
     return GestureDetector(
       onLongPress: () => showSettingsScreen(context),
       // Only listened for when set: a double-tap recognizer makes every
@@ -183,28 +196,36 @@ class _HomePanelState extends State<HomePanel> {
           // Status bar icons too: light ones on a deep wallpaper.
           child: AnnotatedRegion<SystemUiOverlayStyle>(
             value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
-            child: SafeArea(
-              child: _focus.active
-                  ? FocusSessionView(status: _focus, now: _now)
-                  : settings.layoutMode == HomeLayoutMode.classic
-                  ? _ClassicLayout(
-                      time: _formatTime(_now, use24: MediaQuery.alwaysUse24HourFormatOf(context)),
-                      subtitle: subtitle,
-                      isDark: isDark,
-                      settings: settings,
-                      dock: _dock,
-                      onOpen: _openSlot,
-                      onChange: _changeSlot,
-                    )
-                  : _MinimalLayout(
-                      time: _formatTime(_now, use24: MediaQuery.alwaysUse24HourFormatOf(context)),
-                      subtitle: subtitle,
-                      isDark: isDark,
-                      settings: settings,
-                      dock: _dock,
-                      onOpen: _openSlot,
-                      onChange: _changeSlot,
-                    ),
+            child: ValueListenableBuilder<Tour?>(
+              valueListenable: TourService.active,
+              builder: (context, tour, content) => Stack(
+                children: [content!, if (tour != null) TourOverlay(tour: tour, isDark: isDark)],
+              ),
+              child: SafeArea(
+                child: _focus.active
+                    ? FocusSessionView(status: _focus, now: _now)
+                    : settings.layoutMode == HomeLayoutMode.classic
+                    ? _ClassicLayout(
+                        time: _formatTime(_now, use24: MediaQuery.alwaysUse24HourFormatOf(context)),
+                        subtitle: subtitle,
+                        isDark: isDark,
+                        settings: settings,
+                        dock: _dock,
+                        onOpen: _openSlot,
+                        onChange: _changeSlot,
+                        tourChip: tourChip,
+                      )
+                    : _MinimalLayout(
+                        time: _formatTime(_now, use24: MediaQuery.alwaysUse24HourFormatOf(context)),
+                        subtitle: subtitle,
+                        isDark: isDark,
+                        settings: settings,
+                        dock: _dock,
+                        onOpen: _openSlot,
+                        onChange: _changeSlot,
+                        tourChip: tourChip,
+                      ),
+              ),
             ),
           ),
         ),
@@ -288,6 +309,7 @@ class _ClassicLayout extends StatelessWidget {
     required this.dock,
     required this.onOpen,
     required this.onChange,
+    this.tourChip,
   });
 
   final String time;
@@ -297,6 +319,9 @@ class _ClassicLayout extends StatelessWidget {
   final List<_DockItem> dock;
   final ValueChanged<int> onOpen;
   final ValueChanged<int> onChange;
+
+  /// "Take a look around", until the tours are done or skipped.
+  final Widget? tourChip;
 
   @override
   Widget build(BuildContext context) {
@@ -313,6 +338,7 @@ class _ClassicLayout extends StatelessWidget {
             ClockPosition.center => [const Spacer(), clock, const Spacer()],
             ClockPosition.bottom => [const Spacer(), clock, const SizedBox(height: 32)],
           },
+          if (tourChip case final chip?) ...[chip, const SizedBox(height: 12)],
           // Placeholder pill; wired to real Spotlight Search in task 8.
           if (settings.showSearchBar) Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -371,6 +397,7 @@ class _MinimalLayout extends StatelessWidget {
     required this.dock,
     required this.onOpen,
     required this.onChange,
+    this.tourChip,
   });
 
   final String time;
@@ -380,6 +407,9 @@ class _MinimalLayout extends StatelessWidget {
   final List<_DockItem> dock;
   final ValueChanged<int> onOpen;
   final ValueChanged<int> onChange;
+
+  /// "Take a look around", until the tours are done or skipped.
+  final Widget? tourChip;
 
   @override
   Widget build(BuildContext context) {
@@ -398,6 +428,7 @@ class _MinimalLayout extends StatelessWidget {
             ),
           ),
         ),
+      if (tourChip case final chip?) Padding(padding: const EdgeInsets.only(top: 16), child: chip),
     ];
     return Column(
       children: switch (settings.clockPositionFor(HomeLayoutMode.minimal)) {

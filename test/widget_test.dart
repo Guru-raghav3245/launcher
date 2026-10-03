@@ -21,6 +21,7 @@ import 'package:launcher/services/app_customizations_service.dart';
 import 'package:launcher/services/dock_service.dart';
 import 'package:launcher/services/focus_mode_service.dart';
 import 'package:launcher/services/my_space_service.dart';
+import 'package:launcher/services/tour_service.dart';
 import 'package:launcher/settings/drawer_look_page.dart';
 import 'package:launcher/settings/settings_screen.dart';
 
@@ -1210,6 +1211,42 @@ void main() {
     await tester.tap(find.text('Reset'));
     await tester.pumpAndSettle();
     expect(settings.drawerLook, const DrawerLook());
+  });
+
+  testWidgets('a guided tour shows its hint and finishes when the real gesture is made', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('installed_apps'),
+      (call) async => <Object>[],
+    );
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Take a look around'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pick one. You can open this again anytime.'), findsOneWidget);
+    await tester.tap(find.text('Find my apps'));
+    await tester.pumpAndSettle();
+    expect(find.text('Swipe up to see all your apps'), findsOneWidget);
+
+    // The hint lets the real swipe through; arriving in the drawer ends it.
+    await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000);
+    await tester.pumpAndSettle();
+    expect(find.byType(AppDrawerPanel), findsOneWidget);
+    expect(find.text('Swipe up to see all your apps'), findsNothing);
+    expect(await const TourService().done(), {Tour.findApps});
+  });
+
+  testWidgets('Skip tour retires the Home chip', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Take a look around'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Skip tour'));
+    await tester.pumpAndSettle();
+    expect(find.text('Take a look around'), findsNothing);
   });
 
   testWidgets('Action tab opens a tool through its one-time explainer', (WidgetTester tester) async {
