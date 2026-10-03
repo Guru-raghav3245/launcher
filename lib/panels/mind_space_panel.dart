@@ -3,11 +3,15 @@ import 'package:installed_apps/app_info.dart';
 
 import '../mind_space/action_tab.dart';
 import '../mind_space/focus_duration_sheet.dart';
+import '../mind_space/reflect_view.dart';
+import '../search/app_multi_picker_sheet.dart';
 import '../search/app_result_row.dart';
 import '../services/focus_mode_service.dart';
 import '../services/installed_apps_service.dart';
+import '../services/productive_apps_service.dart';
 import '../services/usage_stats_service.dart';
 import '../state/app_settings_scope.dart';
+import '../widgets/segmented_toggle.dart';
 
 /// Total screen time (sum of foreground/background pairs, per package) and
 /// pickup count (unlock events) for a set of raw usage events. Exposed
@@ -182,6 +186,9 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
   HabitsInsight? _habits;
   Map<String, AppInfo> _appsByPackage = const {};
   var _tab = _MindSpaceTab.awareness;
+  var _reflect = false;
+  List<DayTotals>? _daily;
+  var _productiveCount = 0;
 
   @override
   void initState() {
@@ -213,17 +220,38 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
       return;
     }
     final now = DateTime.now();
+    final productive = await const ProductiveAppsService().apps();
+    // Reflect needs the last 14 days; Now only today.
+    final start = DateTime(now.year, now.month, now.day - (_reflect ? 13 : 0));
+    final events = withoutProductive(await _service.queryEvents(start: start, end: now), productive);
     final startOfDay = DateTime(now.year, now.month, now.day);
-    final events = await _service.queryEvents(start: startOfDay, end: now);
+    final today = [
+      for (final e in events)
+        if (!e.timestamp.isBefore(startOfDay)) e,
+    ];
     if (mounted) {
       setState(() {
         _hasAccess = true;
-        _totals = computeMindSpaceTotals(events);
-        _hourly = computeHourlyUsage(events, now);
-        _perApp = computePerAppUsage(events);
-        _habits = computeHabits(events);
+        _productiveCount = productive.length;
+        _totals = computeMindSpaceTotals(today);
+        _hourly = computeHourlyUsage(today, now);
+        _perApp = computePerAppUsage(today);
+        _habits = computeHabits(today);
+        if (_reflect) _daily = computeDailyTotals(events, now);
       });
     }
+  }
+
+  Future<void> _editProductiveApps() async {
+    const productive = ProductiveAppsService();
+    await showAppMultiPicker(
+      context,
+      title: 'Productive apps',
+      subtitle: "Time in these isn't counted in Mind Space.",
+      load: productive.apps,
+      onChanged: productive.setProductive,
+    );
+    await _refresh();
   }
 
   @override
@@ -234,21 +262,54 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
         ? const Center(child: CircularProgressIndicator())
         : hasAccess
         ? ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
             children: [
-              _Totals(
-                totals: _totals ?? const MindSpaceTotals(screenTime: Duration.zero, pickups: 0),
-                isDark: isDark,
+              Center(
+                child: SegmentedToggle<bool>(
+                  options: const [(false, Icons.today, 'Now'), (true, Icons.insights, 'Reflect')],
+                  value: _reflect,
+                  onChanged: (reflect) {
+                    setState(() => _reflect = reflect);
+                    _refresh();
+                  },
+                ),
               ),
-              const SizedBox(height: 40),
-              _HourlyChart(hourly: _hourly ?? const [], isDark: isDark),
-              const SizedBox(height: 40),
-              _PerAppBreakdown(perApp: _perApp ?? const [], appsByPackage: _appsByPackage, isDark: isDark),
-              const SizedBox(height: 40),
-              _HabitsSection(
-                habits: _habits ?? const HabitsInsight(topPackage: null, topCount: 0, totalUnlocks: 0),
-                appsByPackage: _appsByPackage,
-                isDark: isDark,
+              const SizedBox(height: 32),
+              if (_reflect)
+                _daily == null
+                    ? const Center(child: CircularProgressIndicator())
+                    : ReflectView(daily: _daily!, isDark: isDark)
+              else ...[
+                _Totals(
+                  totals: _totals ?? const MindSpaceTotals(screenTime: Duration.zero, pickups: 0),
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 40),
+                _HourlyChart(hourly: _hourly ?? const [], isDark: isDark),
+                const SizedBox(height: 40),
+                _PerAppBreakdown(perApp: _perApp ?? const [], appsByPackage: _appsByPackage, isDark: isDark),
+                const SizedBox(height: 40),
+                _HabitsSection(
+                  habits: _habits ?? const HabitsInsight(topPackage: null, topCount: 0, totalUnlocks: 0),
+                  appsByPackage: _appsByPackage,
+                  isDark: isDark,
+                ),
+              ],
+              const SizedBox(height: 32),
+              Material(
+                type: MaterialType.transparency,
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.work_outline),
+                  title: const Text('Productive apps'),
+                  subtitle: Text(
+                    _productiveCount == 0
+                        ? "Leave apps you need out of these stats"
+                        : "$_productiveCount ${_productiveCount == 1 ? 'app' : 'apps'} not counted",
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: _editProductiveApps,
+                ),
               ),
             ],
           )

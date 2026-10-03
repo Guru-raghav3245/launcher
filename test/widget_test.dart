@@ -406,6 +406,52 @@ void main() {
     expect(find.text('Chrome'), findsNothing);
   });
 
+  testWidgets('Mind Space leaves productive apps out, and Reflect shows yesterday', (WidgetTester tester) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    int at(DateTime t) => t.millisecondsSinceEpoch;
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'mind_space_productive_apps': ['com.work'],
+    });
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(
+      const MethodChannel('installed_apps'),
+      (call) async => [
+        {'name': 'Feed', 'package_name': 'com.feed'},
+        {'name': 'Work', 'package_name': 'com.work'},
+      ],
+    );
+    messenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/usage'), (call) async {
+      if (call.method == 'hasAccess') return true;
+      final yesterday = today.subtract(const Duration(days: 1));
+      return [
+        for (final (pkg, start, minutes) in [
+          ('com.feed', yesterday.add(const Duration(hours: 9)), 45),
+          ('com.feed', today, 5),
+          ('com.work', today.add(const Duration(minutes: 10)), 30),
+        ]) ...[
+          {'packageName': pkg, 'type': 'foreground', 'timestamp': at(start)},
+          {'packageName': pkg, 'type': 'background', 'timestamp': at(start.add(Duration(minutes: minutes)))},
+        ],
+      ].where((e) => (e['timestamp'] as int) >= (call.arguments as Map)['start']).toList();
+    });
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(-400, 0), 1000); // swipe left → Mind Space
+    await tester.pumpAndSettle();
+
+    // Now: only Feed's 5 minutes count; Work is productive.
+    expect(find.text('5m'), findsWidgets);
+    expect(find.text('Work'), findsNothing);
+
+    await tester.tap(find.text('Reflect'));
+    await tester.pumpAndSettle();
+    expect(find.text('Screen time yesterday'), findsOneWidget);
+    expect(find.text('45m'), findsOneWidget);
+  });
+
   testWidgets('Action tab opens a tool through its one-time explainer', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
