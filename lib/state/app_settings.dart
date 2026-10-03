@@ -57,6 +57,44 @@ enum TextSize {
   final double factor;
 }
 
+/// How app icons are coloured everywhere they appear (Phase 10 task 6).
+/// [matrix] is a 4x5 colour matrix for `ColorFilter.matrix`, or null to
+/// leave icons as they are.
+enum IconTint {
+  grayscale('Grayscale'),
+  muted('Muted'),
+  classic('Classic'),
+  coolTone('Cool Tone'),
+  invert('Invert');
+
+  const IconTint(this.label);
+  final String label;
+
+  // Rec. 709 luminance weights.
+  static const _r = 0.2126, _g = 0.7152, _b = 0.0722;
+
+  List<double>? get matrix => switch (this) {
+    grayscale => const [_r, _g, _b, 0, 0, _r, _g, _b, 0, 0, _r, _g, _b, 0, 0, 0, 0, 0, 1, 0],
+    // Halfway between the icon's colours and grey.
+    muted => const [
+      0.5 + _r / 2, _g / 2, _b / 2, 0, 0, //
+      _r / 2, 0.5 + _g / 2, _b / 2, 0, 0, //
+      _r / 2, _g / 2, 0.5 + _b / 2, 0, 0, //
+      0, 0, 0, 1, 0,
+    ],
+    classic => null,
+    // Grey with a blue cast.
+    coolTone => const [
+      _r * 0.85, _g * 0.85, _b * 0.85, 0, 0, //
+      _r * 0.95, _g * 0.95, _b * 0.95, 0, 0, //
+      _r * 1.1, _g * 1.1, _b * 1.1, 0, 12, //
+      0, 0, 0, 1, 0,
+    ],
+    // Grey, light for dark.
+    invert => const [-_r, -_g, -_b, 0, 255, -_r, -_g, -_b, 0, 255, -_r, -_g, -_b, 0, 255, 0, 0, 0, 1, 0],
+  };
+}
+
 /// How Home draws its clock (Phase 10 task 2).
 enum ClockStyle { standard, large, compact }
 
@@ -126,6 +164,9 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
   /// Classic layout's Spotlight search pill.
   bool get showSearchBar => _showSearchBar;
 
+  IconTint _iconTint = IconTint.grayscale;
+  IconTint get iconTint => _iconTint;
+
   LauncherFont _font = LauncherFont.roboto;
   LauncherFont get font => _font;
 
@@ -156,6 +197,7 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
     _clockStyle = ClockStyle.values.byName(prefs.getString('settings_clock_style') ?? ClockStyle.standard.name);
     final position = prefs.getString('settings_clock_position');
     _clockPosition = position == null ? null : ClockPosition.values.byName(position);
+    _iconTint = IconTint.values.byName(prefs.getString('settings_icon_tint') ?? IconTint.grayscale.name);
     _font = LauncherFont.values.byName(prefs.getString('settings_font') ?? LauncherFont.roboto.name);
     _textSize = TextSize.values.byName(prefs.getString('settings_text_size') ?? TextSize.normal.name);
     _timeFormat = TimeFormat.values.byName(prefs.getString('settings_time_format') ?? TimeFormat.system.name);
@@ -251,6 +293,9 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
     () => _clockPosition = value,
     (p) => p.setString('settings_clock_position', value.name),
   );
+
+  Future<void> setIconTint(IconTint value) =>
+      _save(_iconTint != value, () => _iconTint = value, (p) => p.setString('settings_icon_tint', value.name));
 
   Future<void> setFont(LauncherFont value) =>
       _save(_font != value, () => _font = value, (p) => p.setString('settings_font', value.name));

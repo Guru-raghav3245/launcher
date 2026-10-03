@@ -377,7 +377,7 @@ const _themeOptions = [
 ];
 
 /// Appearance: Light / Dark / Auto (the onboarding toggle offers just Light
-/// and Dark), the font, and the text size.
+/// and Dark), the font, the app icon tint, and the text size.
 void _showAppearance(BuildContext context) {
   _showSubSheet(
     context,
@@ -407,6 +407,28 @@ void _showAppearance(BuildContext context) {
                       : (settings.isDark ? Colors.white : Colors.black),
                 ),
                 onSelected: (_) => settings.setFont(font),
+              ),
+          ],
+        ),
+      ),
+      _labeledAbove(
+        'App icons',
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final tint in IconTint.values)
+              ChoiceChip(
+                label: Text(tint.label),
+                selected: settings.iconTint == tint,
+                showCheckmark: false,
+                selectedColor: settings.isDark ? Colors.white : Colors.black,
+                labelStyle: TextStyle(
+                  color: settings.iconTint == tint
+                      ? (settings.isDark ? Colors.black : Colors.white)
+                      : (settings.isDark ? Colors.white : Colors.black),
+                ),
+                onSelected: (_) => settings.setIconTint(tint),
               ),
           ],
         ),

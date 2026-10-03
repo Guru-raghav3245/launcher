@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
+import '../state/app_settings_scope.dart';
 
 /// A single app row (icon + name), shared by the App Drawer's flat/search
 /// results and Spotlight Search.
@@ -68,9 +69,13 @@ class AppIcon extends StatelessWidget {
         child: const Icon(Icons.apps, size: 20),
       );
     }
+    // The icon tint from Settings → Appearance (grayscale by default), so
+    // every icon in the launcher matches the calm, colourless design.
+    final matrix = context.dependOnInheritedWidgetOfExactType<AppSettingsScope>()?.notifier?.iconTint.matrix;
+    final image = Image.memory(data, width: size, height: size, fit: BoxFit.cover, gaplessPlayback: true);
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
-      child: Image.memory(data, width: size, height: size, fit: BoxFit.cover),
+      child: matrix == null ? image : ColorFiltered(colorFilter: ColorFilter.matrix(matrix), child: image),
     );
   }
 }
