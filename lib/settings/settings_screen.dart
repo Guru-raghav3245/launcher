@@ -319,8 +319,11 @@ Widget _labeled(String label, Widget control) {
     padding: const EdgeInsets.symmetric(vertical: 8),
     child: Row(
       children: [
-        Expanded(child: Text(label, style: const TextStyle(fontSize: 18, letterSpacing: 0.5))),
-        control,
+        Text(label, style: const TextStyle(fontSize: 18, letterSpacing: 0.5)),
+        const SizedBox(width: 16),
+        // The label keeps its width; the control gets the rest, so a toggle
+        // shrinks to fit instead of overflowing.
+        Expanded(child: Align(alignment: Alignment.centerRight, child: control)),
       ],
     ),
   );
@@ -373,16 +376,52 @@ const _themeOptions = [
   (ThemeChoice.auto, Icons.brightness_auto_outlined, 'Auto'),
 ];
 
-/// Appearance: Light / Dark / Auto, bound to [AppSettings.theme] (the
-/// onboarding toggle offers just Light and Dark).
+/// Appearance: Light / Dark / Auto (the onboarding toggle offers just Light
+/// and Dark), the font, and the text size.
 void _showAppearance(BuildContext context) {
   _showSubSheet(
     context,
     'Appearance',
     (context, settings) => [
-      _labeled(
+      _labeledAbove(
         'Theme',
         SegmentedToggle<ThemeChoice>(value: settings.theme, onChanged: settings.setTheme, options: _themeOptions),
+      ),
+      _labeledAbove(
+        'Font',
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            // Each option is shown in its own typeface.
+            for (final font in LauncherFont.values)
+              ChoiceChip(
+                label: Text(font.label),
+                selected: settings.font == font,
+                showCheckmark: false,
+                selectedColor: settings.isDark ? Colors.white : Colors.black,
+                labelStyle: TextStyle(
+                  fontFamily: font.family ?? 'Roboto',
+                  color: settings.font == font
+                      ? (settings.isDark ? Colors.black : Colors.white)
+                      : (settings.isDark ? Colors.white : Colors.black),
+                ),
+                onSelected: (_) => settings.setFont(font),
+              ),
+          ],
+        ),
+      ),
+      _labeledAbove(
+        'Text size',
+        SegmentedToggle<TextSize>(
+          value: settings.textSize,
+          onChanged: settings.setTextSize,
+          options: const [
+            (TextSize.small, Icons.text_decrease, 'Small'),
+            (TextSize.normal, Icons.text_fields, 'Default'),
+            (TextSize.large, Icons.text_increase, 'Large'),
+          ],
+        ),
       ),
     ],
   );

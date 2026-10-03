@@ -179,7 +179,7 @@ class _HomePanelState extends State<HomePanel> {
         child: Theme(
           // So Home's contents (the Focus session screen included) read the
           // wallpaper's brightness, which can differ from the app theme.
-          data: launcherTheme(isDark ? Brightness.dark : Brightness.light),
+          data: launcherTheme(isDark ? Brightness.dark : Brightness.light, fontFamily: settings.font.family),
           // Status bar icons too: light ones on a deep wallpaper.
           child: AnnotatedRegion<SystemUiOverlayStyle>(
             value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,

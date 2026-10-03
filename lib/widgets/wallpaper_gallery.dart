@@ -53,11 +53,17 @@ class _WallpaperGalleryState extends State<WallpaperGallery> {
       children: [
         Row(
           children: [
-            const Expanded(child: Text('Wallpaper', style: TextStyle(fontSize: 18, letterSpacing: 0.5))),
-            SegmentedToggle<bool>(
-              value: _forDark,
-              onChanged: (v) => setState(() => _forDark = v),
-              options: const [(false, Icons.wb_sunny_outlined, 'Light'), (true, Icons.nightlight_round, 'Dark')],
+            const Text('Wallpaper', style: TextStyle(fontSize: 18, letterSpacing: 0.5)),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: SegmentedToggle<bool>(
+                  value: _forDark,
+                  onChanged: (v) => setState(() => _forDark = v),
+                  options: const [(false, Icons.wb_sunny_outlined, 'Light'), (true, Icons.nightlight_round, 'Dark')],
+                ),
+              ),
             ),
           ],
         ),

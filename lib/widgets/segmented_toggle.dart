@@ -12,23 +12,28 @@ class SegmentedToggle<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        border: Border.all(color: isDark ? Colors.white24 : Colors.black26),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final option in options)
-            _Segment(
-              icon: option.$2,
-              label: option.$3,
-              selected: option.$1 == value,
-              onTap: () => onChanged(option.$1),
-            ),
-        ],
+    // Shrinks (never grows) to fit when a large text size or wide font
+    // would push it past the edge.
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          border: Border.all(color: isDark ? Colors.white24 : Colors.black26),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final option in options)
+              _Segment(
+                icon: option.$2,
+                label: option.$3,
+                selected: option.$1 == value,
+                onTap: () => onChanged(option.$1),
+              ),
+          ],
+        ),
       ),
     );
   }

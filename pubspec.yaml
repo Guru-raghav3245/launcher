@@ -65,6 +65,51 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # Phase 10 task 5: bundled (Latin, static weights 300-700) so they work
+  # offline from the first launch; Roboto is Android's own font. OFL texts
+  # are in assets/fonts and registered with LicenseRegistry in main.dart.
+  assets:
+    - assets/fonts/OFL-dmsans.txt
+    - assets/fonts/OFL-notoserif.txt
+    - assets/fonts/OFL-opensans.txt
+  fonts:
+    - family: DM Sans
+      fonts:
+        - asset: assets/fonts/dm-sans-300.ttf
+          weight: 300
+        - asset: assets/fonts/dm-sans-400.ttf
+          weight: 400
+        - asset: assets/fonts/dm-sans-500.ttf
+          weight: 500
+        - asset: assets/fonts/dm-sans-600.ttf
+          weight: 600
+        - asset: assets/fonts/dm-sans-700.ttf
+          weight: 700
+    - family: Noto Serif
+      fonts:
+        - asset: assets/fonts/noto-serif-300.ttf
+          weight: 300
+        - asset: assets/fonts/noto-serif-400.ttf
+          weight: 400
+        - asset: assets/fonts/noto-serif-500.ttf
+          weight: 500
+        - asset: assets/fonts/noto-serif-600.ttf
+          weight: 600
+        - asset: assets/fonts/noto-serif-700.ttf
+          weight: 700
+    - family: Open Sans
+      fonts:
+        - asset: assets/fonts/open-sans-300.ttf
+          weight: 300
+        - asset: assets/fonts/open-sans-400.ttf
+          weight: 400
+        - asset: assets/fonts/open-sans-500.ttf
+          weight: 500
+        - asset: assets/fonts/open-sans-600.ttf
+          weight: 600
+        - asset: assets/fonts/open-sans-700.ttf
+          weight: 700
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

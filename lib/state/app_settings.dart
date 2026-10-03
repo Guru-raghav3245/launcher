@@ -34,6 +34,29 @@ enum TimeFormat { system, h12, h24 }
 /// The Weather tile's temperature unit (stored data stays in °C).
 enum TempUnit { celsius, fahrenheit }
 
+/// The launcher's typeface (Phase 10 task 5). [family] is null for
+/// Roboto, Android's own font; the others are bundled (see pubspec.yaml).
+enum LauncherFont {
+  roboto('Roboto', null),
+  dmSans('DM Sans', 'DM Sans'),
+  notoSerif('Noto Serif', 'Noto Serif'),
+  openSans('Open Sans', 'Open Sans');
+
+  const LauncherFont(this.label, this.family);
+  final String label;
+  final String? family;
+}
+
+/// Text size, on top of the phone's own font scale.
+enum TextSize {
+  small(0.9),
+  normal(1.0),
+  large(1.15);
+
+  const TextSize(this.factor);
+  final double factor;
+}
+
 /// How Home draws its clock (Phase 10 task 2).
 enum ClockStyle { standard, large, compact }
 
@@ -103,6 +126,12 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
   /// Classic layout's Spotlight search pill.
   bool get showSearchBar => _showSearchBar;
 
+  LauncherFont _font = LauncherFont.roboto;
+  LauncherFont get font => _font;
+
+  TextSize _textSize = TextSize.normal;
+  TextSize get textSize => _textSize;
+
   TimeFormat _timeFormat = TimeFormat.system;
   TimeFormat get timeFormat => _timeFormat;
 
@@ -127,6 +156,8 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
     _clockStyle = ClockStyle.values.byName(prefs.getString('settings_clock_style') ?? ClockStyle.standard.name);
     final position = prefs.getString('settings_clock_position');
     _clockPosition = position == null ? null : ClockPosition.values.byName(position);
+    _font = LauncherFont.values.byName(prefs.getString('settings_font') ?? LauncherFont.roboto.name);
+    _textSize = TextSize.values.byName(prefs.getString('settings_text_size') ?? TextSize.normal.name);
     _timeFormat = TimeFormat.values.byName(prefs.getString('settings_time_format') ?? TimeFormat.system.name);
     _tempUnit = TempUnit.values.byName(prefs.getString('settings_temp_unit') ?? TempUnit.celsius.name);
     _showSearchBar = prefs.getBool('settings_show_search_bar') ?? true;
@@ -220,6 +251,12 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
     () => _clockPosition = value,
     (p) => p.setString('settings_clock_position', value.name),
   );
+
+  Future<void> setFont(LauncherFont value) =>
+      _save(_font != value, () => _font = value, (p) => p.setString('settings_font', value.name));
+
+  Future<void> setTextSize(TextSize value) =>
+      _save(_textSize != value, () => _textSize = value, (p) => p.setString('settings_text_size', value.name));
 
   Future<void> setTimeFormat(TimeFormat value) =>
       _save(_timeFormat != value, () => _timeFormat = value, (p) => p.setString('settings_time_format', value.name));

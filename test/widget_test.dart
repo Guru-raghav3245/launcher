@@ -230,6 +230,20 @@ void main() {
     expect(settings.formatTemp(-40), '-40°');
   });
 
+  testWidgets('the chosen font and text size apply app-wide', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'settings_font': 'dmSans',
+      'settings_text_size': 'large',
+    });
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    final home = tester.element(find.byType(HomePanel));
+    expect(Theme.of(home).textTheme.bodyMedium!.fontFamily, 'DM Sans');
+    expect(MediaQuery.textScalerOf(home).scale(10), closeTo(11.5, 0.01));
+  });
+
   testWidgets('Launcher Settings switches layout and re-runs onboarding', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
 

@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'onboarding/onboarding_flow.dart';
 import 'services/focus_schedule_service.dart';
@@ -10,6 +12,12 @@ import 'state/launcher_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // The bundled fonts' licences, for the system licence page.
+  LicenseRegistry.addLicense(() async* {
+    for (final (family, file) in [('DM Sans', 'dmsans'), ('Noto Serif', 'notoserif'), ('Open Sans', 'opensans')]) {
+      yield LicenseEntryWithLineBreaks([family], await rootBundle.loadString('assets/fonts/OFL-$file.txt'));
+    }
+  });
   // Not awaited: reminders shouldn't hold up the first frame.
   FocusScheduleService.init();
   runApp(const YinYangLauncherApp());
@@ -37,16 +45,27 @@ class _YinYangLauncherAppState extends State<YinYangLauncherApp> {
             title: 'Yin Yang Launcher',
             debugShowCheckedModeBanner: false,
             themeMode: _settings.isDark ? ThemeMode.dark : ThemeMode.light,
-            theme: launcherTheme(Brightness.light),
-            darkTheme: launcherTheme(Brightness.dark),
+            theme: launcherTheme(Brightness.light, fontFamily: _settings.font.family),
+            darkTheme: launcherTheme(Brightness.dark, fontFamily: _settings.font.family),
             // A chosen 12/24-hour format overrides the phone's for every
-            // time shown (TimeOfDay.format and Home's clock read this).
-            builder: (context, child) => _settings.timeFormat == TimeFormat.system
-                ? child!
-                : MediaQuery(
-                    data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: _settings.timeFormat == TimeFormat.h24),
-                    child: child!,
-                  ),
+            // time shown (TimeOfDay.format and Home's clock read this), and
+            // the text size scales on top of the phone's font size.
+            builder: (context, child) {
+              final media = MediaQuery.of(context);
+              return MediaQuery(
+                data: media.copyWith(
+                  alwaysUse24HourFormat: switch (_settings.timeFormat) {
+                    TimeFormat.system => media.alwaysUse24HourFormat,
+                    TimeFormat.h12 => false,
+                    TimeFormat.h24 => true,
+                  },
+                  textScaler: _settings.textSize == TextSize.normal
+                      ? media.textScaler
+                      : TextScaler.linear(media.textScaler.scale(1) * _settings.textSize.factor),
+                ),
+                child: child!,
+              );
+            },
             home: FutureBuilder<void>(
               future: _settingsReady,
               builder: (context, snapshot) {
