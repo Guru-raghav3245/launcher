@@ -4,7 +4,6 @@ import 'package:geolocator/geolocator.dart';
 
 import '../models/home_layout_mode.dart';
 import '../onboarding/onboarding_flow.dart';
-import '../onboarding/wallpaper_picker.dart';
 import '../panels/mind_space_panel.dart';
 import '../search/app_multi_picker_sheet.dart';
 import '../search/app_search.dart';
@@ -16,6 +15,7 @@ import '../search/app_search_bar.dart';
 import '../state/app_settings.dart';
 import '../state/app_settings_scope.dart';
 import '../widgets/segmented_toggle.dart';
+import '../widgets/wallpaper_gallery.dart';
 import 'lock_gesture.dart';
 
 /// Opens Settings as a near-full-height bottom sheet over the launcher,
@@ -520,16 +520,7 @@ void _showLauncherSettings(BuildContext context) {
           onChanged: onChanged,
         ),
       const SizedBox(height: 8),
-      Text(
-        settings.isDark ? 'Wallpaper (shown in light theme)' : 'Wallpaper',
-        style: const TextStyle(fontSize: 18, letterSpacing: 0.5),
-      ),
-      const SizedBox(height: 12),
-      WallpaperPicker(
-        colors: wallpaperPresets,
-        selectedIndex: settings.wallpaperIndex,
-        onSelected: settings.setWallpaperIndex,
-      ),
+      WallpaperGallery(settings: settings),
       const SizedBox(height: 16),
       ListTile(
         contentPadding: EdgeInsets.zero,

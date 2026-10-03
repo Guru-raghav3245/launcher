@@ -194,6 +194,17 @@ void main() {
     expect(settings.clockPositionFor(HomeLayoutMode.minimal), ClockPosition.bottom);
   });
 
+  testWidgets('a deep gradient gives Home white text, even in the light theme', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true, 'settings_wallpaper_light': 'gradient-ocean'});
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    final now = DateTime.now();
+    final time = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    expect(tester.widget<Text>(find.text(time)).style!.color, Colors.white);
+    expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode, ThemeMode.light);
+  });
+
   testWidgets('Launcher Settings switches layout and re-runs onboarding', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
 
@@ -209,6 +220,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Spotlight search'), findsNothing);
 
+    await tester.ensureVisible(find.text('Re-run onboarding')); // below the wallpaper gallery
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Re-run onboarding'));
     await tester.pumpAndSettle();
     expect(find.byType(WelcomeStep), findsOneWidget);

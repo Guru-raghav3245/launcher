@@ -3,16 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/home_layout_mode.dart';
-
-/// Preset wallpaper swatches offered during onboarding and (Phase 5)
-/// Settings. Flat pastel colors, close to the app's default look.
-const wallpaperPresets = <Color>[
-  Color(0xFFF3F1F6),
-  Color(0xFFDCDEE3),
-  Color(0xFFAEB8CB),
-  Color(0xFFC9BFE3),
-  Color(0xFFE7E2D8),
-];
+import '../models/wallpaper.dart';
 
 /// App Drawer / Spotlight behaviour switches (Phase 8 task 5), all off by
 /// default.
@@ -56,7 +47,8 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
   /// the launcher's colours (Mindful Timer's "Time's up" overlay).
   static const _isDarkKey = 'settings_is_dark';
   static const _layoutModeKey = 'settings_layout_mode';
-  static const _wallpaperIndexKey = 'settings_wallpaper_index';
+  /// Before per-theme wallpapers: an index into the light Classic flats.
+  static const _legacyWallpaperIndexKey = 'settings_wallpaper_index';
 
   ThemeChoice _theme = ThemeChoice.light;
   ThemeChoice get theme => _theme;
@@ -70,9 +62,14 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
   HomeLayoutMode _layoutMode = HomeLayoutMode.classic;
   HomeLayoutMode get layoutMode => _layoutMode;
 
-  int _wallpaperIndex = 0;
-  int get wallpaperIndex => _wallpaperIndex;
-  Color get wallpaperColor => wallpaperPresets[_wallpaperIndex];
+  // One wallpaper per theme, like the original's Light / Dark tabs.
+  Wallpaper _lightWallpaper = classicLight.first;
+  Wallpaper _darkWallpaper = classicDark.first;
+  Wallpaper get lightWallpaper => _lightWallpaper;
+  Wallpaper get darkWallpaper => _darkWallpaper;
+
+  /// The one Home shows now.
+  Wallpaper get wallpaper => isDark ? _darkWallpaper : _lightWallpaper;
 
   static const _swipeDownKey = 'settings_swipe_down';
   static const _doubleTapKey = 'settings_double_tap';
@@ -129,10 +126,9 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
     _layoutMode = HomeLayoutMode.values.byName(
       prefs.getString(_layoutModeKey) ?? HomeLayoutMode.classic.name,
     );
-    _wallpaperIndex = (prefs.getInt(_wallpaperIndexKey) ?? 0).clamp(
-      0,
-      wallpaperPresets.length - 1,
-    );
+    final legacy = (prefs.getInt(_legacyWallpaperIndexKey) ?? 0).clamp(0, classicLight.length - 1);
+    _lightWallpaper = wallpaperById(prefs.getString('settings_wallpaper_light') ?? '') ?? classicLight[legacy];
+    _darkWallpaper = wallpaperById(prefs.getString('settings_wallpaper_dark') ?? '') ?? classicDark.first;
     notifyListeners();
   }
 
@@ -169,13 +165,10 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
     await prefs.setString(_layoutModeKey, value.name);
   }
 
-  Future<void> setWallpaperIndex(int value) async {
-    if (_wallpaperIndex == value) return;
-    _wallpaperIndex = value;
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_wallpaperIndexKey, value);
-  }
+  /// Sets the wallpaper for the light or dark theme ([forDark]).
+  Future<void> setWallpaper(Wallpaper value, {required bool forDark}) => forDark
+      ? _save(_darkWallpaper != value, () => _darkWallpaper = value, (p) => p.setString('settings_wallpaper_dark', value.id))
+      : _save(_lightWallpaper != value, () => _lightWallpaper = value, (p) => p.setString('settings_wallpaper_light', value.id));
 
   Future<void> setDrawerOption(DrawerOption option, bool on) async {
     if (drawerOption(option) == on) return;

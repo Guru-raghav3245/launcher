@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:installed_apps/app_info.dart';
 
 import '../mind_space/focus_session_view.dart';
@@ -16,6 +17,7 @@ import '../settings/lock_gesture.dart';
 import '../settings/settings_screen.dart';
 import '../state/app_settings.dart';
 import '../state/app_settings_scope.dart';
+import '../state/launcher_theme.dart';
 import '../widgets/launch_app.dart';
 
 const _weekdayNames = [
@@ -157,7 +159,10 @@ class _HomePanelState extends State<HomePanel> {
   @override
   Widget build(BuildContext context) {
     final settings = AppSettingsScope.of(context);
-    final isDark = settings.isDark;
+    // Ink follows the wallpaper, not the theme: a deep gradient gets white
+    // text even in the light theme, as in the original.
+    final wallpaper = settings.wallpaper;
+    final isDark = wallpaper.isDark;
     final subtitle = _batteryLevel == null
         ? _formatDate(_now)
         : '${_formatDate(_now)}, $_batteryLevel%';
@@ -168,39 +173,38 @@ class _HomePanelState extends State<HomePanel> {
       // single tap on Home wait out the double-tap window first.
       onDoubleTap: settings.doubleTap == DoubleTapAction.none ? null : () => lockScreen(context, settings.doubleTap),
       child: Container(
-        // Dark theme always uses a near-black background; light theme uses
-        // the user's chosen wallpaper swatch as a subtle diagonal gradient.
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDark
-                ? const [Color(0xFF000000), Color(0xFF0B0B0D)]
-                : [settings.wallpaperColor, Color.lerp(settings.wallpaperColor, Colors.black, 0.06)!],
+        decoration: BoxDecoration(gradient: wallpaper.gradient),
+        child: Theme(
+          // So Home's contents (the Focus session screen included) read the
+          // wallpaper's brightness, which can differ from the app theme.
+          data: launcherTheme(isDark ? Brightness.dark : Brightness.light),
+          // Status bar icons too: light ones on a deep wallpaper.
+          child: AnnotatedRegion<SystemUiOverlayStyle>(
+            value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+            child: SafeArea(
+              child: _focus.active
+                  ? FocusSessionView(status: _focus, now: _now)
+                  : settings.layoutMode == HomeLayoutMode.classic
+                  ? _ClassicLayout(
+                      time: _formatTime(_now),
+                      subtitle: subtitle,
+                      isDark: isDark,
+                      settings: settings,
+                      dock: _dock,
+                      onOpen: _openSlot,
+                      onChange: _changeSlot,
+                    )
+                  : _MinimalLayout(
+                      time: _formatTime(_now),
+                      subtitle: subtitle,
+                      isDark: isDark,
+                      settings: settings,
+                      dock: _dock,
+                      onOpen: _openSlot,
+                      onChange: _changeSlot,
+                    ),
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: _focus.active
-              ? FocusSessionView(status: _focus, now: _now)
-              : settings.layoutMode == HomeLayoutMode.classic
-              ? _ClassicLayout(
-                  time: _formatTime(_now),
-                  subtitle: subtitle,
-                  isDark: isDark,
-                  settings: settings,
-                  dock: _dock,
-                  onOpen: _openSlot,
-                  onChange: _changeSlot,
-                )
-              : _MinimalLayout(
-                  time: _formatTime(_now),
-                  subtitle: subtitle,
-                  isDark: isDark,
-                  settings: settings,
-                  dock: _dock,
-                  onOpen: _openSlot,
-                  onChange: _changeSlot,
-                ),
         ),
       ),
     );

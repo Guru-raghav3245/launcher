@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/home_layout_mode.dart';
+import '../../models/wallpaper.dart';
 import '../../panels/home_panel.dart';
 import '../../services/launcher_role_service.dart';
 import '../../state/app_settings.dart';
@@ -42,7 +43,8 @@ class _CustomizeStepState extends State<CustomizeStep> {
     final settings = AppSettingsScope.of(context);
 
     return Container(
-      color: settings.isDark ? null : settings.wallpaperColor,
+      // The light wallpaper tints this step (a deep gradient would hide its text).
+      color: settings.isDark || settings.lightWallpaper.isDark ? null : settings.lightWallpaper.edge,
       child: SafeArea(
         child: Column(
           children: [
@@ -89,9 +91,9 @@ class _CustomizeStepState extends State<CustomizeStep> {
                   ),
                   const SizedBox(height: 8),
                   WallpaperPicker(
-                    colors: wallpaperPresets,
-                    selectedIndex: settings.wallpaperIndex,
-                    onSelected: settings.setWallpaperIndex,
+                    colors: [for (final w in classicLight) w.edge],
+                    selectedIndex: classicLight.indexOf(settings.lightWallpaper),
+                    onSelected: (i) => settings.setWallpaper(classicLight[i], forDark: false),
                   ),
                 ],
               ),

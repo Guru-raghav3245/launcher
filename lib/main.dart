@@ -6,6 +6,7 @@ import 'services/onboarding_service.dart';
 import 'shell/launcher_shell.dart';
 import 'state/app_settings.dart';
 import 'state/app_settings_scope.dart';
+import 'state/launcher_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,21 +37,8 @@ class _YinYangLauncherAppState extends State<YinYangLauncherApp> {
             title: 'Yin Yang Launcher',
             debugShowCheckedModeBanner: false,
             themeMode: _settings.isDark ? ThemeMode.dark : ThemeMode.light,
-            // Monochrome: the design has no accent hue (DESIGN_LANGUAGE.md);
-            // the default seeded scheme tinted sheets/buttons pink.
-            theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: Colors.black,
-                dynamicSchemeVariant: DynamicSchemeVariant.monochrome,
-              ),
-            ),
-            darkTheme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: Colors.black,
-                brightness: Brightness.dark,
-                dynamicSchemeVariant: DynamicSchemeVariant.monochrome,
-              ),
-            ),
+            theme: launcherTheme(Brightness.light),
+            darkTheme: launcherTheme(Brightness.dark),
             home: FutureBuilder<void>(
               future: _settingsReady,
               builder: (context, snapshot) {
