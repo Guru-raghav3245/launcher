@@ -7,6 +7,7 @@ import '../my_space/manage_tiles_page.dart';
 import '../my_space/tile_card.dart';
 import '../my_space/tiles/app_folder_tile.dart';
 import '../my_space/tiles/from_app_tile.dart';
+import '../my_space/tiles/hydration_tile.dart';
 import '../my_space/tiles/notes_tile.dart';
 import '../my_space/tiles/quote_tile.dart';
 import '../my_space/tiles/todo_tile.dart';
@@ -129,6 +130,7 @@ class _TileList extends StatelessWidget {
                 ),
                 TileKind.fromApp => FromAppTile(tile: tile),
                 TileKind.quote => QuoteTile(tile: tile, onChanged: (data) => onUpdate(tile.id, data)),
+                TileKind.hydration => HydrationTile(tile: tile, onChanged: (data) => onUpdate(tile.id, data)),
               },
             );
           },

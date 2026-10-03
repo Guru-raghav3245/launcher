@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/my_space_tile.dart';
 import '../models/tile_kind.dart';
 import 'tile_card.dart';
+import 'tiles/hydration_tile.dart';
 import 'tiles/quote_tile.dart';
 
 /// Describes one row in the "Add New Tile" sheet's Built-in tab: what the
@@ -100,6 +101,14 @@ final builtInTileSpecs = [
       text: 'How we spend our days is, of course, how we spend our lives.',
       author: 'Annie Dillard',
     ),
+  ),
+  BuiltInTileSpec(
+    kind: TileKind.hydration,
+    icon: Icons.water_drop_outlined,
+    title: 'Hydration',
+    subtitle: 'Count your glasses of water',
+    defaultData: () => {'goal': defaultGlassGoal},
+    preview: const HydrationBody(glasses: 3, goal: defaultGlassGoal),
   ),
 ];
 

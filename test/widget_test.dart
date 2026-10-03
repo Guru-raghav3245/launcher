@@ -805,6 +805,29 @@ void main() {
     expect((await const MySpaceService().loadTiles()).single.data['shift'], 1);
   });
 
+  testWidgets('the Hydration tile counts glasses and takes back a mis-tap', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'my_space_tiles': '[{"id":"h","kind":"hydration","data":{"goal":6}}]',
+    });
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(400, 0), 1000); // swipe right → My Space
+    await tester.pumpAndSettle();
+    expect(find.text('0 of 6 glasses today'), findsOneWidget);
+
+    // Within the drop row (the tile's header icon is a drop too).
+    Finder drop(IconData icon) => find.descendant(of: find.byType(Wrap), matching: find.byIcon(icon));
+    await tester.tap(drop(Icons.water_drop_outlined).at(3)); // the fourth drop fills four
+    await tester.pumpAndSettle();
+    expect(find.text('4 of 6 glasses today'), findsOneWidget);
+
+    await tester.tap(drop(Icons.water_drop).at(3)); // tapping the last filled one takes it back
+    await tester.pumpAndSettle();
+    expect(find.text('3 of 6 glasses today'), findsOneWidget);
+  });
+
   testWidgets('Manage tiles reorders and removes tiles', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
       'onboarding_complete': true,
