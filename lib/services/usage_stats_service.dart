@@ -28,6 +28,17 @@ class UsageStatsService {
 
   Future<void> requestAccess() => _channel.invokeMethod('requestAccess');
 
+  /// Each package's last use in [start, end) (this launcher excluded), from
+  /// Android's aggregated daily stats, which go back much further than raw
+  /// events. Empty without usage access.
+  Future<Map<String, DateTime>> lastUsed({required DateTime start, required DateTime end}) async {
+    final result = await _channel.invokeMapMethod<String, int>('lastUsed', {
+      'start': start.millisecondsSinceEpoch,
+      'end': end.millisecondsSinceEpoch,
+    });
+    return {for (final e in (result ?? {}).entries) e.key: DateTime.fromMillisecondsSinceEpoch(e.value)};
+  }
+
   Future<List<UsageEvent>> queryEvents({required DateTime start, required DateTime end}) async {
     final result = await _channel.invokeMethod<List<Object?>>('queryEvents', {
       'start': start.millisecondsSinceEpoch,

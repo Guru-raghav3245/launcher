@@ -31,6 +31,7 @@ class UsageStatsBridge(private val activity: MainActivity) {
                 "queryEvents" -> result.success(
                     queryEvents(call.argument<Long>("start")!!, call.argument<Long>("end")!!),
                 )
+                "lastUsed" -> result.success(lastUsed(call.argument<Long>("start")!!, call.argument<Long>("end")!!))
                 else -> result.notImplemented()
             }
         }
@@ -69,5 +70,16 @@ class UsageStatsBridge(private val activity: MainActivity) {
             result.add(mapOf("packageName" to event.packageName, "type" to type, "timestamp" to event.timeStamp))
         }
         return result
+    }
+
+    // Each package's last foreground time (epoch millis) in [start, end),
+    // from the aggregated daily stats, which Android keeps far longer than
+    // raw events: the drawer's recent apps and its 30-day unused filter
+    // (Phase 8 task 5). This launcher itself is left out.
+    private fun lastUsed(start: Long, end: Long): Map<String, Long> {
+        val usageStatsManager = activity.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        return usageStatsManager.queryAndAggregateUsageStats(start, end)
+            .filter { (pkg, stats) -> pkg != activity.packageName && stats.lastTimeUsed > 0 }
+            .mapValues { it.value.lastTimeUsed }
     }
 }

@@ -13,6 +13,7 @@ class AppSearchBar extends StatelessWidget {
     this.hintText = 'Search',
     this.autofocus = false,
     this.showSortControl = true,
+    this.focusNode,
   });
 
   final TextEditingController controller;
@@ -21,6 +22,7 @@ class AppSearchBar extends StatelessWidget {
   final String hintText;
   final bool autofocus;
   final bool showSortControl;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +41,7 @@ class AppSearchBar extends StatelessWidget {
           Expanded(
             child: TextField(
               controller: controller,
+              focusNode: focusNode,
               autofocus: autofocus,
               decoration: InputDecoration(
                 hintText: hintText,

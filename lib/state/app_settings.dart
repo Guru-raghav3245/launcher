@@ -13,8 +13,24 @@ const wallpaperPresets = <Color>[
   Color(0xFFE7E2D8),
 ];
 
-/// Shared, persisted app settings — theme, home layout mode, and
-/// wallpaper. Written by the onboarding pickers now and by Settings
+/// App Drawer / Spotlight behaviour switches (Phase 8 task 5), all off by
+/// default.
+enum DrawerOption {
+  /// Focus the drawer's search (keyboard up) whenever the drawer opens.
+  keyboardOnOpen,
+
+  /// When typing leaves exactly one result, open it (drawer and Spotlight).
+  autoOpenSingleResult,
+
+  /// A Recent section at the top of the drawer, from usage stats.
+  recentAppsOnTop,
+
+  /// Leave apps unused for 30 days out of the drawer list (search finds them).
+  hideUnusedApps,
+}
+
+/// Shared, persisted app settings — theme, home layout mode, wallpaper,
+/// and the drawer options. Written by the onboarding pickers now and by Settings
 /// (Phase 5) later; read anywhere via [AppSettingsScope.of].
 class AppSettings extends ChangeNotifier {
   static const _isDarkKey = 'settings_is_dark';
@@ -31,8 +47,14 @@ class AppSettings extends ChangeNotifier {
   int get wallpaperIndex => _wallpaperIndex;
   Color get wallpaperColor => wallpaperPresets[_wallpaperIndex];
 
+  final Set<DrawerOption> _drawerOptions = {};
+  bool drawerOption(DrawerOption option) => _drawerOptions.contains(option);
+
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
+    _drawerOptions
+      ..clear()
+      ..addAll(DrawerOption.values.where((o) => prefs.getBool('settings_drawer_${o.name}') ?? false));
     _isDark = prefs.getBool(_isDarkKey) ?? false;
     _layoutMode = HomeLayoutMode.values.byName(
       prefs.getString(_layoutModeKey) ?? HomeLayoutMode.classic.name,
@@ -66,5 +88,13 @@ class AppSettings extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_wallpaperIndexKey, value);
+  }
+
+  Future<void> setDrawerOption(DrawerOption option, bool on) async {
+    if (drawerOption(option) == on) return;
+    on ? _drawerOptions.add(option) : _drawerOptions.remove(option);
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('settings_drawer_${option.name}', on);
   }
 }

@@ -605,6 +605,79 @@ void main() {
     expect((await const DockService().slots()).first.packageName, 'com.camera');
   });
 
+  testWidgets('drawer options: keyboard, recent apps, unused apps hidden, single result opens', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'settings_drawer_keyboardOnOpen': true,
+      'settings_drawer_recentAppsOnTop': true,
+      'settings_drawer_hideUnusedApps': true,
+      'settings_drawer_autoOpenSingleResult': true,
+    });
+    final started = <Object?>[];
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(const MethodChannel('installed_apps'), (call) async {
+      if (call.method == 'startApp') {
+        started.add(call.arguments);
+        return true;
+      }
+      return [
+        {'name': 'Camera', 'package_name': 'com.camera'}, // installed long ago, never used
+        {'name': 'Chrome', 'package_name': 'com.chrome'},
+        {'name': 'Clock', 'package_name': 'com.clock', 'installed_timestamp': DateTime.now().millisecondsSinceEpoch},
+      ];
+    });
+    messenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/usage'), (call) async {
+      if (call.method == 'hasAccess') return true;
+      if (call.method == 'lastUsed') return {'com.chrome': DateTime.now().millisecondsSinceEpoch};
+      return <Object>[];
+    });
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up → App Drawer
+    await tester.pumpAndSettle();
+
+    expect(tester.testTextInput.isVisible, true); // keyboard on open
+    expect(find.text('Recent'), findsOneWidget);
+    expect(find.text('Chrome'), findsNWidgets(2)); // under Recent and under C
+    expect(find.text('Camera'), findsNothing); // unused for 30 days
+    expect(find.text('Clock'), findsOneWidget); // new, so kept
+
+    // Search still finds the unused app, and as the only result it opens.
+    await tester.enterText(find.byType(TextField).last, 'cam');
+    await tester.pumpAndSettle();
+    expect(started, hasLength(1));
+  });
+
+  testWidgets('Spotlight raises the keyboard and shows recent apps', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(
+      const MethodChannel('installed_apps'),
+      (call) async => [
+        {'name': 'Camera', 'package_name': 'com.camera'},
+        {'name': 'Chrome', 'package_name': 'com.chrome'},
+      ],
+    );
+    messenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/usage'), (call) async {
+      if (call.method == 'hasAccess') return true;
+      if (call.method == 'lastUsed') return {'com.chrome': DateTime.now().millisecondsSinceEpoch};
+      return <Object>[];
+    });
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    expect(tester.testTextInput.isVisible, false);
+    await tester.fling(find.byType(HomePanel), const Offset(0, 400), 1000); // swipe down → Spotlight
+    await tester.pumpAndSettle();
+    expect(tester.testTextInput.isVisible, true);
+    expect(find.text('Recent'), findsOneWidget);
+    expect(find.text('Chrome'), findsOneWidget);
+    expect(find.text('Camera'), findsNothing);
+  });
+
   testWidgets('Action tab opens a tool through its one-time explainer', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(

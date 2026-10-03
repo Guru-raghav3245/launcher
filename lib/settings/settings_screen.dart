@@ -47,6 +47,7 @@ const _appChannel = MethodChannel('yinyang.launcher/app');
 const _entries = <_SettingsEntry>[
   (group: 'Settings', icon: Icons.palette_outlined, title: 'Appearance', onTap: _showAppearance),
   (group: 'Settings', icon: Icons.contrast, title: 'Launcher Settings', onTap: _showLauncherSettings),
+  (group: 'Settings', icon: Icons.apps, title: 'App Drawer & Search', onTap: _showDrawerSettings),
   (group: 'Settings', icon: Icons.settings_outlined, title: 'System Settings', onTap: _showSystemSettings),
   (group: 'Settings', icon: Icons.verified_outlined, title: 'Allowed apps', onTap: _showAllowedApps),
   (group: 'Settings', icon: Icons.visibility_off_outlined, title: 'Hidden apps', onTap: _showHiddenApps),
@@ -289,6 +290,36 @@ void _showAppearance(BuildContext context) {
   );
 }
 
+/// App Drawer & Search: the drawer/Spotlight behaviour switches.
+void _showDrawerSettings(BuildContext context) {
+  _showSubSheet(context, 'App Drawer & Search', (context, settings) {
+    final ink = settings.isDark ? Colors.white : Colors.black;
+    Widget option(DrawerOption option, String title, String subtitle) => SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(title, style: const TextStyle(fontSize: 18, letterSpacing: 0.5)),
+      subtitle: Text(subtitle),
+      value: settings.drawerOption(option),
+      activeThumbColor: settings.isDark ? Colors.black : Colors.white,
+      activeTrackColor: ink,
+      onChanged: (on) => settings.setDrawerOption(option, on),
+    );
+    return [
+      option(DrawerOption.keyboardOnOpen, 'Keyboard on open', 'Start typing as soon as the App Drawer opens'),
+      option(
+        DrawerOption.autoOpenSingleResult,
+        'Open single result',
+        'When a search leaves one app, open it (App Drawer and Spotlight)',
+      ),
+      option(DrawerOption.recentAppsOnTop, 'Recent apps on top', 'Your recently used apps first (needs usage access)'),
+      option(
+        DrawerOption.hideUnusedApps,
+        'Hide unused apps',
+        "Leave out apps you haven't opened in 30 days; search still finds them (needs usage access)",
+      ),
+    ];
+  });
+}
+
 /// Launcher Settings: home layout, wallpaper, and re-running onboarding,
 /// reusing the onboarding Customize step's controls.
 void _showLauncherSettings(BuildContext context) {
@@ -460,4 +491,3 @@ class _StatusRow extends StatelessWidget {
     );
   }
 }
-

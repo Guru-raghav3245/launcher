@@ -22,9 +22,16 @@ class LauncherShell extends StatefulWidget {
 class _LauncherShellState extends State<LauncherShell> {
   final _rowController = PageController(initialPage: 1);
 
+  // Which vertical page has settled on screen, so Spotlight and the drawer
+  // can raise or drop the keyboard (all pages are built up front).
+  final _spotlightShown = ValueNotifier(false);
+  final _drawerShown = ValueNotifier(false);
+
   @override
   void dispose() {
     _rowController.dispose();
+    _spotlightShown.dispose();
+    _drawerShown.dispose();
     super.dispose();
   }
 
@@ -35,8 +42,12 @@ class _LauncherShellState extends State<LauncherShell> {
         scrollDirection: Axis.vertical,
         controller: PageController(initialPage: 1),
         physics: const ClampingScrollPhysics(),
+        onPageChanged: (page) {
+          _spotlightShown.value = page == 0;
+          _drawerShown.value = page == 2;
+        },
         children: [
-          const SpotlightSearchPanel(),
+          SpotlightSearchPanel(shown: _spotlightShown),
           PageView(
             controller: _rowController,
             physics: const ClampingScrollPhysics(),
@@ -46,7 +57,7 @@ class _LauncherShellState extends State<LauncherShell> {
               MindSpacePanel(),
             ],
           ),
-          const AppDrawerPanel(),
+          AppDrawerPanel(shown: _drawerShown),
         ],
       ),
     );
