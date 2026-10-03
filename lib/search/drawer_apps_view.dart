@@ -4,7 +4,42 @@ import 'package:installed_apps/app_info.dart';
 import '../models/drawer_look.dart';
 import 'app_result_row.dart';
 
-const _headerHeight = 32.0;
+// The original's section header: a bold letter over a short rule, with
+// generous space above (sizes measured from it, Phase 11).
+const _headerHeight = 113.0;
+
+/// The index always lists every letter, like the original; ◷ only appears
+/// when the Recent section does.
+const _indexLetters = [
+  '★',
+  'A',
+  'B',
+  'C',
+  'D',
+  'E',
+  'F',
+  'G',
+  'H',
+  'I',
+  'J',
+  'K',
+  'L',
+  'M',
+  'N',
+  'O',
+  'P',
+  'Q',
+  'R',
+  'S',
+  'T',
+  'U',
+  'V',
+  'W',
+  'X',
+  'Y',
+  'Z',
+  '#',
+];
 
 /// The key of the drawer's recent-apps section (shown as ◷ in the index).
 const recentSectionKey = 'Recent';
@@ -100,6 +135,7 @@ class DrawerAppsView extends StatelessWidget {
           final app = row.single;
           return AppResultRow(
             app: app,
+            inset: 11,
             height: rowPx,
             iconSize: look.iconPx,
             labelSize: look.labelPx,
@@ -128,20 +164,31 @@ class DrawerAppsView extends StatelessWidget {
         );
       },
     );
-    if (!showIndex || offsets.length < 2) return list;
+    if (!showIndex || offsets.isEmpty) return list;
+    final letters = [
+      ..._indexLetters.take(1),
+      if (offsets.containsKey(recentSectionKey)) recentSectionKey,
+      ..._indexLetters.skip(1),
+    ];
     return Stack(
+      // The index sits in the panel's margin, as near the edge as the original's.
+      clipBehavior: Clip.none,
       children: [
         list,
         Positioned(
-          right: 0,
+          right: -11,
           top: 0,
           bottom: 0,
           child: _FastScrollIndex(
-            letters: offsets.keys.toList(),
+            letters: letters,
             onLetterSelected: (letter) {
               final controller = scrollController;
               if (controller == null || !controller.hasClients) return;
-              controller.jumpTo(offsets[letter]!.clamp(0, controller.position.maxScrollExtent));
+              // A letter with no apps jumps to the next one that has some
+              // (or the last section, past the end).
+              final i = letters.indexOf(letter);
+              final target = letters.skip(i).where(offsets.containsKey).firstOrNull ?? offsets.keys.last;
+              controller.jumpTo(offsets[target]!.clamp(0, controller.position.maxScrollExtent));
             },
           ),
         ),
@@ -193,13 +240,24 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       height: _headerHeight,
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.only(left: 20),
-      child: Text(
-        label,
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+      alignment: Alignment.bottomLeft,
+      padding: const EdgeInsets.only(left: 16, bottom: 20),
+      child: SizedBox(
+        width: 56,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label == recentSectionKey ? '◷' : label,
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 19, color: colors.onSurface),
+            ),
+            const SizedBox(height: 12),
+            Divider(height: 1, thickness: 1, color: colors.onSurfaceVariant),
+          ],
+        ),
       ),
     );
   }
@@ -214,36 +272,44 @@ class _FastScrollIndex extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A centred column at the original's pitch, squeezed if it can't fit.
     return SizedBox(
       width: 24,
-      child: Builder(
-        builder: (indexContext) {
-          void handlePointer(Offset globalPosition) {
-            final box = indexContext.findRenderObject() as RenderBox;
-            final local = box.globalToLocal(globalPosition);
-            final index = (local.dy / box.size.height * letters.length).floor().clamp(0, letters.length - 1);
-            onLetterSelected(letters[index]);
-          }
+      child: LayoutBuilder(
+        builder: (context, constraints) => Center(
+          child: SizedBox(
+            height: (letters.length * 18.0).clamp(0, constraints.maxHeight),
+            child: Builder(
+              builder: (indexContext) {
+                void handlePointer(Offset globalPosition) {
+                  final box = indexContext.findRenderObject() as RenderBox;
+                  final local = box.globalToLocal(globalPosition);
+                  final index = (local.dy / box.size.height * letters.length).floor().clamp(0, letters.length - 1);
+                  onLetterSelected(letters[index]);
+                }
 
-          return GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTapDown: (d) => handlePointer(d.globalPosition),
-            onVerticalDragUpdate: (d) => handlePointer(d.globalPosition),
-            child: Column(
-              children: [
-                for (final letter in letters)
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        letter == recentSectionKey ? '◷' : letter,
-                        style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                      ),
-                    ),
+                return GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTapDown: (d) => handlePointer(d.globalPosition),
+                  onVerticalDragUpdate: (d) => handlePointer(d.globalPosition),
+                  child: Column(
+                    children: [
+                      for (final letter in letters)
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              letter == recentSectionKey ? '◷' : letter,
+                              style: TextStyle(fontSize: 11.5, color: Theme.of(context).colorScheme.onSurface),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-              ],
+                );
+              },
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }

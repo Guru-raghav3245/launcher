@@ -5,8 +5,8 @@ enum DrawerItemSize { none, small, medium, large }
 enum DrawerRowHeight { compact, normal, roomy }
 
 /// How the App Drawer lays out its apps (Phase 10 task 7). The defaults are
-/// the drawer as it always looked: a list, 40px icons, 16pt one-line labels,
-/// 64px rows, A-Z section headers.
+/// the original's drawer (Phase 11): a list, 34px icons, 15pt one-line
+/// labels, 49px rows, A-Z section headers.
 class DrawerLook {
   const DrawerLook({
     this.grid = false,
@@ -36,23 +36,23 @@ class DrawerLook {
   /// Icon edge in logical pixels (0 for none).
   double get iconPx => const {
     DrawerItemSize.none: 0.0,
-    DrawerItemSize.small: 32.0,
-    DrawerItemSize.medium: 40.0,
-    DrawerItemSize.large: 52.0,
+    DrawerItemSize.small: 28.0,
+    DrawerItemSize.medium: 34.0,
+    DrawerItemSize.large: 44.0,
   }[iconSize]!;
 
   /// Label font size (0 for none).
   double get labelPx => const {
     DrawerItemSize.none: 0.0,
     DrawerItemSize.small: 13.0,
-    DrawerItemSize.medium: 16.0,
+    DrawerItemSize.medium: 15.0,
     DrawerItemSize.large: 18.0,
   }[labelSize]!;
 
   int get labelLines => twoLineLabels ? 2 : 1;
 
   double get listRowPx =>
-      const {DrawerRowHeight.compact: 52.0, DrawerRowHeight.normal: 64.0, DrawerRowHeight.roomy: 76.0}[rowHeight]!;
+      const {DrawerRowHeight.compact: 42.0, DrawerRowHeight.normal: 49.0, DrawerRowHeight.roomy: 60.0}[rowHeight]!;
 
   DrawerLook copyWith({
     bool? grid,

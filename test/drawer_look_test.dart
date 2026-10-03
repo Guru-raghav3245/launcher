@@ -11,11 +11,11 @@ void main() {
   });
 
   test('row heights: list rows follow the setting, grid rows fit icon and label', () {
-    expect(DrawerAppsView.rowHeight(const DrawerLook()), 64);
-    expect(DrawerAppsView.rowHeight(const DrawerLook(rowHeight: DrawerRowHeight.compact)), 52);
+    expect(DrawerAppsView.rowHeight(const DrawerLook()), 49);
+    expect(DrawerAppsView.rowHeight(const DrawerLook(rowHeight: DrawerRowHeight.compact)), 42);
     final oneLine = DrawerAppsView.rowHeight(const DrawerLook(grid: true));
     final twoLines = DrawerAppsView.rowHeight(const DrawerLook(grid: true, twoLineLabels: true));
     expect(twoLines, greaterThan(oneLine));
-    expect(DrawerAppsView.rowHeight(const DrawerLook(grid: true, labelSize: DrawerItemSize.none)), 24 + 40);
+    expect(DrawerAppsView.rowHeight(const DrawerLook(grid: true, labelSize: DrawerItemSize.none)), 24 + 34);
   });
 }

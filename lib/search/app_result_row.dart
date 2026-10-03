@@ -17,6 +17,7 @@ class AppResultRow extends StatelessWidget {
     this.labelSize = 16,
     this.labelLines = 1,
     this.trailing,
+    this.inset = 20,
   });
 
   final AppInfo app;
@@ -30,6 +31,9 @@ class AppResultRow extends StatelessWidget {
   final int labelLines;
   final Widget? trailing;
 
+  /// Horizontal padding (the drawer's list sits closer to the edge).
+  final double inset;
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -38,7 +42,7 @@ class AppResultRow extends StatelessWidget {
         onTap: onTap,
         onLongPress: onLongPress,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: EdgeInsets.symmetric(horizontal: inset),
           child: Row(
             children: [
               if (iconSize > 0) AppIcon(icon: app.icon, size: iconSize),

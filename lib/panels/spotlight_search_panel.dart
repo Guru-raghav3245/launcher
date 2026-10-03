@@ -52,11 +52,21 @@ class _SpotlightSearchPanelState extends State<SpotlightSearchPanel> with ShowsV
     super.dispose();
   }
 
+  /// What's shown: the four best matches for the query (most recently used
+  /// first, like the original), or recent apps before typing.
+  List<AppInfo> _shownApps(List<AppInfo> apps) {
+    final query = _searchController.text;
+    if (query.trim().isEmpty) return recentApps(visibleApps(apps));
+    return byRecency(filterAndSortApps(visibleApps(apps), query: query, sortMode: AppSortMode.alphabetical))
+        .take(4)
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
         child: Column(
           children: [
             AppSearchBar(
@@ -65,7 +75,11 @@ class _SpotlightSearchPanelState extends State<SpotlightSearchPanel> with ShowsV
               sortMode: AppSortMode.alphabetical,
               onSortModeChanged: (_) {},
               showSortControl: false,
-              hintText: 'Spotlight search',
+              // Enter opens the outlined first card, as in the original.
+              onSubmitted: (_) {
+                final first = _apps == null ? null : _shownApps(_apps!).firstOrNull;
+                if (first != null) launchApp(context, first);
+              },
             ),
             const SizedBox(height: 8),
             Expanded(
@@ -75,32 +89,21 @@ class _SpotlightSearchPanelState extends State<SpotlightSearchPanel> with ShowsV
                   if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  final query = _searchController.text;
-                  if (query.trim().isEmpty) {
-                    final recent = recentApps(visibleApps(snapshot.data!));
-                    if (recent.isEmpty) {
-                      return Center(
-                        child: Text('Type to search apps', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                      );
-                    }
-                    return _RecentRow(apps: recent, onOpen: (app) => launchApp(context, app));
-                  }
-                  final results = filterAndSortApps(
-                    visibleApps(snapshot.data!),
-                    query: query,
-                    sortMode: AppSortMode.alphabetical,
-                  );
-                  if (results.isEmpty) {
+                  final apps = _shownApps(snapshot.data!);
+                  if (apps.isEmpty) {
+                    final typed = _searchController.text.trim().isNotEmpty;
                     return Center(
-                      child: Text('No apps found', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                      child: Text(
+                        typed ? 'No apps found' : 'Type to search apps',
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      ),
                     );
                   }
-                  return ListView.builder(
-                    itemCount: results.length,
-                    itemBuilder: (context, index) {
-                      final app = results[index];
-                      return AppResultRow(app: app, onTap: () => launchApp(context, app));
-                    },
+                  return Align(
+                    alignment: Alignment.topCenter,
+                    child: SingleChildScrollView(
+                      child: _AppCards(apps: apps, onOpen: (app) => launchApp(context, app)),
+                    ),
                   );
                 },
               ),
@@ -112,53 +115,74 @@ class _SpotlightSearchPanelState extends State<SpotlightSearchPanel> with ShowsV
   }
 }
 
-/// Spotlight's recent apps (from usage stats) while nothing is typed.
-class _RecentRow extends StatelessWidget {
-  const _RecentRow({required this.apps, required this.onOpen});
+/// The original's Spotlight results: app cards four to a row in an outlined
+/// box, the first outlined in ink as the one Enter opens.
+class _AppCards extends StatelessWidget {
+  const _AppCards({required this.apps, required this.onOpen});
 
   final List<AppInfo> apps;
   final ValueChanged<AppInfo> onOpen;
 
+  static const _perRow = 4;
+
   @override
   Widget build(BuildContext context) {
-    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
-    return Align(
-      alignment: Alignment.topLeft,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(8, 16, 8, 0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Recent', style: TextStyle(fontSize: 13, color: secondary)),
-            const SizedBox(height: 12),
-            Row(
+    final colors = Theme.of(context).colorScheme;
+    Widget card(int i) {
+      final app = apps[i];
+      return Material(
+        color: colors.surfaceContainerHigh,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: i == 0 ? BorderSide(color: colors.onSurface, width: 1.5) : BorderSide.none,
+        ),
+        child: InkWell(
+          onTap: () => onOpen(app),
+          customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          child: SizedBox(
+            height: 88,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                for (final app in apps)
-                  Expanded(
-                    child: InkWell(
-                      onTap: () => onOpen(app),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Column(
-                          children: [
-                            AppIcon(icon: app.icon),
-                            const SizedBox(height: 6),
-                            Text(
-                              app.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                AppIcon(icon: app.icon, size: 34),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    app.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                   ),
+                ),
               ],
             ),
-          ],
+          ),
         ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        border: Border.all(color: colors.outline),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          for (var start = 0; start < apps.length; start += _perRow)
+            Padding(
+              padding: EdgeInsets.only(top: start == 0 ? 0 : 8),
+              child: Row(
+                children: [
+                  for (var i = start; i < start + _perRow; i++) ...[
+                    if (i > start) const SizedBox(width: 8),
+                    Expanded(child: i < apps.length ? card(i) : const SizedBox.shrink()),
+                  ],
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

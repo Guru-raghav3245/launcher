@@ -46,12 +46,21 @@ class _LauncherShellState extends State<LauncherShell> {
     // The Home key, pressed while the launcher is already up (MainActivity's
     // onNewIntent): close any sheet or page and go back to the Home panel.
     _appChannel.setMethodCallHandler((call) async {
-      if (call.method != 'home' || !mounted) return;
-      Navigator.of(context).popUntil((route) => route.isFirst);
-      const duration = Duration(milliseconds: 300);
-      _verticalController?.animateToPage(_hasSpotlight! ? 1 : 0, duration: duration, curve: Curves.easeOut);
-      _rowController.animateToPage(1, duration: duration, curve: Curves.easeOut);
+      if (call.method == 'home' && mounted) _goHome();
     });
+  }
+
+  /// Closes any sheet or page and animates both pagers back to Home. The
+  /// row's pager is detached while Spotlight or the drawer is showing, so it
+  /// moves once the vertical pager has brought it back.
+  Future<void> _goHome() async {
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    const duration = Duration(milliseconds: 300);
+    final vertical = _verticalController;
+    if (vertical != null && vertical.hasClients) {
+      await vertical.animateToPage(_hasSpotlight! ? 1 : 0, duration: duration, curve: Curves.easeOut);
+    }
+    if (_rowController.hasClients) await _rowController.animateToPage(1, duration: duration, curve: Curves.easeOut);
   }
 
   @override
@@ -116,7 +125,7 @@ class _LauncherShellState extends State<LauncherShell> {
               },
               children: const [MySpacePanel(), HomePanel(), MindSpacePanel()],
             ),
-            AppDrawerPanel(shown: _drawerShown),
+            AppDrawerPanel(shown: _drawerShown, onClose: _goHome),
           ],
         ),
       ),

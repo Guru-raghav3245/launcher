@@ -14,6 +14,8 @@ class AppSearchBar extends StatelessWidget {
     this.autofocus = false,
     this.showSortControl = true,
     this.focusNode,
+    this.onClose,
+    this.onSubmitted,
   });
 
   final TextEditingController controller;
@@ -24,45 +26,49 @@ class AppSearchBar extends StatelessWidget {
   final bool showSortControl;
   final FocusNode? focusNode;
 
+  /// Shows a ✕ that clears the query, or calls this when it's empty (the
+  /// drawer's way back Home, as in the original).
+  final VoidCallback? onClose;
+
+  /// Enter on the keyboard (Spotlight opens its first result).
+  final ValueChanged<String>? onSubmitted;
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final iconColor = Theme.of(context).colorScheme.onSurfaceVariant;
+    final colors = Theme.of(context).colorScheme;
+    final iconColor = colors.onSurfaceVariant;
+    // Outlined, like the original's search bars.
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      height: 44,
+      padding: const EdgeInsets.only(left: 14, right: 4),
       decoration: BoxDecoration(
-        color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(24),
+        color: colors.surfaceContainer,
+        border: Border.all(color: colors.outline),
+        borderRadius: BorderRadius.circular(22),
       ),
       child: Row(
         children: [
-          Icon(Icons.search, color: iconColor, size: 20),
-          const SizedBox(width: 8),
+          Icon(Icons.search, color: colors.onSurface, size: 24),
+          const SizedBox(width: 12),
           Expanded(
             child: TextField(
               controller: controller,
               focusNode: focusNode,
               autofocus: autofocus,
+              textCapitalization: TextCapitalization.sentences,
+              onSubmitted: onSubmitted,
+              style: const TextStyle(fontSize: 18),
               decoration: InputDecoration(
                 hintText: hintText,
+                hintStyle: TextStyle(fontSize: 18, color: iconColor),
                 border: InputBorder.none,
                 isDense: true,
               ),
             ),
           ),
-          ListenableBuilder(
-            listenable: controller,
-            builder: (context, _) {
-              if (controller.text.isEmpty) return const SizedBox.shrink();
-              return IconButton(
-                icon: Icon(Icons.close, color: iconColor, size: 20),
-                onPressed: controller.clear,
-              );
-            },
-          ),
           if (showSortControl)
             PopupMenuButton<AppSortMode>(
-              icon: Icon(Icons.tune, color: iconColor, size: 20),
+              icon: Icon(Icons.tune, color: iconColor, size: 24),
               initialValue: sortMode,
               onSelected: onSortModeChanged,
               itemBuilder: (context) => const [
@@ -73,6 +79,16 @@ class AppSearchBar extends StatelessWidget {
                 ),
               ],
             ),
+          ListenableBuilder(
+            listenable: controller,
+            builder: (context, _) {
+              if (controller.text.isEmpty && onClose == null) return const SizedBox.shrink();
+              return IconButton(
+                icon: Icon(Icons.close, color: colors.onSurface, size: 24),
+                onPressed: controller.text.isEmpty ? onClose : controller.clear,
+              );
+            },
+          ),
         ],
       ),
     );

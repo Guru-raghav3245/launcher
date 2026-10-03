@@ -880,7 +880,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.testTextInput.isVisible, true); // keyboard on open
-    expect(find.text('Recent'), findsOneWidget);
+    expect(find.text('◷'), findsNWidgets(2)); // the Recent header and its index entry
     expect(find.text('Chrome'), findsNWidgets(2)); // under Recent and under C
     expect(find.text('Camera'), findsNothing); // unused for 30 days
     expect(find.text('Clock'), findsOneWidget); // new, so kept
@@ -913,8 +913,7 @@ void main() {
     await tester.fling(find.byType(HomePanel), const Offset(0, 400), 1000); // swipe down → Spotlight
     await tester.pumpAndSettle();
     expect(tester.testTextInput.isVisible, true);
-    expect(find.text('Recent'), findsOneWidget);
-    expect(find.text('Chrome'), findsOneWidget);
+    expect(find.text('Chrome'), findsOneWidget); // a recent app card
     expect(find.text('Camera'), findsNothing);
   });
 
@@ -1384,5 +1383,68 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(tester.getTopLeft(find.byType(HomePanel)).dx, 0);
+  });
+
+  testWidgets('Spotlight shows four cards, recent first, and Enter opens the first', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+    final started = <Object?>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('installed_apps'), (call) async {
+      if (call.method == 'startApp') {
+        started.add(call.arguments);
+        return true;
+      }
+      return [
+        {'name': 'Calculator', 'package_name': 'com.calc'},
+        {'name': 'Calendar', 'package_name': 'com.calendar'},
+        {'name': 'Camera', 'package_name': 'com.camera'},
+        {'name': 'Chrome', 'package_name': 'com.chrome'},
+        {'name': 'Clock', 'package_name': 'com.clock'},
+        {'name': 'launcher', 'package_name': 'com.example.launcher'}, // this app: never listed
+      ];
+    });
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/usage'), (
+      call,
+    ) async {
+      if (call.method == 'hasAccess') return true;
+      if (call.method == 'lastUsed') return {'com.chrome': DateTime.now().millisecondsSinceEpoch};
+      return <Object>[];
+    });
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(0, 400), 1000); // swipe down → Spotlight
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'c');
+    await tester.pumpAndSettle();
+    // Recently used Chrome first, then alphabetical, four at most.
+    expect(find.text('Chrome'), findsOneWidget);
+    expect(find.text('Calculator'), findsOneWidget);
+    expect(find.text('Camera'), findsOneWidget);
+    expect(find.text('Clock'), findsNothing);
+    expect(find.text('launcher'), findsNothing);
+
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(started.single, {'package_name': 'com.chrome'});
+  });
+
+  testWidgets("the drawer's close button goes back Home", (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('installed_apps'),
+      (call) async => [
+        {'name': 'Chrome', 'package_name': 'com.chrome'},
+      ],
+    );
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up → App Drawer
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(find.byType(AppDrawerPanel)).dy, 0);
+
+    await tester.tap(find.descendant(of: find.byType(AppDrawerPanel), matching: find.byIcon(Icons.close)));
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(find.byType(HomePanel)).dy, 0);
   });
 }

@@ -60,7 +60,11 @@ class _ScreenTimeTileState extends State<ScreenTimeTile> {
         _hasAccess = true;
         _summary = (
           totals: computeMindSpaceTotals(today),
-          topApps: [for (final u in computePerAppUsage(today).take(3)) (u, byPackage[u.packageName])],
+          // Only apps you can open, like Mind Space's per-app rows.
+          topApps: [
+            for (final u in computePerAppUsage(today).where((u) => byPackage.containsKey(u.packageName)).take(3))
+              (u, byPackage[u.packageName]),
+          ],
         );
       });
     } catch (_) {

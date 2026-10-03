@@ -71,6 +71,13 @@ mixin ShowsVisibleApps<T extends StatefulWidget> on State<T> {
           .take(count)
           .toList();
 
+  /// [apps] with the recently used first (most recent first); the rest keep
+  /// their order.
+  List<AppInfo> byRecency(List<AppInfo> apps) {
+    final epoch = DateTime.fromMillisecondsSinceEpoch(0);
+    return [...apps]..sort((a, b) => (_lastUsed[b.packageName] ?? epoch).compareTo(_lastUsed[a.packageName] ?? epoch));
+  }
+
   /// Not opened in the last 30 days, and installed longer ago than that.
   /// Always false without usage data, so nothing is hidden by mistake.
   bool isUnused(AppInfo app) {

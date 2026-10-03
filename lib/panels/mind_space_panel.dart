@@ -419,6 +419,12 @@ class _PerAppBreakdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Only apps you can open: background system packages (permission
+    // controller, settings intelligence, ...) count toward the total but get
+    // no row. Until the app list loads, nothing is filtered.
+    final perApp = appsByPackage.isEmpty
+        ? this.perApp
+        : [for (final u in this.perApp) if (appsByPackage.containsKey(u.packageName)) u];
     if (perApp.isEmpty) return const SizedBox.shrink();
     final primary = Theme.of(context).colorScheme.onSurface;
     final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
