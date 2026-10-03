@@ -26,6 +26,8 @@ String _summary(MySpaceTile tile) {
       return 'App widget';
     case TileKind.hydration:
       return '${glassesToday(data, DateTime.now())} of ${glassGoal(data)} glasses today';
+    case TileKind.music:
+      return "What's playing";
     case TileKind.calendar:
       return 'Your next events';
     case TileKind.screenTime:

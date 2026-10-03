@@ -918,6 +918,58 @@ void main() {
     expect(opened, [2]);
   });
 
+  testWidgets('the Music tile explains access first, then shows and controls what is playing', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'my_space_tiles': '[{"id":"m","kind":"music","data":{}}]',
+    });
+    var access = false;
+    var playing = true;
+    final calls = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/music'), (
+      call,
+    ) async {
+      calls.add(call.method == 'control' ? 'control:${(call.arguments as Map)['action']}' : call.method);
+      switch (call.method) {
+        case 'hasAccess':
+          return access;
+        case 'nowPlaying':
+          return {'title': 'Clair de lune', 'artist': 'Debussy', 'packageName': 'com.music', 'playing': playing};
+        case 'control':
+          playing = (call.arguments as Map)['action'] == 'play';
+          return true;
+      }
+      return null;
+    });
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(400, 0), 1000); // swipe right → My Space
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Allow notification access'));
+    await tester.pumpAndSettle();
+    expect(find.text('Notification access'), findsOneWidget);
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(calls, contains('openAccessSettings'));
+
+    // Access granted on Android's screen; the tile picks it up on its next read.
+    access = true;
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+    expect(find.text('Clair de lune'), findsOneWidget);
+    expect(find.text('Debussy'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Pause'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+    expect(calls, contains('control:pause'));
+    expect(find.byTooltip('Play'), findsOneWidget);
+  });
+
   testWidgets('Manage tiles reorders and removes tiles', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
       'onboarding_complete': true,

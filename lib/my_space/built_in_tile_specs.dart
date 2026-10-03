@@ -4,9 +4,11 @@ import '../models/my_space_tile.dart';
 import '../models/tile_kind.dart';
 import '../panels/mind_space_panel.dart';
 import '../services/calendar_service.dart';
+import '../services/music_service.dart';
 import 'tile_card.dart';
 import 'tiles/calendar_tile.dart';
 import 'tiles/hydration_tile.dart';
+import 'tiles/music_tile.dart';
 import 'tiles/quote_tile.dart';
 import 'tiles/screen_time_tile.dart';
 
@@ -162,6 +164,16 @@ final builtInTileSpecs = [
           allDay: true,
         ),
       ],
+    ),
+  ),
+  BuiltInTileSpec(
+    kind: TileKind.music,
+    icon: Icons.music_note_outlined,
+    title: 'Music',
+    subtitle: "What's playing, with controls",
+    defaultData: () => {},
+    preview: const MusicBody(
+      nowPlaying: NowPlaying(title: 'Clair de lune', artist: 'Claude Debussy', packageName: '', playing: true),
     ),
   ),
 ];

@@ -87,6 +87,7 @@ class MainActivity : FlutterActivity() {
         GesturesBridge(this).attach(flutterEngine)
         calendarBridge = CalendarBridge(this)
         calendarBridge.attach(flutterEngine)
+        MusicBridge(this).attach(flutterEngine)
     }
 
     override fun onStart() {
