@@ -25,6 +25,11 @@ class LauncherRoleService {
   /// user can switch default launcher in either direction.
   Future<void> openHomeSettings() => _channel.invokeMethod('openHomeSettings');
 
+  /// Home's dock defaults in slot order: dialer, SMS, browser, camera (null
+  /// where there's no default).
+  Future<List<String?>> defaultDockPackages() async =>
+      (await _channel.invokeListMethod<String?>('defaultDockPackages')) ?? const [null, null, null, null];
+
   /// The default dialer and SMS app packages (either may be missing).
   Future<List<String>> defaultCommsPackages() async =>
       (await _channel.invokeListMethod<String>('defaultCommsPackages')) ?? const [];

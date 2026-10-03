@@ -11,6 +11,7 @@ import 'package:launcher/panels/home_panel.dart';
 import 'package:launcher/panels/my_space_panel.dart';
 import 'package:launcher/panels/mind_space_panel.dart';
 import 'package:launcher/services/app_customizations_service.dart';
+import 'package:launcher/services/dock_service.dart';
 import 'package:launcher/services/focus_mode_service.dart';
 import 'package:launcher/settings/settings_screen.dart';
 
@@ -558,6 +559,50 @@ void main() {
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
     expect(find.text('Camera'), findsOneWidget);
+  });
+
+  testWidgets('the Home dock opens its apps, fills empty slots, and swaps on long-press', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'home_dock':
+          '[{"package":"com.phone","glyph":"phone"},{"package":null,"glyph":null},'
+          '{"package":null,"glyph":null},{"package":null,"glyph":null}]',
+    });
+    final started = <Object?>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('installed_apps'), (call) async {
+      if (call.method == 'startApp') {
+        started.add(call.arguments);
+        return true;
+      }
+      return [
+        {'name': 'Camera', 'package_name': 'com.camera'},
+        {'name': 'Phone', 'package_name': 'com.phone'},
+      ];
+    });
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+
+    // The default Phone slot draws its glyph and opens the app.
+    await tester.tap(find.byIcon(Icons.call_outlined));
+    await tester.pumpAndSettle();
+    expect(started, hasLength(1));
+
+    // An empty slot asks for an app.
+    await tester.tap(find.byIcon(Icons.add).first);
+    await tester.pumpAndSettle();
+    expect(find.text('Dock app'), findsOneWidget);
+    await tester.tap(find.text('Camera'));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.add), findsNWidgets(2));
+
+    // Long-pressing swaps it; the Phone glyph gives way to the app's icon.
+    await tester.longPress(find.byIcon(Icons.call_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Camera'));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.call_outlined), findsNothing);
+    expect((await const DockService().slots()).first.packageName, 'com.camera');
   });
 
   testWidgets('Action tab opens a tool through its one-time explainer', (WidgetTester tester) async {

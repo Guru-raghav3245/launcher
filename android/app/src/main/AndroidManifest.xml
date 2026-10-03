@@ -87,5 +87,14 @@
         <intent>
             <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
         </intent>
+        <!-- Home's dock defaults (Phase 8 task 4): the default browser and
+             camera, found by resolving these intents. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
+        <intent>
+            <action android:name="android.media.action.STILL_IMAGE_CAMERA"/>
+        </intent>
     </queries>
 </manifest>

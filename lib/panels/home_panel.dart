@@ -2,12 +2,18 @@ import 'dart:async';
 
 import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:installed_apps/app_info.dart';
 
 import '../mind_space/focus_session_view.dart';
 import '../models/home_layout_mode.dart';
+import '../search/app_picker_sheet.dart';
+import '../search/app_result_row.dart';
+import '../services/app_customizations_service.dart';
+import '../services/dock_service.dart';
 import '../services/focus_mode_service.dart';
 import '../settings/settings_screen.dart';
 import '../state/app_settings_scope.dart';
+import '../widgets/launch_app.dart';
 
 const _weekdayNames = [
   'Monday',
@@ -46,14 +52,16 @@ String _formatDate(DateTime date) {
   return '$weekday, ${date.day} $month';
 }
 
-/// Pinned apps shown in both layout modes. Static placeholders until the
-/// installed-app data source (task 5) lets these open real apps.
-const _pinnedApps = [
-  (label: 'Phone', icon: Icons.call_outlined),
-  (label: 'Messages', icon: Icons.chat_bubble_outline),
-  (label: 'Browser', icon: Icons.public),
-  (label: 'Camera', icon: Icons.camera_alt_outlined),
-];
+const _glyphIcons = {
+  DockGlyph.phone: Icons.call_outlined,
+  DockGlyph.messages: Icons.chat_bubble_outline,
+  DockGlyph.browser: Icons.public,
+  DockGlyph.camera: Icons.camera_alt_outlined,
+};
+
+/// A dock slot resolved for display: its app (null if empty or no longer
+/// installed) and the glyph to draw instead of the app's icon, if any.
+typedef _DockItem = ({AppInfo? app, IconData? glyph});
 
 /// Home panel: wallpaper background, live clock, date, battery, and
 /// pinned apps in either Classic or Minimal layout.
@@ -71,10 +79,15 @@ class _HomePanelState extends State<HomePanel> {
   int? _batteryLevel;
   StreamSubscription<BatteryState>? _batterySub;
   FocusStatus _focus = const FocusStatus(active: false);
+  List<_DockItem> _dock = const [];
+  List<AppInfo> _apps = const [];
 
   @override
   void initState() {
     super.initState();
+    DockService.changes.addListener(_refreshDock);
+    AppCustomizationsService.changes.addListener(_refreshDock);
+    _refreshDock();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() => _now = DateTime.now());
       // A timed session ends on its own; status() notices and clears it.
@@ -90,6 +103,31 @@ class _HomePanelState extends State<HomePanel> {
   Future<void> _refreshFocus() async {
     final status = await const FocusModeService().status();
     if (mounted) setState(() => _focus = status);
+  }
+
+  /// Resolves the dock's slots against the installed apps (renamed, and
+  /// including hidden ones: the user put them there).
+  Future<void> _refreshDock() async {
+    final (slots, apps) = await (const DockService().slots(), loadCustomizedApps(includeHidden: true)).wait;
+    final byPackage = {for (final app in apps) app.packageName: app};
+    if (!mounted) return;
+    setState(() {
+      _apps = apps;
+      _dock = [
+        for (final slot in slots)
+          (app: byPackage[slot.packageName], glyph: slot.glyph == null ? null : _glyphIcons[slot.glyph]),
+      ];
+    });
+  }
+
+  void _openSlot(int index) {
+    final app = _dock[index].app;
+    app == null ? _changeSlot(index) : launchApp(context, app);
+  }
+
+  Future<void> _changeSlot(int index) async {
+    final app = await showAppPicker(context, _apps, title: 'Dock app');
+    if (app != null) await const DockService().setSlot(index, app.packageName);
   }
 
   Future<void> _refreshBattery() async {
@@ -108,6 +146,8 @@ class _HomePanelState extends State<HomePanel> {
     _clockTimer.cancel();
     _batterySub?.cancel();
     FocusModeService.changes.removeListener(_refreshFocus);
+    DockService.changes.removeListener(_refreshDock);
+    AppCustomizationsService.changes.removeListener(_refreshDock);
     super.dispose();
   }
 
@@ -137,8 +177,22 @@ class _HomePanelState extends State<HomePanel> {
           child: _focus.active
               ? FocusSessionView(status: _focus, now: _now)
               : settings.layoutMode == HomeLayoutMode.classic
-              ? _ClassicLayout(time: _formatTime(_now), subtitle: subtitle, isDark: isDark)
-              : _MinimalLayout(time: _formatTime(_now), subtitle: subtitle, isDark: isDark),
+              ? _ClassicLayout(
+                  time: _formatTime(_now),
+                  subtitle: subtitle,
+                  isDark: isDark,
+                  dock: _dock,
+                  onOpen: _openSlot,
+                  onChange: _changeSlot,
+                )
+              : _MinimalLayout(
+                  time: _formatTime(_now),
+                  subtitle: subtitle,
+                  isDark: isDark,
+                  dock: _dock,
+                  onOpen: _openSlot,
+                  onChange: _changeSlot,
+                ),
         ),
       ),
     );
@@ -177,11 +231,21 @@ class _Clock extends StatelessWidget {
 }
 
 class _ClassicLayout extends StatelessWidget {
-  const _ClassicLayout({required this.time, required this.subtitle, required this.isDark});
+  const _ClassicLayout({
+    required this.time,
+    required this.subtitle,
+    required this.isDark,
+    required this.dock,
+    required this.onOpen,
+    required this.onChange,
+  });
 
   final String time;
   final String subtitle;
   final bool isDark;
+  final List<_DockItem> dock;
+  final ValueChanged<int> onOpen;
+  final ValueChanged<int> onChange;
 
   @override
   Widget build(BuildContext context) {
@@ -213,14 +277,27 @@ class _ClassicLayout extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              for (final app in _pinnedApps)
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: tint.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(16),
+              // Tap opens the app (or picks one for an empty slot); long-press
+              // swaps it. Default slots keep their line glyph; others show
+              // the app's icon.
+              for (final (i, item) in dock.indexed)
+                GestureDetector(
+                  onTap: () => onOpen(i),
+                  onLongPress: () => onChange(i),
+                  child: Container(
+                    width: 50,
+                    height: 50,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: tint.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: switch (item) {
+                      (glyph: final glyph?, app: _?) => Icon(glyph, color: iconColor, size: 22),
+                      (app: final app?, glyph: _) => AppIcon(icon: app.icon, size: 28),
+                      _ => Icon(Icons.add, color: iconColor.withValues(alpha: 0.5), size: 22),
+                    },
                   ),
-                  child: Icon(app.icon, color: iconColor, size: 22),
                 ),
             ],
           ),
@@ -231,11 +308,21 @@ class _ClassicLayout extends StatelessWidget {
 }
 
 class _MinimalLayout extends StatelessWidget {
-  const _MinimalLayout({required this.time, required this.subtitle, required this.isDark});
+  const _MinimalLayout({
+    required this.time,
+    required this.subtitle,
+    required this.isDark,
+    required this.dock,
+    required this.onOpen,
+    required this.onChange,
+  });
 
   final String time;
   final String subtitle;
   final bool isDark;
+  final List<_DockItem> dock;
+  final ValueChanged<int> onOpen;
+  final ValueChanged<int> onChange;
 
   @override
   Widget build(BuildContext context) {
@@ -245,10 +332,17 @@ class _MinimalLayout extends StatelessWidget {
         const Spacer(flex: 2),
         _Clock(time: time, subtitle: subtitle, isDark: isDark),
         const Spacer(flex: 2),
-        for (final app in _pinnedApps)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Text(app.label, style: TextStyle(fontSize: 20, color: textColor)),
+        for (final (i, item) in dock.indexed)
+          GestureDetector(
+            onTap: () => onOpen(i),
+            onLongPress: () => onChange(i),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 24),
+              child: Text(
+                item.app?.name ?? 'Add app',
+                style: TextStyle(fontSize: 20, color: item.app == null ? textColor.withValues(alpha: 0.4) : textColor),
+              ),
+            ),
           ),
         const Spacer(flex: 3),
       ],

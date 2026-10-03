@@ -2,8 +2,10 @@ package com.example.launcher
 
 import android.app.role.RoleManager
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.provider.MediaStore
 import android.provider.Settings
 import android.provider.Telephony
 import android.telecom.TelecomManager
@@ -26,6 +28,7 @@ class MainActivity : FlutterActivity() {
                 "requestHomeRole" -> requestHomeRole(result)
                 "isDefaultLauncher" -> result.success(isDefaultLauncher())
                 "defaultCommsPackages" -> result.success(defaultCommsPackages())
+                "defaultDockPackages" -> result.success(defaultDockPackages())
                 // Settings' system Home-app picker: lets the user switch to
                 // *or away from* this launcher (requestHomeRole is a no-op
                 // once the role is held).
@@ -89,6 +92,24 @@ class MainActivity : FlutterActivity() {
             null
         }
         return listOfNotNull(dialer, Telephony.Sms.getDefaultSmsPackage(this)).distinct()
+    }
+
+    // Home's dock defaults, in slot order: dialer, SMS, browser, camera. A
+    // slot is null when nothing (or only the system chooser) handles it.
+    private fun defaultDockPackages(): List<String?> {
+        val dialer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            getSystemService(TelecomManager::class.java)?.defaultDialerPackage
+        } else {
+            null
+        }
+        fun handler(intent: Intent) = packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+            ?.activityInfo?.packageName?.takeIf { it != "android" }
+        return listOf(
+            dialer,
+            Telephony.Sms.getDefaultSmsPackage(this),
+            handler(Intent(Intent.ACTION_VIEW, Uri.parse("https://"))),
+            handler(Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)),
+        )
     }
 
     // Returns true if the role is granted, false if the user cancelled the
