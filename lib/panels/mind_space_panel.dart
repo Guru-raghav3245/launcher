@@ -11,7 +11,6 @@ import '../services/installed_apps_service.dart';
 import '../services/productive_apps_service.dart';
 import '../services/usage_stats_service.dart';
 import '../state/app_settings_scope.dart';
-import '../widgets/segmented_toggle.dart';
 
 /// Total screen time (sum of foreground/background pairs, per package) and
 /// pickup count (unlock events) for a set of raw usage events. Exposed
@@ -188,7 +187,8 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
   var _tab = _MindSpaceTab.awareness;
   var _reflect = false;
   List<DayTotals>? _daily;
-  var _productiveCount = 0;
+  // Yesterday, for Reflect.
+  List<UsageEvent>? _yesterdayEvents;
 
   @override
   void initState() {
@@ -229,10 +229,14 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
       for (final e in events)
         if (!e.timestamp.isBefore(startOfDay)) e,
     ];
+    final startOfYesterday = DateTime(now.year, now.month, now.day - 1);
     if (mounted) {
       setState(() {
         _hasAccess = true;
-        _productiveCount = productive.length;
+        _yesterdayEvents = [
+          for (final e in events)
+            if (!e.timestamp.isBefore(startOfYesterday) && e.timestamp.isBefore(startOfDay)) e,
+        ];
         _totals = computeMindSpaceTotals(today);
         _hourly = computeHourlyUsage(today, now);
         _perApp = computePerAppUsage(today);
@@ -254,6 +258,11 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
     await _refresh();
   }
 
+  void _setReflect(bool reflect) {
+    setState(() => _reflect = reflect);
+    _refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = AppSettingsScope.of(context).isDark;
@@ -261,54 +270,13 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
     final Widget awareness = hasAccess == null
         ? const Center(child: CircularProgressIndicator())
         : hasAccess
-        ? ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        ? Column(
             children: [
-              Center(
-                child: SegmentedToggle<bool>(
-                  options: const [(false, Icons.today, 'Now'), (true, Icons.insights, 'Reflect')],
-                  value: _reflect,
-                  onChanged: (reflect) {
-                    setState(() => _reflect = reflect);
-                    _refresh();
-                  },
-                ),
-              ),
-              const SizedBox(height: 32),
-              if (_reflect)
-                _daily == null
-                    ? const Center(child: CircularProgressIndicator())
-                    : ReflectView(daily: _daily!, isDark: isDark)
-              else ...[
-                _Totals(
-                  totals: _totals ?? const MindSpaceTotals(screenTime: Duration.zero, pickups: 0),
-                  isDark: isDark,
-                ),
-                const SizedBox(height: 40),
-                _HourlyChart(hourly: _hourly ?? const [], isDark: isDark),
-                const SizedBox(height: 40),
-                _PerAppBreakdown(perApp: _perApp ?? const [], appsByPackage: _appsByPackage, isDark: isDark),
-                const SizedBox(height: 40),
-                _HabitsSection(
-                  habits: _habits ?? const HabitsInsight(topPackage: null, topCount: 0, totalUnlocks: 0),
-                  appsByPackage: _appsByPackage,
-                  isDark: isDark,
-                ),
-              ],
-              const SizedBox(height: 32),
-              Material(
-                type: MaterialType.transparency,
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.work_outline),
-                  title: const Text('Productive apps'),
-                  subtitle: Text(
-                    _productiveCount == 0
-                        ? "Leave apps you need out of these stats"
-                        : "$_productiveCount ${_productiveCount == 1 ? 'app' : 'apps'} not counted",
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: _editProductiveApps,
+              _Header(reflect: _reflect, onReflect: _setReflect, onSettings: _editProductiveApps),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(25, 8, 25, 24),
+                  children: _reflect ? _reflectChildren() : _nowChildren(),
                 ),
               ),
             ],
@@ -317,7 +285,7 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
             child: FilledButton(onPressed: _service.requestAccess, child: const Text('Grant usage access')),
           );
     return Container(
-      color: isDark ? const Color(0xFF000000) : Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       child: SafeArea(
         child: Column(
           children: [
@@ -328,12 +296,114 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
       ),
     );
   }
+
+  List<Widget> _nowChildren() {
+    final now = DateTime.now();
+    final hourly = [..._hourly ?? const <Duration>[]];
+    while (hourly.length < 24) {
+      hourly.add(Duration.zero);
+    }
+    return [
+      _DayView(
+        title: 'Today so far',
+        breakdownTitle: 'Where the time goes',
+        chartTitle: 'YOUR DAY, HOUR BY HOUR',
+        totals: _totals ?? const MindSpaceTotals(screenTime: Duration.zero, pickups: 0),
+        perApp: _perApp ?? const [],
+        hourly: hourly,
+        currentHour: now.hour,
+        appsByPackage: _appsByPackage,
+      ),
+      if (_habits case final habits?) ...[
+        const SizedBox(height: 36),
+        _HabitsSection(habits: habits, appsByPackage: _appsByPackage),
+      ],
+      const SizedBox(height: 28),
+      _ArrowLink(label: 'See yesterday', onTap: () => _setReflect(true)),
+    ];
+  }
+
+  List<Widget> _reflectChildren() {
+    final daily = _daily;
+    final events = _yesterdayEvents;
+    if (daily == null || events == null) return const [Center(child: CircularProgressIndicator())];
+    final now = DateTime.now();
+    final endOfYesterday = DateTime(now.year, now.month, now.day).subtract(const Duration(milliseconds: 1));
+    return [
+      _DayView(
+        title: 'Yesterday',
+        breakdownTitle: 'Where it went',
+        chartTitle: 'WHEN IT HAPPENED',
+        totals: computeMindSpaceTotals(events),
+        perApp: computePerAppUsage(events),
+        hourly: computeHourlyUsage(events, endOfYesterday),
+        appsByPackage: _appsByPackage,
+      ),
+      const SizedBox(height: 36),
+      ReflectView(daily: daily),
+    ];
+  }
 }
 
 enum _MindSpaceTab { awareness, action }
 
+/// Now / Reflect as underlined text tabs, with the settings gear (productive
+/// apps) on the right, as in the original. Stays put while the page scrolls.
+class _Header extends StatelessWidget {
+  const _Header({required this.reflect, required this.onReflect, required this.onSettings});
+
+  final bool reflect;
+  final ValueChanged<bool> onReflect;
+  final VoidCallback onSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    Widget tab(String label, bool value) {
+      final selected = reflect == value;
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => onReflect(value),
+        child: Padding(
+          padding: const EdgeInsets.only(right: 22),
+          child: IntrinsicWidth(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(fontSize: 15, color: selected ? colors.onSurface : colors.onSurfaceVariant),
+                ),
+                const SizedBox(height: 6),
+                Container(height: 1.5, color: selected ? colors.onSurface : Colors.transparent),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 16, 4, 0),
+      child: Row(
+        children: [
+          tab('Now', false),
+          tab('Reflect', true),
+          const Spacer(),
+          IconButton(
+            tooltip: 'Productive apps',
+            onPressed: onSettings,
+            icon: Icon(Icons.settings_outlined, size: 18, color: colors.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Awareness / Action switch along the bottom of Mind Space: selected tab
-/// in full ink, the other faded (no accent color, per DESIGN_LANGUAGE.md).
+/// in full ink, the other faint, on a raised strip (no divider), as in the
+/// original.
 class _BottomTabs extends StatelessWidget {
   const _BottomTabs({required this.selected, required this.isDark, required this.onSelected});
 
@@ -343,23 +413,26 @@ class _BottomTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ink = isDark ? Colors.white : Colors.black;
+    final colors = Theme.of(context).colorScheme;
     Widget tab(_MindSpaceTab value, IconData icon, String label) {
-      final color = value == selected ? ink : ink.withValues(alpha: 0.35);
+      final on = value == selected;
+      final color = on ? colors.onSurface : colors.outlineVariant;
       return Expanded(
         child: InkWell(
           onTap: () => onSelected(value),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Column(
               children: [
-                Icon(icon, color: color),
+                Icon(icon, color: color, size: 24),
                 const SizedBox(height: 4),
                 Text(
                   label,
                   style: TextStyle(
                     color: color,
-                    fontWeight: value == selected ? FontWeight.bold : FontWeight.normal,
+                    fontSize: 14,
+                    letterSpacing: 1,
+                    fontWeight: on ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
               ],
@@ -369,8 +442,8 @@ class _BottomTabs extends StatelessWidget {
       );
     }
 
-    return DecoratedBox(
-      decoration: BoxDecoration(border: Border(top: BorderSide(color: ink.withValues(alpha: 0.08)))),
+    return Material(
+      color: colors.surfaceContainer,
       child: Row(
         children: [
           tab(_MindSpaceTab.awareness, Icons.lightbulb_outline, 'Awareness'),
@@ -381,118 +454,214 @@ class _BottomTabs extends StatelessWidget {
   }
 }
 
-class _Totals extends StatelessWidget {
-  const _Totals({required this.totals, required this.isDark});
+/// The original's captions: a softer ink than primary, brighter than
+/// secondary (`#B2B2B2` on black).
+Color _soft(ColorScheme colors) => Color.lerp(colors.onSurface, colors.surface, 0.25)!;
 
+/// "<1m" for a little use, as the original shows it; otherwise as usual.
+String _shortTime(Duration d) => d > Duration.zero && d < const Duration(minutes: 1) ? '<1m' : formatScreenTime(d);
+
+/// One day's Awareness, in the original's layout: a title, the total in big
+/// fading numerals, unlocks and apps, a per-app breakdown with bars (top
+/// three, then See all), and an hour-by-hour chart. Now shows today, Reflect
+/// yesterday.
+class _DayView extends StatefulWidget {
+  const _DayView({
+    required this.title,
+    required this.breakdownTitle,
+    required this.chartTitle,
+    required this.totals,
+    required this.perApp,
+    required this.hourly,
+    required this.appsByPackage,
+    this.currentHour,
+  });
+
+  final String title;
+  final String breakdownTitle;
+  final String chartTitle;
   final MindSpaceTotals totals;
-  final bool isDark;
+  final List<PerAppUsage> perApp;
+  final List<Duration> hourly;
+  final Map<String, AppInfo> appsByPackage;
+
+  /// Today's hour, drawn in full ink; null for a finished day.
+  final int? currentHour;
+
+  @override
+  State<_DayView> createState() => _DayViewState();
+}
+
+class _DayViewState extends State<_DayView> {
+  var _seeAll = false;
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.onSurface;
-    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
+    final colors = Theme.of(context).colorScheme;
+    final ink = colors.onSurface;
+    final soft = _soft(colors);
+    final caption = TextStyle(fontSize: 13, color: soft);
+    // Only apps you can open: background system packages (permission
+    // controller, settings intelligence, ...) count toward the total but get
+    // no row. Until the app list loads, nothing is filtered.
+    final apps = widget.appsByPackage;
+    final perApp = [
+      for (final u in widget.perApp)
+        if (apps.isEmpty || apps.containsKey(u.packageName)) u,
+    ];
+    final shown = _seeAll ? perApp : perApp.take(3).toList();
+    final longest = perApp.isEmpty ? 1 : perApp.first.duration.inSeconds.clamp(1, 1 << 31);
+    Widget stat(int value, String label) => Padding(
+      padding: const EdgeInsets.only(right: 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('$value', style: TextStyle(fontSize: 38, height: 1.1, color: ink)),
+          Text(label, style: caption),
+        ],
+      ),
+    );
     return Column(
-      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Screen time today', style: TextStyle(fontSize: 15, color: secondary)),
-        const SizedBox(height: 8),
         Text(
-          formatScreenTime(totals.screenTime),
-          style: TextStyle(fontSize: 48, fontWeight: FontWeight.w500, color: primary),
+          widget.title,
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w500, color: ink),
         ),
+        const SizedBox(height: 2),
+        Text('You spent', style: TextStyle(fontSize: 14, color: soft)),
+        const SizedBox(height: 14),
+        // Fades from ink at the top to grey at the bottom, like the original.
+        ShaderMask(
+          shaderCallback: (rect) => LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [ink, ink.withValues(alpha: 0.35)],
+          ).createShader(rect),
+          child: Text(
+            formatScreenTime(widget.totals.screenTime),
+            style: const TextStyle(fontSize: 64, height: 1.1, fontWeight: FontWeight.w500, color: Colors.white),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text('on your phone', style: caption),
+        const SizedBox(height: 28),
+        Row(children: [stat(widget.totals.pickups, 'unlocks'), stat(perApp.length, 'apps')]),
+        const SizedBox(height: 28),
+        Divider(height: 1, color: colors.outlineVariant),
+        const SizedBox(height: 28),
+        Text(
+          widget.breakdownTitle,
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w500, color: ink),
+        ),
+        const SizedBox(height: 12),
+        for (final usage in shown)
+          SizedBox(
+            height: 36,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        apps[usage.packageName]?.name ?? usage.packageName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 13, color: ink),
+                      ),
+                    ),
+                    Text('×${usage.opens}', style: TextStyle(fontSize: 13, color: colors.onSurfaceVariant)),
+                    const SizedBox(width: 12),
+                    Text(_shortTime(usage.duration), style: TextStyle(fontSize: 13, color: ink)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                // Each app's share against the day's biggest.
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(1),
+                  child: LinearProgressIndicator(
+                    value: usage.duration.inSeconds / longest,
+                    minHeight: 2,
+                    color: ink,
+                    backgroundColor: colors.outlineVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (perApp.length > 3) ...[
+          const SizedBox(height: 12),
+          _ArrowLink(label: _seeAll ? 'Show less' : 'See all', onTap: () => setState(() => _seeAll = !_seeAll)),
+        ],
         const SizedBox(height: 24),
-        Text('${totals.pickups} pickups', style: TextStyle(fontSize: 18, color: secondary)),
+        Text(widget.chartTitle, style: TextStyle(fontSize: 14, letterSpacing: 1, color: soft)),
+        const SizedBox(height: 24),
+        _HourlyChart(hourly: widget.hourly, currentHour: widget.currentHour),
       ],
     );
   }
 }
 
-/// Opens/time per app, with a one-line behavioral insight (average session
-/// length) per row. Icons/names are cross-referenced from [InstalledAppsService]
-/// the same way the App Folder/From-Apps picker sheets do.
-class _PerAppBreakdown extends StatelessWidget {
-  const _PerAppBreakdown({required this.perApp, required this.appsByPackage, required this.isDark});
+/// The original's quiet italic "See all →" style link, right-aligned.
+class _ArrowLink extends StatelessWidget {
+  const _ArrowLink({required this.label, required this.onTap});
 
-  final List<PerAppUsage> perApp;
-  final Map<String, AppInfo> appsByPackage;
-  final bool isDark;
+  final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    // Only apps you can open: background system packages (permission
-    // controller, settings intelligence, ...) count toward the total but get
-    // no row. Until the app list loads, nothing is filtered.
-    final perApp = appsByPackage.isEmpty
-        ? this.perApp
-        : [for (final u in this.perApp) if (appsByPackage.containsKey(u.packageName)) u];
-    if (perApp.isEmpty) return const SizedBox.shrink();
-    final primary = Theme.of(context).colorScheme.onSurface;
-    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Per app', style: TextStyle(fontSize: 13, color: secondary)),
-        const SizedBox(height: 12),
-        for (final usage in perApp)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              children: [
-                AppIcon(icon: appsByPackage[usage.packageName]?.icon, size: 36),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        appsByPackage[usage.packageName]?.name ?? usage.packageName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 15, color: primary),
-                      ),
-                      Text(
-                        '${usage.opens} opens · avg ${formatScreenTime(usage.averagePerOpen)} per open',
-                        style: TextStyle(fontSize: 12, color: secondary),
-                      ),
-                    ],
-                  ),
-                ),
-                Text(
-                  formatScreenTime(usage.duration),
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: primary),
-                ),
-              ],
-            ),
+    final color = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Align(
+      alignment: Alignment.centerRight,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(fontSize: 13, fontStyle: FontStyle.italic, color: color),
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.arrow_forward, size: 13, color: color),
+            ],
           ),
-      ],
+        ),
+      ),
     );
   }
 }
 
 /// Habits & Reflexes: the app most often opened right after unlocking.
 class _HabitsSection extends StatelessWidget {
-  const _HabitsSection({required this.habits, required this.appsByPackage, required this.isDark});
+  const _HabitsSection({required this.habits, required this.appsByPackage});
 
   final HabitsInsight habits;
   final Map<String, AppInfo> appsByPackage;
-  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
     final topPackage = habits.topPackage;
     if (topPackage == null) return const SizedBox.shrink();
     final primary = Theme.of(context).colorScheme.onSurface;
-    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
     final name = appsByPackage[topPackage]?.name ?? topPackage;
     final percent = (habits.topCount / habits.totalUnlocks * 100).round();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Habits & Reflexes', style: TextStyle(fontSize: 13, color: secondary)),
-        const SizedBox(height: 12),
+        Text(
+          'HABITS & REFLEXES',
+          style: TextStyle(fontSize: 14, letterSpacing: 1, color: _soft(Theme.of(context).colorScheme)),
+        ),
+        const SizedBox(height: 16),
         Row(
           children: [
-            AppIcon(icon: appsByPackage[topPackage]?.icon, size: 36),
+            AppIcon(icon: appsByPackage[topPackage]?.icon, size: 34),
             const SizedBox(width: 14),
             Expanded(
               child: Text(
@@ -568,7 +737,9 @@ class _FocusQuickActionsState extends State<FocusQuickActions> {
         children: [
           Icon(Icons.center_focus_strong, color: primary, size: 20),
           const SizedBox(width: 12),
-          Expanded(child: Text(label, style: TextStyle(fontSize: 14, color: primary))),
+          Expanded(
+            child: Text(label, style: TextStyle(fontSize: 14, color: primary)),
+          ),
           if (!_status.strict) TextButton(onPressed: _stop, child: const Text('Stop')),
         ],
       );
@@ -584,12 +755,7 @@ class _FocusQuickActionsState extends State<FocusQuickActions> {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _QuickActionTile(
-            icon: Icons.center_focus_strong,
-            label: 'Focus Mode',
-            isDark: isDark,
-            onTap: _start,
-          ),
+          child: _QuickActionTile(icon: Icons.center_focus_strong, label: 'Focus Mode', isDark: isDark, onTap: _start),
         ),
       ],
     );
@@ -628,58 +794,55 @@ class _QuickActionTile extends StatelessWidget {
   }
 }
 
-/// 12am-through-now bar chart of per-hour foreground time.
+/// A bar per hour of the day, 12 AM to 12 AM, as in the original: used hours
+/// in grey, the current one in full ink, unused ones a faint baseline.
 class _HourlyChart extends StatelessWidget {
-  const _HourlyChart({required this.hourly, required this.isDark});
+  const _HourlyChart({required this.hourly, this.currentHour});
 
   final List<Duration> hourly;
-  final bool isDark;
+  final int? currentHour;
 
-  static const _barHeight = 100.0;
+  static const _barHeight = 67.0;
 
   @override
   Widget build(BuildContext context) {
-    if (hourly.isEmpty) return const SizedBox.shrink();
-    final barColor = Theme.of(context).colorScheme.onSurface;
-    final labelColor = Theme.of(context).colorScheme.onSurfaceVariant;
+    final colors = Theme.of(context).colorScheme;
+    final longest = hourly.fold<int>(1, (max, d) => d.inSeconds > max ? d.inSeconds : max);
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Hourly usage',
-          style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
-        ),
-        const SizedBox(height: 12),
         SizedBox(
           height: _barHeight,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              for (var hour = 0; hour < hourly.length; hour++)
+              for (var hour = 0; hour < 24; hour++)
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 1),
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
                     child: FractionallySizedBox(
                       alignment: Alignment.bottomCenter,
-                      heightFactor: (hourly[hour].inSeconds / 3600).clamp(0.02, 1.0),
-                      child: Container(color: barColor),
+                      heightFactor: hour < hourly.length && hourly[hour] > Duration.zero
+                          ? (hourly[hour].inSeconds / longest).clamp(0.08, 1.0)
+                          : 0.02,
+                      child: Container(
+                        color: hour == currentHour
+                            ? colors.onSurface
+                            : hour < hourly.length && hourly[hour] > Duration.zero
+                            ? Color.lerp(colors.onSurface, colors.surface, 0.8)
+                            : colors.outlineVariant,
+                      ),
                     ),
                   ),
                 ),
             ],
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 8),
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            for (final hour in const [0, 6, 12, 18])
-              if (hour < hourly.length)
-                Expanded(
-                  child: Text(
-                    hour == 0 ? '12am' : hour < 12 ? '${hour}am' : hour == 12 ? '12pm' : '${hour - 12}pm',
-                    style: TextStyle(fontSize: 11, color: labelColor),
-                  ),
-                ),
+            for (final label in const ['12 AM', '6 AM', '12 PM', '6 PM', '12 AM'])
+              Text(label, style: TextStyle(fontSize: 10, color: colors.onSurfaceVariant)),
           ],
         ),
       ],

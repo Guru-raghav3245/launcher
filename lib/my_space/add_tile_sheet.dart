@@ -8,19 +8,21 @@ import '../search/app_search.dart';
 import '../search/app_search_bar.dart';
 import '../services/app_widget_service.dart';
 import '../services/installed_apps_service.dart';
-import '../widgets/segmented_toggle.dart';
 import 'built_in_tile_specs.dart';
 
-/// Opens the "Add New Tile" bottom sheet. Resolves with the tile the user
-/// added, or null if they dismissed the sheet without adding one.
+/// Opens "Add New Tile" over a dark scrim, full screen, as in the original.
+/// Resolves with the tile the user added, or null if they backed out.
 Future<MySpaceTile?> showAddTileSheet(BuildContext context) {
-  return showModalBottomSheet<MySpaceTile>(
+  final ground = Theme.of(context).colorScheme.surface;
+  return showGeneralDialog<MySpaceTile>(
     context: context,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    barrierDismissible: true,
+    barrierLabel: 'Close',
+    barrierColor: ground.withValues(alpha: 0.96),
+    pageBuilder: (context, _, _) => const Material(
+      type: MaterialType.transparency,
+      child: SafeArea(child: _AddTileSheet()),
     ),
-    builder: (context) => const _AddTileSheet(),
   );
 }
 
@@ -35,38 +37,10 @@ class _AddTileSheetState extends State<_AddTileSheet> {
   bool _fromApps = false;
   bool _bindingWidget = false;
 
-  /// Shows [spec]'s sample tile first; adds it only on "Add tile".
-  Future<void> _add(BuiltInTileSpec spec) async {
-    final add = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(spec.title),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(spec.subtitle, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-            const SizedBox(height: 16),
-            IgnorePointer(child: spec.previewCard),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary, foregroundColor: Theme.of(context).colorScheme.onPrimary),
-            child: const Text('Add tile'),
-          ),
-        ],
-      ),
-    );
-    if (add != true || !mounted) return;
-    final tile = MySpaceTile(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
-      kind: spec.kind,
-      data: spec.defaultData(),
-    );
-    Navigator.of(context).pop(tile);
+  void _add(BuiltInTileSpec spec) {
+    Navigator.of(
+      context,
+    ).pop(MySpaceTile(id: DateTime.now().microsecondsSinceEpoch.toString(), kind: spec.kind, data: spec.defaultData()));
   }
 
   Future<void> _addWidget(WidgetProvider provider) async {
@@ -92,80 +66,125 @@ class _AddTileSheetState extends State<_AddTileSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-        child: SizedBox(
-          height: MediaQuery.of(context).size.height * 0.75,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.outlineVariant,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Add New Tile',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                Center(
-                  child: SegmentedToggle<bool>(
-                    value: _fromApps,
-                    onChanged: (v) => setState(() => _fromApps = v),
-                    options: const [
-                      (false, Icons.widgets_outlined, 'Built-in'),
-                      (true, Icons.apps, 'From Apps'),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: _fromApps
-                      ? _FromAppsList(onAdd: _addWidget, busy: _bindingWidget)
-                      : _BuiltInList(onAdd: _add),
-                ),
-              ],
+    final colors = Theme.of(context).colorScheme;
+    // The original's switch: two outlined halves in an outlined pill, the
+    // chosen one ringed in ink.
+    Widget half(String label, bool value) {
+      final on = _fromApps == value;
+      return Expanded(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => setState(() => _fromApps = value),
+          child: Container(
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              border: Border.all(color: on ? colors.onSurface : Colors.transparent),
+              borderRadius: BorderRadius.circular(22),
             ),
+            child: Text(label, style: TextStyle(fontSize: 18, color: on ? colors.onSurface : colors.onSurfaceVariant)),
           ),
         ),
+      );
+    }
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 8, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Add New Tile',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, letterSpacing: 1),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              border: Border.all(color: colors.outline),
+              borderRadius: BorderRadius.circular(26),
+            ),
+            child: Row(children: [half('From Apps', true), half('Built-in', false)]),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: _fromApps ? _FromAppsList(onAdd: _addWidget, busy: _bindingWidget) : _BuiltInList(onAdd: _add),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _BuiltInList extends StatelessWidget {
+/// The built-in tiles, each a row with ▾ that opens its sample tile and
+/// "Add tile" right underneath (the original previews inline).
+class _BuiltInList extends StatefulWidget {
   const _BuiltInList({required this.onAdd});
 
   final ValueChanged<BuiltInTileSpec> onAdd;
 
   @override
+  State<_BuiltInList> createState() => _BuiltInListState();
+}
+
+class _BuiltInListState extends State<_BuiltInList> {
+  int? _open;
+
+  @override
   Widget build(BuildContext context) {
-    return ListView.separated(
+    final colors = Theme.of(context).colorScheme;
+    return ListView.builder(
       itemCount: builtInTileSpecs.length,
-      separatorBuilder: (_, _) => const Divider(height: 24),
       itemBuilder: (context, index) {
         final spec = builtInTileSpecs[index];
-        return ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: Icon(spec.icon),
-          title: Text(spec.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: Text(spec.subtitle),
-          trailing: IconButton(
-            icon: const Icon(Icons.add_circle_outline),
-            onPressed: () => onAdd(spec),
-          ),
-          onTap: () => onAdd(spec),
+        final open = _open == index;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => setState(() => _open = open ? null : index),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
+                child: Row(
+                  children: [
+                    Icon(spec.icon, size: 28, color: colors.onSurface),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(spec.title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 2),
+                          Text(
+                            spec.subtitle,
+                            style: TextStyle(fontSize: 15, color: Color.lerp(colors.onSurface, colors.surface, 0.25)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(open ? Icons.arrow_drop_up : Icons.arrow_drop_down, color: colors.onSurfaceVariant),
+                  ],
+                ),
+              ),
+            ),
+            if (open) ...[
+              IgnorePointer(child: spec.previewCard),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: () => widget.onAdd(spec),
+                style: FilledButton.styleFrom(
+                  backgroundColor: colors.primary,
+                  foregroundColor: colors.onPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: const Text('Add tile', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ],
         );
       },
     );
@@ -247,8 +266,7 @@ class _FromAppsListState extends State<_FromAppsList> {
                         final filtered = providers.where((provider) {
                           if (query.isEmpty) return true;
                           final appName = appsByPackage[provider.packageName]?.name ?? provider.packageName;
-                          return appName.toLowerCase().contains(query) ||
-                              provider.label.toLowerCase().contains(query);
+                          return appName.toLowerCase().contains(query) || provider.label.toLowerCase().contains(query);
                         }).toList();
                         return ListView.separated(
                           itemCount: filtered.length,

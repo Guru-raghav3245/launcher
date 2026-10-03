@@ -4,13 +4,7 @@ import 'package:flutter/material.dart';
 /// small icon+label header above the tile's own content. Used by both the
 /// empty-state preview cards and the real tile bodies (tasks 3-6).
 class TileCard extends StatelessWidget {
-  const TileCard({
-    super.key,
-    required this.label,
-    required this.icon,
-    required this.child,
-    this.trailing,
-  });
+  const TileCard({super.key, required this.label, required this.icon, required this.child, this.trailing});
 
   final String label;
   final IconData icon;
@@ -22,6 +16,7 @@ class TileCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainer,
         border: Border.all(color: Theme.of(context).colorScheme.outline),
         borderRadius: BorderRadius.circular(16),
       ),
@@ -30,15 +25,24 @@ class TileCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              Icon(
+                icon,
+                size: 18,
+                color: Color.lerp(Theme.of(context).colorScheme.onSurface, Theme.of(context).colorScheme.surface, 0.25),
+              ),
               const SizedBox(width: 8),
               Text(
                 label,
+                // The original's caps label: larger, wider, softer ink.
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  letterSpacing: 1.5,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
+                  color: Color.lerp(
+                    Theme.of(context).colorScheme.onSurface,
+                    Theme.of(context).colorScheme.surface,
+                    0.25,
+                  ),
+                  letterSpacing: 2.5,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
                 ),
               ),
               if (trailing != null) ...[const Spacer(), trailing!],

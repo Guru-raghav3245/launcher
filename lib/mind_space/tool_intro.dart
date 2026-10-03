@@ -28,6 +28,14 @@ class MindSpaceTool {
 
   String get _seenKey => 'tool_intro_seen_$id';
 
+  /// The explainer again, from the ⓘ on the tool's page; "Let's go" just
+  /// closes it.
+  Future<void> showInfo(BuildContext context) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (context) => _ToolIntroPage(tool: this, onStart: Navigator.of(context).pop),
+    ),
+  );
+
   /// Pushes the explainer on first use (its "Let's go" swaps in the
   /// tool's page and remembers it was seen), otherwise the page directly.
   Future<void> open(BuildContext context) async {

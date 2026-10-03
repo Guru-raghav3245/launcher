@@ -51,53 +51,33 @@ String trendSummary(List<DayTotals> daily) {
       : 'Up $change% from the days before, about $perDay a day.';
 }
 
-/// Mind Space's Reflect view: yesterday's totals, a daily screen-time bar
-/// chart for up to 14 days, and a one-line trend summary.
+/// The end of Mind Space's Reflect tab: a daily screen-time bar for up to 14
+/// days (today faded, as it's partial) and a one-line trend, under a caps
+/// label in the same style as the day view above it.
 class ReflectView extends StatelessWidget {
-  const ReflectView({super.key, required this.daily, required this.isDark});
+  const ReflectView({super.key, required this.daily});
 
   final List<DayTotals> daily;
-  final bool isDark;
 
-  static const _barHeight = 120.0;
+  static const _barHeight = 67.0;
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.onSurface;
-    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
-    final barColor = Theme.of(context).colorScheme.onSurface;
-    final yesterday = daily.length > 1 ? daily[daily.length - 2].totals : null;
+    final colors = Theme.of(context).colorScheme;
     final longest = daily.fold<int>(
       1,
       (max, d) => d.totals.screenTime.inSeconds > max ? d.totals.screenTime.inSeconds : max,
     );
     final weekdays = MaterialLocalizations.of(context).narrowWeekdays;
+    final bar = Color.lerp(colors.onSurface, colors.surface, 0.8)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Screen time yesterday',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 15, color: secondary),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          yesterday == null ? '—' : formatScreenTime(yesterday.screenTime),
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 48, fontWeight: FontWeight.w500, color: primary),
+          'LAST ${daily.length} ${daily.length == 1 ? 'DAY' : 'DAYS'}',
+          style: TextStyle(fontSize: 14, letterSpacing: 1, color: Color.lerp(colors.onSurface, colors.surface, 0.25)),
         ),
         const SizedBox(height: 24),
-        Text(
-          yesterday == null ? 'No data for yesterday' : '${yesterday.pickups} pickups',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 18, color: secondary),
-        ),
-        const SizedBox(height: 40),
-        Text(
-          'Last ${daily.length} ${daily.length == 1 ? 'day' : 'days'}',
-          style: TextStyle(fontSize: 13, color: secondary),
-        ),
-        const SizedBox(height: 12),
         SizedBox(
           height: _barHeight,
           child: Row(
@@ -110,15 +90,15 @@ class ReflectView extends StatelessWidget {
                     child: FractionallySizedBox(
                       alignment: Alignment.bottomCenter,
                       heightFactor: (d.totals.screenTime.inSeconds / longest).clamp(0.02, 1.0),
-                      // Today is still in progress, so it's drawn faded.
-                      child: Container(color: i == daily.length - 1 ? barColor.withValues(alpha: 0.35) : barColor),
+                      // Today is still in progress, so it's drawn fainter.
+                      child: Container(color: i == daily.length - 1 ? colors.outlineVariant : bar),
                     ),
                   ),
                 ),
             ],
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 8),
         Row(
           children: [
             for (final d in daily)
@@ -126,13 +106,13 @@ class ReflectView extends StatelessWidget {
                 child: Text(
                   weekdays[d.day.weekday % 7],
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  style: TextStyle(fontSize: 10, color: colors.onSurfaceVariant),
                 ),
               ),
           ],
         ),
-        const SizedBox(height: 24),
-        Text(trendSummary(daily), style: TextStyle(fontSize: 16, color: primary)),
+        const SizedBox(height: 20),
+        Text(trendSummary(daily), style: TextStyle(fontSize: 14, color: colors.onSurface)),
       ],
     );
   }

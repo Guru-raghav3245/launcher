@@ -94,64 +94,96 @@ class _TileList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-          itemCount: tiles.length + 1,
-          itemBuilder: (context, index) {
-            // After the last tile: the way into reordering and removing them.
-            if (index == tiles.length) {
-              return Center(
-                child: TextButton.icon(
+    final colors = Theme.of(context).colorScheme;
+    // Header, the tiles, then Edit Tile / Add Tile, as in the original.
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+      itemCount: tiles.length + 2,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(4, 8, 0, 16),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'My Space',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, letterSpacing: 2),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Manage tiles',
                   onPressed: onManage,
-                  icon: const Icon(Icons.tune),
-                  label: const Text('Manage tiles'),
-                  style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant),
+                  icon: Icon(Icons.tune, color: colors.onSurface),
                 ),
-              );
-            }
-            final tile = tiles[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: switch (tile.kind) {
-                TileKind.notes => NotesTile(
-                  tile: tile,
-                  onChanged: (data) => onUpdate(tile.id, data),
-                ),
-                TileKind.todo => TodoTile(
-                  tile: tile,
-                  onChanged: (data) => onUpdate(tile.id, data),
-                ),
-                TileKind.weather => WeatherTile(
-                  tile: tile,
-                  onChanged: (data) => onUpdate(tile.id, data),
-                ),
-                TileKind.appFolder => AppFolderTile(
-                  tile: tile,
-                  onChanged: (data) => onUpdate(tile.id, data),
-                ),
-                TileKind.fromApp => FromAppTile(tile: tile),
-                TileKind.quote => QuoteTile(tile: tile, onChanged: (data) => onUpdate(tile.id, data)),
-                TileKind.hydration => HydrationTile(tile: tile, onChanged: (data) => onUpdate(tile.id, data)),
-                TileKind.screenTime => const ScreenTimeTile(),
-                TileKind.calendar => const CalendarTile(),
-                TileKind.music => const MusicTile(),
-              },
-            );
+              ],
+            ),
+          );
+        }
+        if (index == tiles.length + 1) {
+          return Row(
+            children: [
+              Expanded(
+                child: _FaintButton(icon: Icons.edit_outlined, label: 'Edit Tile', onTap: onManage),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _FaintButton(icon: Icons.add, label: 'Add Tile', onTap: onAdd),
+              ),
+            ],
+          );
+        }
+        final tile = tiles[index - 1];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: switch (tile.kind) {
+            TileKind.notes => NotesTile(tile: tile, onChanged: (data) => onUpdate(tile.id, data)),
+            TileKind.todo => TodoTile(tile: tile, onChanged: (data) => onUpdate(tile.id, data)),
+            TileKind.weather => WeatherTile(tile: tile, onChanged: (data) => onUpdate(tile.id, data)),
+            TileKind.appFolder => AppFolderTile(tile: tile, onChanged: (data) => onUpdate(tile.id, data)),
+            TileKind.fromApp => FromAppTile(tile: tile),
+            TileKind.quote => QuoteTile(tile: tile, onChanged: (data) => onUpdate(tile.id, data)),
+            TileKind.hydration => HydrationTile(tile: tile, onChanged: (data) => onUpdate(tile.id, data)),
+            TileKind.screenTime => const ScreenTimeTile(),
+            TileKind.calendar => const CalendarTile(),
+            TileKind.music => const MusicTile(),
           },
-        ),
-        Positioned(
-          right: 16,
-          bottom: 16,
-          child: FloatingActionButton(
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            foregroundColor: Theme.of(context).colorScheme.onPrimary,
-            onPressed: onAdd,
-            child: const Icon(Icons.add),
+        );
+      },
+    );
+  }
+}
+
+/// The original's quiet buttons under the tiles: a barely-there fill and
+/// grey ink.
+class _FaintButton extends StatelessWidget {
+  const _FaintButton({required this.icon, required this.label, required this.onTap});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Material(
+      color: colors.surfaceContainer,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: SizedBox(
+          height: 50,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 22, color: colors.onSurfaceVariant),
+              const SizedBox(width: 10),
+              Text(label, style: TextStyle(fontSize: 16, color: colors.onSurfaceVariant)),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -199,11 +231,7 @@ class _EmptyState extends StatelessWidget {
                     icon: Icons.checklist,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('☑ Water the plants'),
-                        SizedBox(height: 6),
-                        Text('☐ Call the bank'),
-                      ],
+                      children: [Text('☑ Water the plants'), SizedBox(height: 6), Text('☐ Call the bank')],
                     ),
                   ),
                 ],

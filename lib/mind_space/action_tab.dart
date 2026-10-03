@@ -9,7 +9,7 @@ final mindSpaceTools = [
     id: 'mindful_pause',
     icon: Icons.self_improvement,
     title: 'Mindful Pause',
-    summary: 'A breath before the apps you choose.',
+    summary: 'Add a short pause before opening distracting apps.',
     whatItDoes:
         'Puts a short breathing screen in front of the apps you pick. When it ends, the app opens; '
         'if you change your mind, skip it and nothing opens.',
@@ -25,7 +25,7 @@ final mindSpaceTools = [
     id: 'mindful_timer',
     icon: Icons.timer_outlined,
     title: 'Mindful Timer',
-    summary: 'A daily limit, and a length for every session.',
+    summary: 'Decide how long to use distracting apps before you start.',
     whatItDoes:
         'Gives a group of apps one daily time limit. Each time you open one, you choose how long this '
         "session lasts; when it's up, a Time's up screen covers the app.",
@@ -41,7 +41,7 @@ final mindSpaceTools = [
     id: 'mindful_break',
     icon: Icons.bedtime_outlined,
     title: 'Mindful Break',
-    summary: 'Put one app away for a while.',
+    summary: 'Step away from an app for a few days.',
     whatItDoes:
         'Hides an app from your App Drawer and search for 1, 3, 7, or 30 days. Opening it any other way '
         "shows a quiet screen with when it's back.",
@@ -57,7 +57,7 @@ final mindSpaceTools = [
     id: 'focus_mode',
     icon: Icons.center_focus_strong,
     title: 'Focus Mode',
-    summary: 'A session with only the apps you allow.',
+    summary: 'Hide everything but a few apps for a set time.',
     whatItDoes:
         'Blocks every app except the ones you allow, for as long as the session runs: until you stop '
         'it, or for a set time.',
@@ -71,45 +71,94 @@ final mindSpaceTools = [
   ),
 ];
 
-/// Mind Space's Action tab: the list of tools to take time back.
+/// Mind Space's Action tab, laid out like the original's: the per-app tools
+/// under "Apps you reach for", Focus Mode under "Focus time".
 class ActionTab extends StatelessWidget {
   const ActionTab({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
-    final stroke = Theme.of(context).colorScheme.outline;
-    // The panel paints its own background, which would hide the rows' ink
+    final colors = Theme.of(context).colorScheme;
+    Widget section(String title, String subtitle, Iterable<MindSpaceTool> tools) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 2),
+        Text(subtitle, style: TextStyle(fontSize: 14, color: colors.onSurfaceVariant)),
+        const SizedBox(height: 14),
+        for (final tool in tools)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 22),
+            child: _ToolCard(tool: tool),
+          ),
+      ],
+    );
+    // The panel paints its own background, which would hide the cards' ink
     // splashes; give them a Material of their own to splash on.
     return Material(
       type: MaterialType.transparency,
       child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        padding: const EdgeInsets.fromLTRB(13, 30, 13, 24),
         children: [
-          const Text('Your tools', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Text('Small frictions that help you take time back.', style: TextStyle(fontSize: 15, color: secondary)),
-          const SizedBox(height: 24),
-          for (final tool in mindSpaceTools)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: stroke),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  leading: Icon(tool.icon, size: 28),
-                  title: Text(tool.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                  subtitle: Text(tool.summary),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => tool.open(context),
+          const Text('Your tools', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 30),
+          section(
+            'Apps you reach for',
+            'For the apps that pull you in.',
+            mindSpaceTools.where((t) => t.id != 'focus_mode'),
+          ),
+          const SizedBox(height: 22),
+          section(
+            'Focus time',
+            'Step away from everything for a set stretch.',
+            mindSpaceTools.where((t) => t.id == 'focus_mode'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToolCard extends StatelessWidget {
+  const _ToolCard({required this.tool});
+
+  final MindSpaceTool tool;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+      side: BorderSide(color: colors.outline),
+    );
+    return Material(
+      color: colors.surfaceContainer,
+      shape: shape,
+      child: InkWell(
+        customBorder: shape,
+        onTap: () => tool.open(context),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 14, 16),
+          child: Row(
+            children: [
+              // ponytail: an icon stands in for the original's grayscale
+              // illustrations (its own artwork); draw ours to replace it.
+              SizedBox(width: 40, child: Icon(tool.icon, size: 32, color: colors.onSurface)),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(tool.title, style: const TextStyle(fontSize: 19)),
+                    const SizedBox(height: 2),
+                    Text(tool.summary, style: TextStyle(fontSize: 13, color: colors.onSurfaceVariant)),
+                  ],
                 ),
               ),
-            ),
-        ],
+              Icon(Icons.chevron_right, size: 18, color: colors.onSurfaceVariant),
+            ],
+          ),
+        ),
       ),
     );
   }

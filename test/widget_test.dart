@@ -182,9 +182,12 @@ void main() {
 
     // Large: hours and minutes as separate lines.
     final now = DateTime.now();
-    expect(find.text(now.hour.toString().padLeft(2, '0')), findsOneWidget);
+    final hour = now.hour.toString().padLeft(2, '0');
+    final minute = now.minute.toString().padLeft(2, '0');
+    // (At 23:23 both lines read "23".)
+    expect(find.text(hour), hour == minute ? findsNWidgets(2) : findsOneWidget);
     // Bottom: the clock sits below the middle of Home.
-    final clockY = tester.getCenter(find.text(now.minute.toString().padLeft(2, '0'))).dy;
+    final clockY = tester.getCenter(find.text(minute).last).dy;
     expect(clockY, greaterThan(tester.getSize(find.byType(HomePanel)).height / 2));
     expect(find.text('Spotlight search'), findsNothing);
     expect(appCalls.where((c) => c.method == 'setStatusBarVisible').last.arguments, {'visible': false});
@@ -717,8 +720,8 @@ void main() {
 
     await tester.tap(find.text('Reflect'));
     await tester.pumpAndSettle();
-    expect(find.text('Screen time yesterday'), findsOneWidget);
-    expect(find.text('45m'), findsOneWidget);
+    expect(find.text('Yesterday'), findsOneWidget);
+    expect(find.text('45m'), findsNWidgets(2)); // the day's total and Feed's row
   });
 
   testWidgets('hidden and renamed apps show up that way in the drawer and Spotlight', (WidgetTester tester) async {
@@ -1136,11 +1139,11 @@ void main() {
     await tester.fling(find.byType(HomePanel), const Offset(400, 0), 1000); // swipe right → My Space
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('Manage tiles'),
+      find.text('Edit Tile'),
       200,
       scrollable: find.descendant(of: find.byType(MySpacePanel), matching: find.byType(Scrollable)).first,
     );
-    await tester.tap(find.text('Manage tiles'));
+    await tester.tap(find.text('Edit Tile'));
     await tester.pumpAndSettle();
     expect(find.text('Shopping list'), findsOneWidget);
     expect(find.text('1 of 2 done'), findsOneWidget);
@@ -1273,8 +1276,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(MindfulPausePage), findsOneWidget);
 
+    // ⓘ brings the explainer back; its button returns to the page.
+    await tester.tap(find.byTooltip('About Mindful Pause'));
+    await tester.pumpAndSettle();
+    expect(find.text('What it does'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text("Let's go"), 200, scrollable: find.byType(Scrollable).last);
+    await tester.tap(find.text("Let's go"));
+    await tester.pumpAndSettle();
+    expect(find.text('What it does'), findsNothing);
+
     // Later visits go straight to the page.
-    await tester.pageBack();
+    await tester.tap(find.byIcon(Icons.chevron_left));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Mindful Pause'));
     await tester.pumpAndSettle();
