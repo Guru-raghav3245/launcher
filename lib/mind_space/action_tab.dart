@@ -77,9 +77,8 @@ class ActionTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final secondary = isDark ? Colors.white60 : Colors.black54;
-    final stroke = isDark ? Colors.white24 : Colors.black26;
+    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
+    final stroke = Theme.of(context).colorScheme.outline;
     // The panel paints its own background, which would hide the rows' ink
     // splashes; give them a Material of their own to splash on.
     return Material(

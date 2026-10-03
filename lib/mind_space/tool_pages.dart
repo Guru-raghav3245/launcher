@@ -205,7 +205,7 @@ class _MindfulTimerPageState extends State<MindfulTimerPage> {
   Widget build(BuildContext context) {
     final groups = _groups;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final stroke = isDark ? Colors.white24 : Colors.black26;
+    final stroke = Theme.of(context).colorScheme.outline;
     return _ToolScaffold(
       title: 'Mindful Timer',
       children: [
@@ -343,7 +343,7 @@ class _MindfulBreakPageState extends State<MindfulBreakPage> {
             padding: const EdgeInsets.only(bottom: 16),
             child: Text(
               'No apps on a break.',
-              style: TextStyle(fontSize: 16, color: isDark ? Colors.white60 : Colors.black54),
+              style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
         for (final app in onBreak)
@@ -419,10 +419,9 @@ class _OutlinedRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: isDark ? Colors.white24 : Colors.black26),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
         borderRadius: BorderRadius.circular(16),
       ),
       clipBehavior: Clip.antiAlias,

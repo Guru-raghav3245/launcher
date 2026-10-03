@@ -84,7 +84,7 @@ class _AppFolderTileState extends State<AppFolderTile> {
         onPressed: apps == null ? null : _pickApp,
       ),
       child: selected.isEmpty
-          ? const Text('No apps yet — tap + to add some.', style: TextStyle(color: Colors.black45))
+          ? Text('No apps yet — tap + to add some.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))
           : Wrap(
               spacing: 16,
               runSpacing: 12,

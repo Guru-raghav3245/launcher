@@ -45,7 +45,7 @@ class _AddTileSheetState extends State<_AddTileSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(spec.subtitle, style: const TextStyle(color: Colors.black54)),
+            Text(spec.subtitle, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
             const SizedBox(height: 16),
             IgnorePointer(child: spec.previewCard),
           ],
@@ -54,7 +54,7 @@ class _AddTileSheetState extends State<_AddTileSheet> {
           TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary, foregroundColor: Theme.of(context).colorScheme.onPrimary),
             child: const Text('Add tile'),
           ),
         ],
@@ -107,7 +107,7 @@ class _AddTileSheetState extends State<_AddTileSheet> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.black12,
+                      color: Theme.of(context).colorScheme.outlineVariant,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -217,11 +217,11 @@ class _FromAppsListState extends State<_FromAppsList> {
         if (data == null) return const Center(child: CircularProgressIndicator());
         final (apps, providers) = data;
         if (providers.isEmpty) {
-          return const Center(
+          return Center(
             child: Text(
               'No apps on this device offer a\nhome-screen widget.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.black45),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           );
         }

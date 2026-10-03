@@ -48,7 +48,7 @@ class HydrationTile extends StatelessWidget {
                 max: maxGlassGoal.toDouble(),
                 divisions: maxGlassGoal - minGlassGoal,
                 activeColor: Colors.black,
-                inactiveColor: Colors.black12,
+                inactiveColor: Theme.of(context).colorScheme.outlineVariant,
                 onChanged: (v) => setState(() => goal = v.round()),
               ),
             ],
@@ -74,7 +74,7 @@ class HydrationTile extends StatelessWidget {
       trailing: TextButton(
         onPressed: () => _editGoal(context),
         style: TextButton.styleFrom(
-          foregroundColor: Colors.black54,
+          foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
           padding: EdgeInsets.zero,
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -115,7 +115,7 @@ class HydrationBody extends StatelessWidget {
                   child: Icon(
                     i < glasses ? Icons.water_drop : Icons.water_drop_outlined,
                     size: 28,
-                    color: i < glasses ? Colors.black87 : Colors.black26,
+                    color: i < glasses ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.outline,
                   ),
                 ),
               ),
@@ -124,7 +124,7 @@ class HydrationBody extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           glasses >= goal ? '$glasses of $goal glasses · goal reached' : '$glasses of $goal glasses today',
-          style: const TextStyle(color: Colors.black54),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     );

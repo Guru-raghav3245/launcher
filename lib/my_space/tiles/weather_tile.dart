@@ -87,13 +87,13 @@ class _WeatherMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (loading) return const Text('Fetching weather…', style: TextStyle(color: Colors.black45));
+    if (loading) return Text('Fetching weather…', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant));
     final message = error is LocationDeniedException
         ? 'Location access is needed for weather.'
         : 'Couldn\'t load weather.';
     return Row(
       children: [
-        Expanded(child: Text(message, style: const TextStyle(color: Colors.black45))),
+        Expanded(child: Text(message, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))),
         TextButton(onPressed: onRetry, child: const Text('Retry')),
       ],
     );
@@ -129,14 +129,14 @@ class _WeatherBody extends StatelessWidget {
             const SizedBox(width: 10),
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
-              child: Text(snapshot.condition, style: const TextStyle(fontSize: 16, color: Colors.black54)),
+              child: Text(snapshot.condition, style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurfaceVariant)),
             ),
           ],
         ),
         const SizedBox(height: 4),
         Text(
           'H:${settings.formatTemp(snapshot.hiC)}  L:${settings.formatTemp(snapshot.loC)}  ·  ${snapshot.locationName}',
-          style: const TextStyle(color: Colors.black45, fontSize: 13),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
         ),
         if (snapshot.hourly.isNotEmpty) ...[
           const SizedBox(height: 16),
@@ -149,7 +149,7 @@ class _WeatherBody extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(_hourLabel(context, hour), style: const TextStyle(fontSize: 11, color: Colors.black45)),
+                        Text(_hourLabel(context, hour), style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                         const SizedBox(height: 6),
                         Text(settings.formatTemp(hour.tempC), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                       ],

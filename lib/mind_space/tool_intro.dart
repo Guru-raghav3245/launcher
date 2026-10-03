@@ -61,7 +61,7 @@ class _ToolIntroPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final secondary = isDark ? Colors.white70 : Colors.black54;
+    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
     Widget section(String heading, String body) => Padding(
       padding: const EdgeInsets.only(bottom: 28),
       child: Column(

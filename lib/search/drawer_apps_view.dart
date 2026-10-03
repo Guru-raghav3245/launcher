@@ -52,8 +52,8 @@ class DrawerAppsView extends StatelessWidget {
         if (s.apps.isNotEmpty) s,
     ];
     if (filled.isEmpty) {
-      return const Center(
-        child: Text('No apps found', style: TextStyle(color: Colors.black54)),
+      return Center(
+        child: Text('No apps found', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
       );
     }
     final perRow = look.grid ? look.columns : 1;
@@ -199,7 +199,7 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.only(left: 20),
       child: Text(
         label,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black54),
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
     );
   }
@@ -236,7 +236,7 @@ class _FastScrollIndex extends StatelessWidget {
                     child: Center(
                       child: Text(
                         letter == recentSectionKey ? '◷' : letter,
-                        style: const TextStyle(fontSize: 10, color: Colors.black45),
+                        style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ),
                   ),

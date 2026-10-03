@@ -39,9 +39,10 @@ enum TempUnit { celsius, fahrenheit }
 
 /// The launcher's typeface (Phase 10 task 5). [family] is null for
 /// Roboto, Android's own font; the others are bundled (see pubspec.yaml).
+/// DM Sans is the default, as in the original (Phase 11).
 enum LauncherFont {
-  roboto('Roboto', null),
   dmSans('DM Sans', 'DM Sans'),
+  roboto('Roboto', null),
   notoSerif('Noto Serif', 'Noto Serif'),
   openSans('Open Sans', 'Open Sans');
 
@@ -173,7 +174,7 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
   IconTint _iconTint = IconTint.grayscale;
   IconTint get iconTint => _iconTint;
 
-  LauncherFont _font = LauncherFont.roboto;
+  LauncherFont _font = LauncherFont.dmSans;
   LauncherFont get font => _font;
 
   TextSize _textSize = TextSize.normal;
@@ -206,7 +207,7 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
     final look = prefs.getString('settings_drawer_look');
     _drawerLook = look == null ? const DrawerLook() : DrawerLook.fromJson(jsonDecode(look) as Map<String, dynamic>);
     _iconTint = IconTint.values.byName(prefs.getString('settings_icon_tint') ?? IconTint.grayscale.name);
-    _font = LauncherFont.values.byName(prefs.getString('settings_font') ?? LauncherFont.roboto.name);
+    _font = LauncherFont.values.byName(prefs.getString('settings_font') ?? LauncherFont.dmSans.name);
     _textSize = TextSize.values.byName(prefs.getString('settings_text_size') ?? TextSize.normal.name);
     _timeFormat = TimeFormat.values.byName(prefs.getString('settings_time_format') ?? TimeFormat.system.name);
     _tempUnit = TempUnit.values.byName(prefs.getString('settings_temp_unit') ?? TempUnit.celsius.name);

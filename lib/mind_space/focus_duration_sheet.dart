@@ -46,7 +46,7 @@ class _FocusDurationSheetState extends State<_FocusDurationSheet> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final ink = isDark ? Colors.white : Colors.black;
-    final secondary = isDark ? Colors.white60 : Colors.black54;
+    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
     final endsAt = TimeOfDay.fromDateTime(DateTime.now().add(_duration)).format(context);
     return SafeArea(
       child: Padding(

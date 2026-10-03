@@ -63,9 +63,9 @@ class ReflectView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primary = isDark ? Colors.white : Colors.black87;
-    final secondary = isDark ? Colors.white60 : Colors.black54;
-    final barColor = isDark ? Colors.white70 : Colors.black87;
+    final primary = Theme.of(context).colorScheme.onSurface;
+    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
+    final barColor = Theme.of(context).colorScheme.onSurface;
     final yesterday = daily.length > 1 ? daily[daily.length - 2].totals : null;
     final longest = daily.fold<int>(
       1,
@@ -126,7 +126,7 @@ class ReflectView extends StatelessWidget {
                 child: Text(
                   weekdays[d.day.weekday % 7],
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 11, color: isDark ? Colors.white38 : Colors.black38),
+                  style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ),
           ],

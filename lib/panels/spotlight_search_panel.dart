@@ -79,8 +79,8 @@ class _SpotlightSearchPanelState extends State<SpotlightSearchPanel> with ShowsV
                   if (query.trim().isEmpty) {
                     final recent = recentApps(visibleApps(snapshot.data!));
                     if (recent.isEmpty) {
-                      return const Center(
-                        child: Text('Type to search apps', style: TextStyle(color: Colors.black45)),
+                      return Center(
+                        child: Text('Type to search apps', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                       );
                     }
                     return _RecentRow(apps: recent, onOpen: (app) => launchApp(context, app));
@@ -91,8 +91,8 @@ class _SpotlightSearchPanelState extends State<SpotlightSearchPanel> with ShowsV
                     sortMode: AppSortMode.alphabetical,
                   );
                   if (results.isEmpty) {
-                    return const Center(
-                      child: Text('No apps found', style: TextStyle(color: Colors.black45)),
+                    return Center(
+                      child: Text('No apps found', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     );
                   }
                   return ListView.builder(
@@ -121,7 +121,7 @@ class _RecentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final secondary = Theme.of(context).brightness == Brightness.dark ? Colors.white60 : Colors.black54;
+    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
     return Align(
       alignment: Alignment.topLeft,
       child: Padding(

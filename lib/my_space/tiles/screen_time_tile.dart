@@ -98,7 +98,7 @@ class ScreenTimeBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const secondary = TextStyle(color: Colors.black54);
+    final secondary = TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

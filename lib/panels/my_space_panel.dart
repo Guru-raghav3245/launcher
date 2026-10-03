@@ -107,7 +107,7 @@ class _TileList extends StatelessWidget {
                   onPressed: onManage,
                   icon: const Icon(Icons.tune),
                   label: const Text('Manage tiles'),
-                  style: TextButton.styleFrom(foregroundColor: Colors.black54),
+                  style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               );
             }
@@ -145,8 +145,8 @@ class _TileList extends StatelessWidget {
           right: 16,
           bottom: 16,
           child: FloatingActionButton(
-            backgroundColor: Colors.black,
-            foregroundColor: Colors.white,
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
             onPressed: onAdd,
             child: const Icon(Icons.add),
           ),
@@ -168,9 +168,9 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'MY SPACE',
-            style: TextStyle(color: Colors.black45, letterSpacing: 2, fontSize: 13),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, letterSpacing: 2, fontSize: 13),
           ),
           const SizedBox(height: 12),
           const Text(
@@ -178,9 +178,9 @@ class _EmptyState extends StatelessWidget {
             style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, height: 1.15),
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Keep the information you care about within a glance.',
-            style: TextStyle(fontSize: 16, color: Colors.black54),
+            style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 28),
           const Opacity(
@@ -215,8 +215,8 @@ class _EmptyState extends StatelessWidget {
             width: double.infinity,
             child: FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),

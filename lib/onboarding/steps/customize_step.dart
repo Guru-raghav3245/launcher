@@ -83,7 +83,7 @@ class _CustomizeStepState extends State<CustomizeStep> {
                   Text(
                     'WALLPAPER',
                     style: TextStyle(
-                      color: settings.isDark ? Colors.white54 : Colors.black45,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       letterSpacing: 2,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,

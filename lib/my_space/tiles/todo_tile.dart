@@ -59,7 +59,7 @@ class _TodoTileState extends State<TodoTile> {
             ),
           Row(
             children: [
-              const Icon(Icons.add_circle_outline, size: 18, color: Colors.black45),
+              Icon(Icons.add_circle_outline, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
               const SizedBox(width: 8),
               Expanded(
                 child: TextField(
@@ -98,7 +98,7 @@ class _TodoRow extends StatelessWidget {
             Icon(
               done ? Icons.check_box : Icons.check_box_outline_blank,
               size: 20,
-              color: done ? Colors.black45 : Colors.black54,
+              color: done ? Theme.of(context).colorScheme.onSurfaceVariant : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -106,7 +106,7 @@ class _TodoRow extends StatelessWidget {
                 text,
                 style: TextStyle(
                   decoration: done ? TextDecoration.lineThrough : null,
-                  color: done ? Colors.black38 : Colors.black87,
+                  color: done ? Theme.of(context).colorScheme.onSurfaceVariant : Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),

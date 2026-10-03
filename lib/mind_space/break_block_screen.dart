@@ -14,7 +14,7 @@ Future<void> showBreakBlock(BuildContext context, AppInfo app, DateTime endsAt) 
     builder: (context) {
       final isDark = Theme.of(context).brightness == Brightness.dark;
       final ink = isDark ? Colors.white : Colors.black;
-      final secondary = isDark ? Colors.white60 : Colors.black54;
+      final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
       return Dialog(
         insetPadding: const EdgeInsets.symmetric(horizontal: 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),

@@ -77,7 +77,7 @@ class _MindfulPauseDialogState extends State<_MindfulPauseDialog> with TickerPro
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final ink = isDark ? Colors.white : Colors.black;
-    final secondary = isDark ? Colors.white60 : Colors.black54;
+    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
     final usage = _usage;
     // Back simply pops with null, which showMindfulPause treats as a skip.
     return Dialog(

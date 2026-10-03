@@ -86,8 +86,8 @@ class _ManageTilesPageState extends State<ManageTilesPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Manage tiles')),
       body: _tiles.isEmpty
-          ? const Center(
-              child: Text('No tiles', style: TextStyle(color: Colors.black54)),
+          ? Center(
+              child: Text('No tiles', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
             )
           : ReorderableListView.builder(
               padding: const EdgeInsets.symmetric(vertical: 8),

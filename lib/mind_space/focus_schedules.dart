@@ -60,7 +60,7 @@ class _FocusSchedulesPageState extends State<FocusSchedulesPage> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final ink = isDark ? Colors.white : Colors.black;
-    final stroke = isDark ? Colors.white24 : Colors.black26;
+    final stroke = Theme.of(context).colorScheme.outline;
     return Scaffold(
       appBar: AppBar(title: const Text('Focus schedules')),
       body: ListView(

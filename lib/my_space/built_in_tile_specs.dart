@@ -45,12 +45,12 @@ final builtInTileSpecs = [
     title: 'Weather',
     subtitle: 'Check daily conditions',
     defaultData: () => {},
-    preview: const Column(
+    preview: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('23°  Rain', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
         SizedBox(height: 4),
-        Text('H:26°  L:15°  ·  Your location', style: TextStyle(color: Colors.black54)),
+        Builder(builder: (context) => Text('H:26°  L:15°  ·  Your location', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))),
       ],
     ),
   ),
@@ -86,10 +86,10 @@ final builtInTileSpecs = [
     title: 'Todo',
     subtitle: 'Track your daily tasks',
     defaultData: () => {'items': <Map<String, dynamic>>[]},
-    preview: const Column(
+    preview: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('☑  Water the plants', style: TextStyle(fontSize: 16, color: Colors.black45)),
+        Builder(builder: (context) => Text('☑  Water the plants', style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurfaceVariant))),
         SizedBox(height: 6),
         Text('☐  Call the bank', style: TextStyle(fontSize: 16)),
         SizedBox(height: 6),

@@ -199,7 +199,7 @@ void main() {
     expect(settings.clockPositionFor(HomeLayoutMode.minimal), ClockPosition.bottom);
   });
 
-  testWidgets('a deep gradient gives Home white text, even in the light theme', (WidgetTester tester) async {
+  testWidgets('a deep gradient gives Home light text, even in the light theme', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
       'settings_time_format': 'h24', // expects zero-padded 24-hour times
       'onboarding_complete': true,
@@ -210,7 +210,7 @@ void main() {
     await tester.pumpAndSettle();
     final now = DateTime.now();
     final time = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-    expect(tester.widget<Text>(find.text(time)).style!.color, Colors.white);
+    expect(tester.widget<Text>(find.text(time)).style!.color, const Color(0xFFEBEBEB)); // the dark palette's ink
     expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode, ThemeMode.light);
   });
 
@@ -237,14 +237,14 @@ void main() {
   testWidgets('the chosen font and text size apply app-wide', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
       'onboarding_complete': true,
-      'settings_font': 'dmSans',
+      'settings_font': 'notoSerif',
       'settings_text_size': 'large',
     });
 
     await tester.pumpWidget(const YinYangLauncherApp());
     await tester.pumpAndSettle();
     final home = tester.element(find.byType(HomePanel));
-    expect(Theme.of(home).textTheme.bodyMedium!.fontFamily, 'DM Sans');
+    expect(Theme.of(home).textTheme.bodyMedium!.fontFamily, 'Noto Serif');
     expect(MediaQuery.textScalerOf(home).scale(10), closeTo(11.5, 0.01));
   });
 
@@ -1354,5 +1354,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('FOCUS SESSION'), findsNothing);
     expect(find.text('Spotlight search'), findsOneWidget);
+  });
+
+  testWidgets('DM Sans and the original palette are the defaults', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true, 'settings_theme': 'dark'});
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    final theme = Theme.of(tester.element(find.byType(HomePanel)));    expect(theme.textTheme.bodyMedium!.fontFamily, 'DM Sans');
+    expect(theme.scaffoldBackgroundColor, Colors.black);
+    expect(theme.colorScheme.onSurface, const Color(0xFFEBEBEB));
+    expect(theme.colorScheme.onSurfaceVariant, const Color(0xFF757575));
   });
 }

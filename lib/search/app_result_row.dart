@@ -75,7 +75,7 @@ class AppIcon extends StatelessWidget {
       return Container(
         width: size,
         height: size,
-        decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(10)),
+        decoration: BoxDecoration(color: Theme.of(context).colorScheme.outlineVariant, borderRadius: BorderRadius.circular(10)),
         child: const Icon(Icons.apps, size: 20),
       );
     }

@@ -91,7 +91,7 @@ class _MusicTileState extends State<MusicTile> {
         false => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("See what's playing and control it here.", style: TextStyle(color: Colors.black54)),
+            Text("See what's playing and control it here.", style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
             const SizedBox(height: 8),
             OutlinedButton(
               onPressed: () => _askForAccess(context),
@@ -116,7 +116,7 @@ class MusicBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = nowPlaying;
-    if (now == null) return const Text('Nothing playing', style: TextStyle(color: Colors.black54));
+    if (now == null) return Text('Nothing playing', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant));
     final art = now.art;
     return Row(
       children: [
@@ -126,9 +126,9 @@ class MusicBody extends StatelessWidget {
             width: 56,
             height: 56,
             child: art == null
-                ? const ColoredBox(
-                    color: Colors.black12,
-                    child: Icon(Icons.music_note, color: Colors.black45),
+                ? ColoredBox(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                    child: Icon(Icons.music_note, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   )
                 // Grayscale, like the rest of the launcher.
                 : ColorFiltered(
@@ -154,7 +154,7 @@ class MusicBody extends StatelessWidget {
                   artist,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.black54),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               Row(
                 children: [

@@ -180,7 +180,7 @@ class _HomePanelState extends State<HomePanel> {
         ? _formatDate(_now)
         : '${_formatDate(_now)}, $_batteryLevel%';
 
-    final tourChip = _offerTour ? TourChip(ink: isDark ? Colors.white : Colors.black87) : null;
+    final tourChip = _offerTour ? TourChip(ink: Theme.of(context).colorScheme.onSurface) : null;
 
     return GestureDetector(
       onLongPress: () => showSettingsScreen(context),
@@ -251,8 +251,8 @@ class _Clock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primary = isDark ? Colors.white : Colors.black87;
-    final secondary = isDark ? Colors.white60 : Colors.black54;
+    final primary = Theme.of(context).colorScheme.onSurface;
+    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
     final date = Text(subtitle, style: TextStyle(fontSize: 15, color: secondary));
     // Tapping the clock or date opens the clock app, as on most launchers.
     return GestureDetector(
@@ -327,8 +327,8 @@ class _ClassicLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final tint = isDark ? Colors.white : Colors.black;
     final clock = _Clock(time: time, subtitle: subtitle, isDark: isDark, style: settings.clockStyle, fontSize: 40);
-    final iconColor = isDark ? Colors.white : Colors.black87;
-    final textColor = isDark ? Colors.white70 : Colors.black54;
+    final iconColor = Theme.of(context).colorScheme.onSurface;
+    final textColor = Theme.of(context).colorScheme.onSurfaceVariant;
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
       child: Column(
@@ -413,7 +413,7 @@ class _MinimalLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor = isDark ? Colors.white : Colors.black87;
+    final textColor = Theme.of(context).colorScheme.onSurface;
     final clock = _Clock(time: time, subtitle: subtitle, isDark: isDark, style: settings.clockStyle);
     final apps = [
       for (final (i, item) in dock.indexed)

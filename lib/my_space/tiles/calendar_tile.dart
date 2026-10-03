@@ -74,7 +74,7 @@ class _CalendarTileState extends State<CalendarTile> {
         false => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('See your next events here.', style: TextStyle(color: Colors.black54)),
+            Text('See your next events here.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
             const SizedBox(height: 8),
             OutlinedButton(
               onPressed: _requestAccess,
@@ -101,7 +101,7 @@ class CalendarBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (events.isEmpty) return const Text('Nothing in the next 7 days.', style: TextStyle(color: Colors.black54));
+    if (events.isEmpty) return Text('Nothing in the next 7 days.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant));
     final today = now ?? DateTime.now();
     String? lastDay;
     return Column(
@@ -112,7 +112,7 @@ class CalendarBody extends StatelessWidget {
             if (lastDay != null) const SizedBox(height: 8),
             Text(
               (lastDay = day).toUpperCase(),
-              style: const TextStyle(fontSize: 11, letterSpacing: 1.2, color: Colors.black45),
+              style: TextStyle(fontSize: 11, letterSpacing: 1.2, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
           InkWell(
@@ -125,7 +125,7 @@ class CalendarBody extends StatelessWidget {
                     width: 72,
                     child: Text(
                       event.allDay ? 'All day' : TimeOfDay.fromDateTime(event.begin).format(context),
-                      style: const TextStyle(color: Colors.black54),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ),
                   Expanded(

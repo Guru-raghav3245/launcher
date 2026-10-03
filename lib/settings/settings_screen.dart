@@ -123,7 +123,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Text(
                 'No settings match "${_query.text.trim()}"',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: isDark ? Colors.white60 : Colors.black54),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ),
           if (showToggles) ...[
@@ -143,14 +143,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
           if (showRestart) ...[
             const SizedBox(height: 24),
-            Divider(indent: 24, endIndent: 24, color: isDark ? Colors.white24 : Colors.black12),
+            Divider(indent: 24, endIndent: 24, color: Theme.of(context).colorScheme.outlineVariant),
             const SizedBox(height: 8),
             Center(
               child: TextButton.icon(
                 onPressed: () => _appChannel.invokeMethod('restart'),
                 icon: const Icon(Icons.refresh, size: 18),
                 label: const Text('Restart Launcher', style: TextStyle(fontSize: 18, letterSpacing: 0.5)),
-                style: TextButton.styleFrom(foregroundColor: isDark ? Colors.white60 : Colors.black54),
+                style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ),
           ],
@@ -172,7 +172,7 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(4, 16, 4, 12),
       child: Text(
         label,
-        style: TextStyle(fontSize: 18, letterSpacing: 1.5, color: isDark ? Colors.white60 : Colors.black54),
+        style: TextStyle(fontSize: 18, letterSpacing: 1.5, color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
     );
   }
@@ -187,7 +187,7 @@ class _SettingsGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stroke = isDark ? Colors.white24 : Colors.black26;
+    final stroke = Theme.of(context).colorScheme.outline;
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: stroke),

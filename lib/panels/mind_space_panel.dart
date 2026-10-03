@@ -389,8 +389,8 @@ class _Totals extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primary = isDark ? Colors.white : Colors.black87;
-    final secondary = isDark ? Colors.white60 : Colors.black54;
+    final primary = Theme.of(context).colorScheme.onSurface;
+    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -420,8 +420,8 @@ class _PerAppBreakdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (perApp.isEmpty) return const SizedBox.shrink();
-    final primary = isDark ? Colors.white : Colors.black87;
-    final secondary = isDark ? Colors.white60 : Colors.black54;
+    final primary = Theme.of(context).colorScheme.onSurface;
+    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -475,8 +475,8 @@ class _HabitsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final topPackage = habits.topPackage;
     if (topPackage == null) return const SizedBox.shrink();
-    final primary = isDark ? Colors.white : Colors.black87;
-    final secondary = isDark ? Colors.white60 : Colors.black54;
+    final primary = Theme.of(context).colorScheme.onSurface;
+    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
     final name = appsByPackage[topPackage]?.name ?? topPackage;
     final percent = (habits.topCount / habits.totalUnlocks * 100).round();
     return Column(
@@ -554,7 +554,7 @@ class _FocusQuickActionsState extends State<FocusQuickActions> {
   @override
   Widget build(BuildContext context) {
     final isDark = AppSettingsScope.of(context).isDark;
-    final primary = isDark ? Colors.white : Colors.black87;
+    final primary = Theme.of(context).colorScheme.onSurface;
     if (_status.active) {
       final remaining = _status.remaining;
       final label = remaining == null ? 'Focus Mode is on' : 'Focus Mode is on · ${formatScreenTime(remaining)} left';
@@ -600,14 +600,14 @@ class _QuickActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isDark ? Colors.white : Colors.black87;
+    final color = Theme.of(context).colorScheme.onSurface;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
-          border: Border.all(color: isDark ? Colors.white24 : Colors.black12),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -634,14 +634,14 @@ class _HourlyChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (hourly.isEmpty) return const SizedBox.shrink();
-    final barColor = isDark ? Colors.white70 : Colors.black87;
-    final labelColor = isDark ? Colors.white38 : Colors.black38;
+    final barColor = Theme.of(context).colorScheme.onSurface;
+    final labelColor = Theme.of(context).colorScheme.onSurfaceVariant;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Hourly usage',
-          style: TextStyle(fontSize: 13, color: isDark ? Colors.white60 : Colors.black54),
+          style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 12),
         SizedBox(

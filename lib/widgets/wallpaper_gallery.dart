@@ -24,7 +24,7 @@ class _WallpaperGalleryState extends State<WallpaperGallery> {
   Widget build(BuildContext context) {
     final settings = widget.settings;
     final selected = _forDark ? settings.darkWallpaper : settings.lightWallpaper;
-    final secondary = settings.isDark ? Colors.white60 : Colors.black54;
+    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
     Widget strip(String label, List<Wallpaper> wallpapers) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

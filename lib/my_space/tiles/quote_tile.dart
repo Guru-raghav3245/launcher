@@ -89,7 +89,7 @@ class QuoteBody extends StatelessWidget {
       children: [
         Text('“$text”', style: const TextStyle(fontSize: 17, height: 1.35)),
         const SizedBox(height: 8),
-        Text('— $author', style: const TextStyle(color: Colors.black54)),
+        Text('— $author', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
       ],
     );
   }

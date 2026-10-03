@@ -32,7 +32,7 @@ class _DrawerLookPageState extends State<DrawerLookPage> {
   Widget build(BuildContext context) {
     final settings = AppSettingsScope.of(context);
     final look = settings.drawerLook;
-    final stroke = settings.isDark ? Colors.white24 : Colors.black26;
+    final stroke = Theme.of(context).colorScheme.outline;
     void update(DrawerLook next) => settings.setDrawerLook(next);
     const sizes = [
       (DrawerItemSize.none, Icons.block, 'None'),

@@ -23,7 +23,7 @@ class FocusSessionView extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final ink = isDark ? Colors.white : Colors.black;
-    final secondary = isDark ? Colors.white60 : Colors.black54;
+    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
     final startedAt = status.startedAt;
     final endsAt = status.endsAt;
     final elapsed = startedAt == null ? null : now.difference(startedAt);
@@ -154,7 +154,7 @@ class _AllowedAppsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final ink = isDark ? Colors.white : Colors.black;
-    final secondary = isDark ? Colors.white60 : Colors.black54;
+    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
@@ -222,7 +222,7 @@ Future<void> _showSummary(BuildContext context, Duration? elapsed) {
     pageBuilder: (context, _, _) {
       final isDark = Theme.of(context).brightness == Brightness.dark;
       final ink = isDark ? Colors.white : Colors.black;
-      final secondary = isDark ? Colors.white60 : Colors.black54;
+      final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
       return Material(
         color: isDark ? Colors.black : Colors.white,
         child: SafeArea(

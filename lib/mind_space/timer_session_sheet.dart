@@ -72,7 +72,7 @@ class _TimerSessionSheetState extends State<_TimerSessionSheet> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final ink = isDark ? Colors.white : Colors.black;
-    final secondary = isDark ? Colors.white60 : Colors.black54;
+    final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
     final group = widget.group;
     final buttonShape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(12));
     return SafeArea(

@@ -16,8 +16,8 @@ Future<void> showTourPicker(BuildContext context) async {
     builder: (context) {
       final isDark = Theme.of(context).brightness == Brightness.dark;
       final ink = isDark ? Colors.white : Colors.black;
-      final secondary = isDark ? Colors.white60 : Colors.black54;
-      final stroke = isDark ? Colors.white24 : Colors.black26;
+      final secondary = Theme.of(context).colorScheme.onSurfaceVariant;
+      final stroke = Theme.of(context).colorScheme.outline;
       return SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
