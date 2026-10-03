@@ -35,7 +35,32 @@ class _AddTileSheetState extends State<_AddTileSheet> {
   bool _fromApps = false;
   bool _bindingWidget = false;
 
-  void _add(BuiltInTileSpec spec) {
+  /// Shows [spec]'s sample tile first; adds it only on "Add tile".
+  Future<void> _add(BuiltInTileSpec spec) async {
+    final add = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(spec.title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(spec.subtitle, style: const TextStyle(color: Colors.black54)),
+            const SizedBox(height: 16),
+            IgnorePointer(child: spec.previewCard),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
+            child: const Text('Add tile'),
+          ),
+        ],
+      ),
+    );
+    if (add != true || !mounted) return;
     final tile = MySpaceTile(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       kind: spec.kind,

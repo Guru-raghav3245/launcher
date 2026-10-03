@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/my_space_tile.dart';
 import '../models/tile_kind.dart';
 import '../my_space/add_tile_sheet.dart';
+import '../my_space/manage_tiles_page.dart';
 import '../my_space/tile_card.dart';
 import '../my_space/tiles/app_folder_tile.dart';
 import '../my_space/tiles/from_app_tile.dart';
@@ -51,6 +52,20 @@ class _MySpacePanelState extends State<MySpacePanel> {
     await _service.saveTiles(updated);
   }
 
+  Future<void> _manageTiles() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ManageTilesPage(
+          tiles: _tiles!,
+          onChanged: (tiles) {
+            setState(() => _tiles = tiles);
+            _service.saveTiles(tiles);
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tiles = _tiles;
@@ -59,16 +74,17 @@ class _MySpacePanelState extends State<MySpacePanel> {
           ? const Center(child: CircularProgressIndicator())
           : tiles.isEmpty
           ? _EmptyState(onAdd: _addTile)
-          : _TileList(tiles: tiles, onAdd: _addTile, onUpdate: _updateTileData),
+          : _TileList(tiles: tiles, onAdd: _addTile, onManage: _manageTiles, onUpdate: _updateTileData),
     );
   }
 }
 
 class _TileList extends StatelessWidget {
-  const _TileList({required this.tiles, required this.onAdd, required this.onUpdate});
+  const _TileList({required this.tiles, required this.onAdd, required this.onManage, required this.onUpdate});
 
   final List<MySpaceTile> tiles;
   final VoidCallback onAdd;
+  final VoidCallback onManage;
   final void Function(String id, Map<String, dynamic> data) onUpdate;
 
   @override
@@ -77,8 +93,19 @@ class _TileList extends StatelessWidget {
       children: [
         ListView.builder(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-          itemCount: tiles.length,
+          itemCount: tiles.length + 1,
           itemBuilder: (context, index) {
+            // After the last tile: the way into reordering and removing them.
+            if (index == tiles.length) {
+              return Center(
+                child: TextButton.icon(
+                  onPressed: onManage,
+                  icon: const Icon(Icons.tune),
+                  label: const Text('Manage tiles'),
+                  style: TextButton.styleFrom(foregroundColor: Colors.black54),
+                ),
+              );
+            }
             final tile = tiles[index];
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),

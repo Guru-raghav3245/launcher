@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:launcher/main.dart';
+import 'package:launcher/models/tile_kind.dart';
 import 'package:launcher/mind_space/tool_pages.dart';
 import 'package:launcher/onboarding/onboarding_flow.dart';
 import 'package:launcher/onboarding/steps/welcome_step.dart';
@@ -15,6 +16,7 @@ import 'package:launcher/panels/mind_space_panel.dart';
 import 'package:launcher/services/app_customizations_service.dart';
 import 'package:launcher/services/dock_service.dart';
 import 'package:launcher/services/focus_mode_service.dart';
+import 'package:launcher/services/my_space_service.dart';
 import 'package:launcher/settings/settings_screen.dart';
 
 void main() {
@@ -760,6 +762,63 @@ void main() {
     expect(find.text('Recent'), findsOneWidget);
     expect(find.text('Chrome'), findsOneWidget);
     expect(find.text('Camera'), findsNothing);
+  });
+
+  testWidgets('a built-in tile is previewed before it is added', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(400, 0), 1000); // swipe right → My Space
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add Your First Tile'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Notes'));
+    await tester.pumpAndSettle();
+    expect(find.text('Add tile'), findsOneWidget); // the preview, not the tile yet
+    expect(find.textContaining('Pick up the dry cleaning'), findsOneWidget);
+    await tester.tap(find.text('Add tile'));
+    await tester.pumpAndSettle();
+
+    final tiles = await const MySpaceService().loadTiles();
+    expect(tiles.single.kind, TileKind.notes);
+  });
+
+  testWidgets('Manage tiles reorders and removes tiles', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'my_space_tiles':
+          '[{"id":"n","kind":"notes","data":{"text":"Shopping list"}},'
+          '{"id":"t","kind":"todo","data":{"items":[{"text":"Run","done":true},{"text":"Read","done":false}]}}]',
+    });
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(400, 0), 1000); // swipe right → My Space
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Manage tiles'),
+      200,
+      scrollable: find.descendant(of: find.byType(MySpacePanel), matching: find.byType(Scrollable)).first,
+    );
+    await tester.tap(find.text('Manage tiles'));
+    await tester.pumpAndSettle();
+    expect(find.text('Shopping list'), findsOneWidget);
+    expect(find.text('1 of 2 done'), findsOneWidget);
+
+    // Drag Todo above Notes.
+    final handle = find.byIcon(Icons.drag_handle).last;
+    await tester.timedDrag(handle, const Offset(0, -150), const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+    expect((await const MySpaceService().loadTiles()).map((t) => t.id), ['t', 'n']);
+
+    // Remove Notes, after confirming.
+    await tester.tap(find.byIcon(Icons.delete_outline).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove'));
+    await tester.pumpAndSettle();
+    expect((await const MySpaceService().loadTiles()).map((t) => t.id), ['t']);
   });
 
   testWidgets('Action tab opens a tool through its one-time explainer', (WidgetTester tester) async {
