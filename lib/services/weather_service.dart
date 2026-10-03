@@ -4,18 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 
-/// One hour of forecast: local hour label ("3 PM") + temperature in °C.
+/// One hour of forecast: local [hour] (0-23) + temperature in °C.
+/// [hourLabel] ("3 PM") is only kept for snapshots cached before [hour]
+/// existed; labels are formatted at display time from [hour] otherwise.
 class HourlyForecast {
-  const HourlyForecast({required this.hourLabel, required this.tempC});
+  const HourlyForecast({required this.hourLabel, required this.tempC, this.hour});
 
   final String hourLabel;
   final double tempC;
+  final int? hour;
 
-  Map<String, dynamic> toJson() => {'hourLabel': hourLabel, 'tempC': tempC};
+  Map<String, dynamic> toJson() => {'hourLabel': hourLabel, 'tempC': tempC, 'hour': hour};
 
   factory HourlyForecast.fromJson(Map<String, dynamic> json) => HourlyForecast(
     hourLabel: json['hourLabel'] as String,
     tempC: (json['tempC'] as num).toDouble(),
+    hour: json['hour'] as int?,
   );
 }
 
@@ -116,7 +120,7 @@ class WeatherService {
     for (var i = 0; i < hourlyTimes.length; i++) {
       final time = DateTime.parse(hourlyTimes[i]);
       if (time.isBefore(now)) continue;
-      upcoming.add(HourlyForecast(hourLabel: _hourLabel(time), tempC: hourlyTemps[i].toDouble()));
+      upcoming.add(HourlyForecast(hourLabel: _hourLabel(time), tempC: hourlyTemps[i].toDouble(), hour: time.hour));
       if (upcoming.length == 6) break;
     }
 

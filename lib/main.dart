@@ -39,6 +39,14 @@ class _YinYangLauncherAppState extends State<YinYangLauncherApp> {
             themeMode: _settings.isDark ? ThemeMode.dark : ThemeMode.light,
             theme: launcherTheme(Brightness.light),
             darkTheme: launcherTheme(Brightness.dark),
+            // A chosen 12/24-hour format overrides the phone's for every
+            // time shown (TimeOfDay.format and Home's clock read this).
+            builder: (context, child) => _settings.timeFormat == TimeFormat.system
+                ? child!
+                : MediaQuery(
+                    data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: _settings.timeFormat == TimeFormat.h24),
+                    child: child!,
+                  ),
             home: FutureBuilder<void>(
               future: _settingsReady,
               builder: (context, snapshot) {

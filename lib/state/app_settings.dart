@@ -28,6 +28,12 @@ enum SwipeDownAction { spotlight, notifications, none }
 /// accessibility (recommended, keeps fingerprint unlock) or device admin.
 enum DoubleTapAction { none, lockAccessibility, lockDeviceAdmin }
 
+/// 12- or 24-hour times across the launcher; [system] follows the phone.
+enum TimeFormat { system, h12, h24 }
+
+/// The Weather tile's temperature unit (stored data stays in °C).
+enum TempUnit { celsius, fahrenheit }
+
 /// How Home draws its clock (Phase 10 task 2).
 enum ClockStyle { standard, large, compact }
 
@@ -97,6 +103,16 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
   /// Classic layout's Spotlight search pill.
   bool get showSearchBar => _showSearchBar;
 
+  TimeFormat _timeFormat = TimeFormat.system;
+  TimeFormat get timeFormat => _timeFormat;
+
+  TempUnit _tempUnit = TempUnit.celsius;
+  TempUnit get tempUnit => _tempUnit;
+
+  /// [celsius] as a rounded temperature in the chosen unit, e.g. "73°".
+  String formatTemp(double celsius) =>
+      '${(_tempUnit == TempUnit.fahrenheit ? celsius * 9 / 5 + 32 : celsius).round()}°';
+
   bool _showStatusBar = true;
   bool get showStatusBar => _showStatusBar;
 
@@ -111,6 +127,8 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
     _clockStyle = ClockStyle.values.byName(prefs.getString('settings_clock_style') ?? ClockStyle.standard.name);
     final position = prefs.getString('settings_clock_position');
     _clockPosition = position == null ? null : ClockPosition.values.byName(position);
+    _timeFormat = TimeFormat.values.byName(prefs.getString('settings_time_format') ?? TimeFormat.system.name);
+    _tempUnit = TempUnit.values.byName(prefs.getString('settings_temp_unit') ?? TempUnit.celsius.name);
     _showSearchBar = prefs.getBool('settings_show_search_bar') ?? true;
     _showStatusBar = prefs.getBool('settings_show_status_bar') ?? true;
     if (!_showStatusBar) _applyStatusBar(); // shown is the window's default
@@ -202,6 +220,12 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
     () => _clockPosition = value,
     (p) => p.setString('settings_clock_position', value.name),
   );
+
+  Future<void> setTimeFormat(TimeFormat value) =>
+      _save(_timeFormat != value, () => _timeFormat = value, (p) => p.setString('settings_time_format', value.name));
+
+  Future<void> setTempUnit(TempUnit value) =>
+      _save(_tempUnit != value, () => _tempUnit = value, (p) => p.setString('settings_temp_unit', value.name));
 
   Future<void> setShowSearchBar(bool value) =>
       _save(_showSearchBar != value, () => _showSearchBar = value, (p) => p.setBool('settings_show_search_bar', value));

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/my_space_tile.dart';
 import '../../services/weather_service.dart';
+import '../../state/app_settings_scope.dart';
 import '../tile_card.dart';
 
 /// Weather tile: current temp/hi-lo/location + hourly forecast for the
@@ -104,8 +105,17 @@ class _WeatherBody extends StatelessWidget {
 
   final WeatherSnapshot snapshot;
 
+  /// "3 PM" or "15:00", per the time format (Settings → Time & units).
+  static String _hourLabel(BuildContext context, HourlyForecast hour) {
+    final h = hour.hour;
+    if (h == null) return hour.hourLabel;
+    if (MediaQuery.alwaysUse24HourFormatOf(context)) return '${h.toString().padLeft(2, '0')}:00';
+    return '${h % 12 == 0 ? 12 : h % 12} ${h < 12 ? 'AM' : 'PM'}';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final settings = AppSettingsScope.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -113,7 +123,7 @@ class _WeatherBody extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              '${snapshot.tempC.round()}°',
+              settings.formatTemp(snapshot.tempC),
               style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, height: 1),
             ),
             const SizedBox(width: 10),
@@ -125,7 +135,7 @@ class _WeatherBody extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'H:${snapshot.hiC.round()}°  L:${snapshot.loC.round()}°  ·  ${snapshot.locationName}',
+          'H:${settings.formatTemp(snapshot.hiC)}  L:${settings.formatTemp(snapshot.loC)}  ·  ${snapshot.locationName}',
           style: const TextStyle(color: Colors.black45, fontSize: 13),
         ),
         if (snapshot.hourly.isNotEmpty) ...[
@@ -139,9 +149,9 @@ class _WeatherBody extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(hour.hourLabel, style: const TextStyle(fontSize: 11, color: Colors.black45)),
+                        Text(_hourLabel(context, hour), style: const TextStyle(fontSize: 11, color: Colors.black45)),
                         const SizedBox(height: 6),
-                        Text('${hour.tempC.round()}°', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                        Text(settings.formatTemp(hour.tempC), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),

@@ -45,8 +45,10 @@ const _monthNames = [
   'Dec',
 ];
 
-String _formatTime(DateTime time) {
-  final hour = time.hour.toString().padLeft(2, '0');
+/// "20:30" in 24-hour, "8:30" in 12-hour (no AM/PM on Home's big clock,
+/// like most launchers; the format follows Settings → Time & units).
+String _formatTime(DateTime time, {required bool use24}) {
+  final hour = use24 ? time.hour.toString().padLeft(2, '0') : '${time.hour % 12 == 0 ? 12 : time.hour % 12}';
   final minute = time.minute.toString().padLeft(2, '0');
   return '$hour:$minute';
 }
@@ -186,7 +188,7 @@ class _HomePanelState extends State<HomePanel> {
                   ? FocusSessionView(status: _focus, now: _now)
                   : settings.layoutMode == HomeLayoutMode.classic
                   ? _ClassicLayout(
-                      time: _formatTime(_now),
+                      time: _formatTime(_now, use24: MediaQuery.alwaysUse24HourFormatOf(context)),
                       subtitle: subtitle,
                       isDark: isDark,
                       settings: settings,
@@ -195,7 +197,7 @@ class _HomePanelState extends State<HomePanel> {
                       onChange: _changeSlot,
                     )
                   : _MinimalLayout(
-                      time: _formatTime(_now),
+                      time: _formatTime(_now, use24: MediaQuery.alwaysUse24HourFormatOf(context)),
                       subtitle: subtitle,
                       isDark: isDark,
                       settings: settings,

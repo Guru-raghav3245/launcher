@@ -158,6 +158,7 @@ void main() {
     WidgetTester tester,
   ) async {
     SharedPreferences.setMockInitialValues({
+      'settings_time_format': 'h24', // expects zero-padded 24-hour times
       'onboarding_complete': true,
       'settings_clock_style': 'large',
       'settings_clock_position': 'bottom',
@@ -195,7 +196,11 @@ void main() {
   });
 
   testWidgets('a deep gradient gives Home white text, even in the light theme', (WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({'onboarding_complete': true, 'settings_wallpaper_light': 'gradient-ocean'});
+    SharedPreferences.setMockInitialValues({
+      'settings_time_format': 'h24', // expects zero-padded 24-hour times
+      'onboarding_complete': true,
+      'settings_wallpaper_light': 'gradient-ocean',
+    });
 
     await tester.pumpWidget(const YinYangLauncherApp());
     await tester.pumpAndSettle();
@@ -203,6 +208,26 @@ void main() {
     final time = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
     expect(tester.widget<Text>(find.text(time)).style!.color, Colors.white);
     expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode, ThemeMode.light);
+  });
+
+  testWidgets('a 12-hour time format drops the leading zero on Home and applies app-wide', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true, 'settings_time_format': 'h12'});
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    final now = DateTime.now();
+    final hour12 = now.hour % 12 == 0 ? 12 : now.hour % 12;
+    expect(find.text('$hour12:${now.minute.toString().padLeft(2, '0')}'), findsOneWidget);
+    expect(MediaQuery.alwaysUse24HourFormatOf(tester.element(find.byType(HomePanel))), false);
+  });
+
+  testWidgets('temperatures convert to Fahrenheit when chosen', (WidgetTester tester) async {
+    final settings = AppSettings();
+    expect(settings.formatTemp(20), '20°');
+    SharedPreferences.setMockInitialValues({});
+    await settings.setTempUnit(TempUnit.fahrenheit);
+    expect(settings.formatTemp(20), '68°');
+    expect(settings.formatTemp(-40), '-40°');
   });
 
   testWidgets('Launcher Settings switches layout and re-runs onboarding', (WidgetTester tester) async {
@@ -287,7 +312,10 @@ void main() {
   });
 
   testWidgets('tapping the Home clock opens the clock app', (WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+    SharedPreferences.setMockInitialValues({
+      'settings_time_format': 'h24', // expects zero-padded 24-hour times
+      'onboarding_complete': true,
+    });
     final calls = <String>[];
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/app'), (
       call,

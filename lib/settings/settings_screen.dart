@@ -53,6 +53,7 @@ const _entries = <_SettingsEntry>[
   (group: 'Settings', icon: Icons.contrast, title: 'Launcher Settings', onTap: _showLauncherSettings),
   (group: 'Settings', icon: Icons.apps, title: 'App Drawer & Search', onTap: _showDrawerSettings),
   (group: 'Settings', icon: Icons.swipe_outlined, title: 'Gestures', onTap: _showGestures),
+  (group: 'Settings', icon: Icons.schedule, title: 'Time & units', onTap: _showTimeAndUnits),
   (group: 'Settings', icon: Icons.settings_outlined, title: 'System Settings', onTap: _showSystemSettings),
   (group: 'Settings', icon: Icons.verified_outlined, title: 'Allowed apps', onTap: _showAllowedApps),
   (group: 'Settings', icon: Icons.visibility_off_outlined, title: 'Hidden apps', onTap: _showHiddenApps),
@@ -382,6 +383,36 @@ void _showAppearance(BuildContext context) {
       _labeled(
         'Theme',
         SegmentedToggle<ThemeChoice>(value: settings.theme, onChanged: settings.setTheme, options: _themeOptions),
+      ),
+    ],
+  );
+}
+
+/// Time & units: 12/24-hour times everywhere, and the Weather tile's unit.
+void _showTimeAndUnits(BuildContext context) {
+  _showSubSheet(
+    context,
+    'Time & units',
+    (context, settings) => [
+      _labeledAbove(
+        'Time format',
+        SegmentedToggle<TimeFormat>(
+          value: settings.timeFormat,
+          onChanged: settings.setTimeFormat,
+          options: const [
+            (TimeFormat.system, Icons.phone_android, 'Phone'),
+            (TimeFormat.h12, Icons.schedule, '12-hour'),
+            (TimeFormat.h24, Icons.schedule, '24-hour'),
+          ],
+        ),
+      ),
+      _labeled(
+        'Temperature',
+        SegmentedToggle<TempUnit>(
+          value: settings.tempUnit,
+          onChanged: settings.setTempUnit,
+          options: const [(TempUnit.celsius, Icons.thermostat, '°C'), (TempUnit.fahrenheit, Icons.thermostat, '°F')],
+        ),
       ),
     ],
   );
