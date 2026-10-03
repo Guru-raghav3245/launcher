@@ -4,6 +4,9 @@ import '../panels/mind_space_panel.dart';
 import '../search/app_multi_picker_sheet.dart';
 import '../services/focus_mode_service.dart';
 import '../services/mindful_pause_service.dart';
+import '../services/mindful_timer_service.dart';
+import '../services/usage_stats_service.dart';
+import 'timer_group_editor.dart';
 
 /// Mindful Pause settings: how long the breathing screen lasts, and which
 /// apps get it.
@@ -119,6 +122,110 @@ class _FocusModePageState extends State<FocusModePage> {
             );
             await _refresh();
           },
+        ),
+      ],
+    );
+  }
+}
+
+/// Mindful Timer: the app groups with a daily limit, plus a nudge to grant
+/// usage access, which the limits are measured with.
+class MindfulTimerPage extends StatefulWidget {
+  const MindfulTimerPage({super.key});
+
+  @override
+  State<MindfulTimerPage> createState() => _MindfulTimerPageState();
+}
+
+class _MindfulTimerPageState extends State<MindfulTimerPage> {
+  final _timer = const MindfulTimerService();
+  late final _lifecycle = AppLifecycleListener(onResume: _refresh);
+  List<TimerGroup>? _groups;
+  var _hasUsageAccess = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycle;
+    _refresh();
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    final groups = await _timer.groups();
+    var access = true;
+    try {
+      access = await const UsageStatsService().hasAccess();
+    } catch (_) {
+      // No usage channel (tests).
+    }
+    if (!mounted) return;
+    setState(() {
+      _groups = groups;
+      _hasUsageAccess = access;
+    });
+  }
+
+  Future<void> _edit([TimerGroup? group]) async {
+    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TimerGroupEditor(group: group)));
+    await _refresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final groups = _groups;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final stroke = isDark ? Colors.white24 : Colors.black26;
+    return _ToolScaffold(
+      title: 'Mindful Timer',
+      children: [
+        if (!_hasUsageAccess)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.query_stats),
+              title: const Text('Allow usage access'),
+              subtitle: const Text('Daily limits are measured from your app usage.'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: const UsageStatsService().requestAccess,
+            ),
+          ),
+        if (groups != null)
+          for (final group in groups)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Container(
+                decoration: BoxDecoration(border: Border.all(color: stroke), borderRadius: BorderRadius.circular(16)),
+                clipBehavior: Clip.antiAlias,
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                  leading: const Icon(Icons.timer_outlined),
+                  title: Text(group.name, style: const TextStyle(fontSize: 18)),
+                  subtitle: Text(
+                    '${group.packages.length} ${group.packages.length == 1 ? 'app' : 'apps'} · '
+                    '${formatScreenTime(Duration(minutes: group.dailyMinutes))} a day'
+                    '${group.cooldownMinutes == 0 ? '' : ' · ${group.cooldownMinutes} min cooldown'}',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _edit(group),
+                ),
+              ),
+            ),
+        OutlinedButton.icon(
+          onPressed: _edit,
+          icon: const Icon(Icons.add),
+          label: const Text('New timer'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: isDark ? Colors.white : Colors.black,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
         ),
       ],
     );

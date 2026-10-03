@@ -9,6 +9,9 @@
          that's expected for this one. -->
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions"/>
+    <!-- Mindful Timer's "Time's up" screen over the timed app (Phase 7
+         task 6); granted on Settings.ACTION_MANAGE_OVERLAY_PERMISSION. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
     <application
         android:label="launcher"
         android:name="${applicationName}"

@@ -298,6 +298,71 @@ void main() {
     expect(started, hasLength(1));
   });
 
+  testWidgets('Mindful Timer asks for a session length, and refuses once the budget is spent', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'mindful_timer_groups':
+          '[{"id":"b","name":"Browsing","packages":["com.chrome"],"dailyMinutes":30,"cooldownMinutes":0}]',
+    });
+    final started = <Object?>[];
+    final sessions = <Object?>[];
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(const MethodChannel('installed_apps'), (call) async {
+      if (call.method == 'startApp') {
+        started.add(call.arguments);
+        return true;
+      }
+      return [
+        {'name': 'Chrome', 'package_name': 'com.chrome'},
+      ];
+    });
+    messenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/timer'), (call) async {
+      sessions.add(call.arguments);
+      return null;
+    });
+    var usedMinutes = 0;
+    messenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/usage'), (call) async {
+      if (call.method == 'hasAccess') return true;
+      return [
+        {'packageName': 'com.chrome', 'type': 'foreground', 'timestamp': 0},
+        {'packageName': 'com.chrome', 'type': 'background', 'timestamp': usedMinutes * 60000},
+      ];
+    });
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up → App Drawer
+    await tester.pumpAndSettle();
+
+    // Close cancels the launch.
+    await tester.tap(find.text('Chrome'));
+    await tester.pumpAndSettle();
+    expect(find.text('Choose session length'), findsOneWidget);
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
+    expect(started, isEmpty);
+
+    // Start Session launches with the default 3 minutes.
+    await tester.tap(find.text('Chrome'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start Session'));
+    await tester.pumpAndSettle();
+    expect(started, hasLength(1));
+    expect(sessions, [
+      {'packageName': 'com.chrome', 'appName': 'Chrome', 'minutes': 3},
+    ]);
+
+    // With the 30 minutes used up, it's refused with a message.
+    usedMinutes = 30;
+    await tester.tap(find.text('Chrome'));
+    await tester.pumpAndSettle();
+    expect(find.text('Choose session length'), findsNothing);
+    expect(find.text("Browsing · today's 30 min are used up"), findsOneWidget);
+    expect(started, hasLength(1));
+  });
+
   testWidgets('Action tab opens a tool through its one-time explainer', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(

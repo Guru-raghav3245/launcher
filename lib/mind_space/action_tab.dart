@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'tool_intro.dart';
 import 'tool_pages.dart';
 
-/// The tools in Mind Space's Action tab, in display order. Mindful Timer
-/// and Mindful Break join this list as Phase 7 tasks 6-7 build them.
+/// The tools in Mind Space's Action tab, in display order. Mindful Break
+/// joins this list in Phase 7 task 7.
 final mindSpaceTools = [
   MindSpaceTool(
     id: 'mindful_pause',
@@ -21,6 +21,22 @@ final mindSpaceTools = [
         'Choose the apps to pause and how long the pause lasts (10 to 60 seconds). Opening one from '
         "this launcher shows the pause, along with how much you've used it today.",
     page: (context) => const MindfulPausePage(),
+  ),
+  MindSpaceTool(
+    id: 'mindful_timer',
+    icon: Icons.timer_outlined,
+    title: 'Mindful Timer',
+    summary: 'A daily limit, and a length for every session.',
+    whatItDoes:
+        'Gives a group of apps one daily time limit. Each time you open one, you choose how long this '
+        "session lasts; when it's up, a Time's up screen covers the app.",
+    whyItMatters:
+        'Endless feeds are built to have no natural stopping point. Deciding the length up front gives '
+        'you one, and the daily limit keeps small sessions from adding up.',
+    howItWorks:
+        'Make a timer: name it, pick its apps, set the daily limit and an optional cooldown between '
+        "sessions. Once the limit is used up, those apps won't open from this launcher until tomorrow.",
+    page: (context) => const MindfulTimerPage(),
   ),
   MindSpaceTool(
     id: 'focus_mode',
