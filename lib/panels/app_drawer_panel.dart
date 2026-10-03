@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
 
+import '../search/app_menu_sheet.dart';
 import '../search/app_result_row.dart';
 import '../search/app_search.dart';
 import '../search/app_search_bar.dart';
@@ -77,14 +78,20 @@ class _AppDrawerPanelState extends State<AppDrawerPanel> with ShowsVisibleApps {
                     sortMode: _sortMode,
                   );
 
+                  final pinned = customizations.pinned;
+                  void openMenu(AppInfo app) => showAppMenu(context, app, pinned: pinned.contains(app.packageName));
+
                   if (showSections) {
+                    final byPackage = {for (final app in apps) app.packageName: app};
                     return _DrawerList(
                       apps: apps,
+                      pinned: [for (final p in pinned) ?byPackage[p]],
                       scrollController: _scrollController,
                       onLaunch: (app) => launchApp(context, app),
+                      onMenu: openMenu,
                     );
                   }
-                  return _FlatList(apps: apps, onLaunch: (app) => launchApp(context, app));
+                  return _FlatList(apps: apps, onLaunch: (app) => launchApp(context, app), onMenu: openMenu);
                 },
               ),
             ),
@@ -96,10 +103,11 @@ class _AppDrawerPanelState extends State<AppDrawerPanel> with ShowsVisibleApps {
 }
 
 class _FlatList extends StatelessWidget {
-  const _FlatList({required this.apps, required this.onLaunch});
+  const _FlatList({required this.apps, required this.onLaunch, required this.onMenu});
 
   final List<AppInfo> apps;
   final ValueChanged<AppInfo> onLaunch;
+  final ValueChanged<AppInfo> onMenu;
 
   @override
   Widget build(BuildContext context) {
@@ -110,7 +118,7 @@ class _FlatList extends StatelessWidget {
       itemCount: apps.length,
       itemBuilder: (context, index) {
         final app = apps[index];
-        return AppResultRow(app: app, onTap: () => onLaunch(app));
+        return AppResultRow(app: app, onTap: () => onLaunch(app), onLongPress: () => onMenu(app));
       },
     );
   }
@@ -119,13 +127,19 @@ class _FlatList extends StatelessWidget {
 class _DrawerList extends StatelessWidget {
   const _DrawerList({
     required this.apps,
+    required this.pinned,
     required this.scrollController,
     required this.onLaunch,
+    required this.onMenu,
   });
 
   final List<AppInfo> apps;
+
+  /// Shown first, under ★, in pin order (they stay in their letter too).
+  final List<AppInfo> pinned;
   final ScrollController scrollController;
   final ValueChanged<AppInfo> onLaunch;
+  final ValueChanged<AppInfo> onMenu;
 
   @override
   Widget build(BuildContext context) {
@@ -136,8 +150,10 @@ class _DrawerList extends StatelessWidget {
     final flatItems = <Object>[];
     final sectionOffsets = <String, double>{};
     var runningHeight = 0.0;
-    for (final app in apps) {
-      final key = _sectionKey(app.name);
+    for (final (key, app) in [
+      for (final app in pinned) ('★', app),
+      for (final app in apps) (_sectionKey(app.name), app),
+    ]) {
       if (!sectionOffsets.containsKey(key)) {
         sectionOffsets[key] = runningHeight;
         flatItems.add(key);
@@ -157,7 +173,8 @@ class _DrawerList extends StatelessWidget {
           itemBuilder: (context, index) {
             final item = flatItems[index];
             if (item is String) return _SectionHeader(letter: item);
-            return AppResultRow(app: item as AppInfo, onTap: () => onLaunch(item));
+            final app = item as AppInfo;
+            return AppResultRow(app: app, onTap: () => onLaunch(app), onLongPress: () => onMenu(app));
           },
         ),
         Positioned(

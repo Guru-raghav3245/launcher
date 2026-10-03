@@ -2,6 +2,7 @@ package com.example.launcher
 
 import android.app.role.RoleManager
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.provider.Telephony
@@ -35,15 +36,26 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
-        // Settings' "Restart Launcher": relaunch this activity in a fresh task,
-        // then kill the process so all Dart/native state starts over.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, APP_CHANNEL).setMethodCallHandler { call, result ->
-            if (call.method == "restart") {
-                startActivity(Intent.makeRestartActivityTask(componentName))
-                result.success(null)
-                Runtime.getRuntime().exit(0)
-            } else {
-                result.notImplemented()
+            when (call.method) {
+                // Settings' "Restart Launcher": relaunch this activity in a fresh
+                // task, then kill the process so all Dart/native state starts over.
+                "restart" -> {
+                    startActivity(Intent.makeRestartActivityTask(componentName))
+                    result.success(null)
+                    Runtime.getRuntime().exit(0)
+                }
+                // The App Drawer menu's "App info": the system page for one app.
+                "openAppInfo" -> {
+                    startActivity(
+                        Intent(
+                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.parse("package:${call.argument<String>("packageName")}"),
+                        ),
+                    )
+                    result.success(null)
+                }
+                else -> result.notImplemented()
             }
         }
         appWidgetBridge = AppWidgetHostBridge(this)

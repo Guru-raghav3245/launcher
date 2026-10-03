@@ -6,10 +6,18 @@ import 'package:installed_apps/app_info.dart';
 /// A single app row (icon + name), shared by the App Drawer's flat/search
 /// results and Spotlight Search.
 class AppResultRow extends StatelessWidget {
-  const AppResultRow({super.key, required this.app, required this.onTap, this.height = 64, this.trailing});
+  const AppResultRow({
+    super.key,
+    required this.app,
+    required this.onTap,
+    this.onLongPress,
+    this.height = 64,
+    this.trailing,
+  });
 
   final AppInfo app;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
   final double height;
   final Widget? trailing;
 
@@ -19,6 +27,7 @@ class AppResultRow extends StatelessWidget {
       height: height,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(

@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:installed_apps/app_info.dart';
 import 'package:installed_apps/installed_apps.dart';
 
@@ -18,6 +19,11 @@ class InstalledAppsService {
       withIcon: true,
     );
   }
+
+  /// Opens Android's App info page for [packageName] (storage, permissions,
+  /// uninstall, ...).
+  Future<void> openAppInfo(String packageName) =>
+      const MethodChannel('yinyang.launcher/app').invokeMethod('openAppInfo', {'packageName': packageName});
 
   /// Launches [packageName], unless Focus Mode is active, in which case the
   /// launch is refused (returns false) and no app opens.

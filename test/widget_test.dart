@@ -486,6 +486,52 @@ void main() {
     expect(find.text('Camera'), findsNothing);
   });
 
+  testWidgets('the drawer long-press menu pins, renames, and hides an app', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('installed_apps'),
+      (call) async => [
+        {'name': 'Camera', 'package_name': 'com.camera'},
+        {'name': 'Chrome', 'package_name': 'com.chrome'},
+      ],
+    );
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up → App Drawer
+    await tester.pumpAndSettle();
+
+    // Pin: Chrome also shows under a ★ section at the top.
+    await tester.longPress(find.text('Chrome'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pin to top'));
+    await tester.pumpAndSettle();
+    expect(find.text('★'), findsWidgets); // the section header (and its index entry)
+    expect(find.text('Chrome'), findsNWidgets(2));
+
+    // Rename.
+    await tester.longPress(find.text('Chrome').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Unpin'), findsOneWidget);
+    await tester.tap(find.text('Rename'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, 'Web');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(find.text('Web'), findsNWidgets(2));
+    expect(find.text('Chrome'), findsNothing);
+
+    // Hide, then Undo.
+    await tester.longPress(find.text('Camera'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Hide'));
+    await tester.pumpAndSettle();
+    expect(find.text('Camera'), findsNothing);
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(find.text('Camera'), findsOneWidget);
+  });
+
   testWidgets('Action tab opens a tool through its one-time explainer', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
