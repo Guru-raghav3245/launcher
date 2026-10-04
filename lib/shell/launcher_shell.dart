@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../my_space/on_screen.dart';
 import '../panels/app_drawer_panel.dart';
 import '../panels/home_panel.dart';
 import '../panels/mind_space_panel.dart';
@@ -39,11 +40,30 @@ class _LauncherShellState extends State<LauncherShell> {
   bool? _hasSpotlight;
   var _pulledDown = false;
 
+  // What [mySpaceOnScreen] is worked out from: the row's page (My Space is
+  // 0), whether the vertical pager is on the row, and whether the launcher
+  // is in front.
+  var _rowPage = 1;
+  var _onRow = true;
+  var _inFront = true;
+  late final _lifecycle = AppLifecycleListener(
+    onShow: () => _setVisibility(inFront: true),
+    onHide: () => _setVisibility(inFront: false),
+  );
+
+  void _setVisibility({int? rowPage, bool? onRow, bool? inFront}) {
+    _rowPage = rowPage ?? _rowPage;
+    _onRow = onRow ?? _onRow;
+    _inFront = inFront ?? _inFront;
+    mySpaceOnScreen.value = _rowPage == 0 && _onRow && _inFront;
+  }
+
   static const _appChannel = MethodChannel('student.launcher/app');
 
   @override
   void initState() {
     super.initState();
+    _lifecycle;
     // The Home key, pressed while the launcher is already up (MainActivity's
     // onNewIntent): close any sheet or page and go back to the Home panel.
     _appChannel.setMethodCallHandler((call) async {
@@ -68,6 +88,8 @@ class _LauncherShellState extends State<LauncherShell> {
   @override
   void dispose() {
     _appChannel.setMethodCallHandler(null);
+    _lifecycle.dispose();
+    mySpaceOnScreen.value = false;
     _rowController.dispose();
     _verticalController?.dispose();
     _spotlightShown.dispose();
@@ -99,6 +121,7 @@ class _LauncherShellState extends State<LauncherShell> {
       _verticalController?.dispose();
       _verticalController = PageController(initialPage: hasSpotlight ? 1 : 0);
       _hasSpotlight = hasSpotlight;
+      _onRow = true; // the rebuilt pager starts on the row
     }
     final spotlightPages = hasSpotlight ? 1 : 0;
     return Scaffold(
@@ -113,6 +136,7 @@ class _LauncherShellState extends State<LauncherShell> {
             HapticFeedback.selectionClick();
             _spotlightShown.value = hasSpotlight && page == 0;
             _drawerShown.value = page == 1 + spotlightPages;
+            _setVisibility(onRow: page == spotlightPages);
             if (_drawerShown.value) TourService.complete(Tour.findApps);
           },
           children: [
@@ -123,6 +147,7 @@ class _LauncherShellState extends State<LauncherShell> {
               // A running tour is done once its page arrives.
               onPageChanged: (page) {
                 HapticFeedback.selectionClick();
+                _setVisibility(rowPage: page);
                 switch (page) {
                   case 0:
                     TourService.complete(Tour.organizeDay);

@@ -5,12 +5,14 @@ import '../models/tile_kind.dart';
 import '../panels/mind_space_panel.dart';
 import '../services/calendar_service.dart';
 import '../services/music_service.dart';
+import '../services/system_stats_service.dart';
 import 'tile_card.dart';
 import 'tiles/calendar_tile.dart';
 import 'tiles/hydration_tile.dart';
 import 'tiles/music_tile.dart';
 import 'tiles/quote_tile.dart';
 import 'tiles/screen_time_tile.dart';
+import 'tiles/system_tile.dart';
 
 /// Describes one row in the "Add New Tile" sheet's Built-in tab: what the
 /// tile is called, the data a new one starts with, and a sample of how it
@@ -176,7 +178,19 @@ final builtInTileSpecs = [
       nowPlaying: NowPlaying(title: 'Clair de lune', artist: 'Claude Debussy', packageName: '', playing: true),
     ),
   ),
+  const BuiltInTileSpec(
+    kind: TileKind.system,
+    icon: Icons.memory,
+    title: 'RAM & Storage',
+    subtitle: 'Memory and storage in use, live',
+    defaultData: _noData,
+    preview: SystemBody(
+      stats: SystemStats(ramTotal: 2850000000, ramAvailable: 1080000000, storageTotal: 64000000000, storageFree: 41000000000),
+    ),
+  ),
 ];
+
+Map<String, dynamic> _noData() => {};
 
 /// How a tile is named in lists like Manage Tiles: its spec's title, or the
 /// widget's own label for a From-Apps tile.

@@ -13,6 +13,7 @@ import '../my_space/tiles/music_tile.dart';
 import '../my_space/tiles/notes_tile.dart';
 import '../my_space/tiles/quote_tile.dart';
 import '../my_space/tiles/screen_time_tile.dart';
+import '../my_space/tiles/system_tile.dart';
 import '../my_space/tiles/todo_tile.dart';
 import '../my_space/tiles/weather_tile.dart';
 import '../services/my_space_service.dart';
@@ -147,6 +148,7 @@ class _TileList extends StatelessWidget {
             TileKind.screenTime => const ScreenTimeTile(),
             TileKind.calendar => const CalendarTile(),
             TileKind.music => const MusicTile(),
+            TileKind.system => const SystemTile(),
           },
         );
       },

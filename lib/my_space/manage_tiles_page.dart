@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/my_space_tile.dart';
 import '../models/tile_kind.dart';
 import '../services/app_widget_service.dart';
+import '../services/system_stats_service.dart';
 import 'built_in_tile_specs.dart';
 import 'tiles/hydration_tile.dart';
 import 'tiles/quote_tile.dart';
@@ -32,6 +33,8 @@ String _summary(MySpaceTile tile) {
       return 'Your next events';
     case TileKind.screenTime:
       return "Today's usage and top apps";
+    case TileKind.system:
+      return systemStatsSummary(SystemStatsService.last);
     case TileKind.quote:
       return 'Today: ${quotes[quoteIndex(data, DateTime.now())].$2}';
   }

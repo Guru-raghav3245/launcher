@@ -1,6 +1,7 @@
 package com.example.launcher
 
 import android.app.Activity
+import android.app.ActivityManager
 import android.app.WallpaperManager
 import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
@@ -12,6 +13,8 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
+import android.os.StatFs
 import android.provider.AlarmClock
 import android.provider.MediaStore
 import android.provider.Settings
@@ -100,6 +103,22 @@ class MainActivity : FlutterActivity() {
                     setStream(ByteArrayInputStream(call.argument<ByteArray>("png")!!), null, true, WallpaperManager.FLAG_LOCK)
                 }
                 "clearLockWallpaper" -> lockWallpaper(result) { clear(WallpaperManager.FLAG_LOCK) }
+                // The RAM & Storage tile (Phase 12 task 5): memory as Android
+                // reports it to apps, and the data partition apps live on.
+                "systemStats" -> {
+                    val memory = ActivityManager.MemoryInfo()
+                    getSystemService(ActivityManager::class.java).getMemoryInfo(memory)
+                    val storage = StatFs(Environment.getDataDirectory().path)
+                    result.success(
+                        mapOf(
+                            "ramTotal" to memory.totalMem,
+                            "ramAvailable" to memory.availMem,
+                            "lowMemory" to memory.lowMemory,
+                            "storageTotal" to storage.totalBytes,
+                            "storageFree" to storage.availableBytes,
+                        ),
+                    )
+                }
                 else -> result.notImplemented()
             }
         }

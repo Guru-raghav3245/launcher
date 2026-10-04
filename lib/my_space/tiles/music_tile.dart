@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../services/music_service.dart';
+import '../on_screen.dart';
 import '../tile_card.dart';
 
 /// Explains notification access before sending the user to Android's
@@ -28,7 +29,7 @@ Future<void> _askForAccess(BuildContext context) async {
 
 /// Music tile: what's playing (art, title, artist) with previous /
 /// play-pause / next. Asks for notification access from a button on the tile.
-// ponytail: polls every few seconds while on screen; a MediaController
+// ponytail: polls every few seconds while My Space is on screen; a MediaController
 // callback pushed over a channel would be instant, if the lag ever matters.
 class MusicTile extends StatefulWidget {
   const MusicTile({super.key});
@@ -37,24 +38,26 @@ class MusicTile extends StatefulWidget {
   State<MusicTile> createState() => _MusicTileState();
 }
 
-class _MusicTileState extends State<MusicTile> {
+class _MusicTileState extends State<MusicTile> with PollsWhileOnScreen {
   final _music = const MusicService();
   late final _lifecycle = AppLifecycleListener(onResume: _load);
-  Timer? _poll;
   bool? _hasAccess;
   NowPlaying? _nowPlaying;
+
+  @override
+  Duration get pollInterval => const Duration(seconds: 3);
+
+  @override
+  void poll() => _load();
 
   @override
   void initState() {
     super.initState();
     _lifecycle;
-    _load();
-    _poll = Timer.periodic(const Duration(seconds: 3), (_) => _load());
   }
 
   @override
   void dispose() {
-    _poll?.cancel();
     _lifecycle.dispose();
     super.dispose();
   }
@@ -70,7 +73,7 @@ class _MusicTileState extends State<MusicTile> {
         });
       }
     } catch (_) {
-      _poll?.cancel(); // No music channel (tests): stop asking.
+      stopPolling(); // No music channel (tests): stop asking.
       if (mounted) setState(() => _hasAccess = false);
     }
   }
