@@ -288,15 +288,13 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
         : Center(
             child: FilledButton(onPressed: _service.requestAccess, child: const Text('Grant usage access')),
           );
-    return Container(
-      color: Theme.of(context).colorScheme.surface,
-      child: SafeArea(
-        child: Column(
-          children: [
-            Expanded(child: _tab == _MindSpaceTab.awareness ? awareness : const ActionTab()),
-            _BottomTabs(selected: _tab, isDark: isDark, onSelected: (tab) => setState(() => _tab = tab)),
-          ],
-        ),
+    // Transparent, so the wallpaper shows through (Phase 12 task 8).
+    return SafeArea(
+      child: Column(
+        children: [
+          Expanded(child: _tab == _MindSpaceTab.awareness ? awareness : const ActionTab()),
+          _BottomTabs(selected: _tab, isDark: isDark, onSelected: (tab) => setState(() => _tab = tab)),
+        ],
       ),
     );
   }

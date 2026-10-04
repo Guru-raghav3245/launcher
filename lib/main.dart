@@ -63,12 +63,17 @@ class _StudentLauncherAppState extends State<StudentLauncherApp> {
       child: ListenableBuilder(
         listenable: _settings,
         builder: (context, _) {
+          // Every screen sits on the wallpaper (Phase 12 task 8), so the ink
+          // follows its brightness, as Home's always has: a deep gradient gets
+          // light text even in the light theme.
+          final wallpaper = _settings.wallpaper;
+          final font = _settings.font.family;
           return MaterialApp(
             title: 'Student Launcher',
             debugShowCheckedModeBanner: false,
-            themeMode: _settings.isDark ? ThemeMode.dark : ThemeMode.light,
-            theme: launcherTheme(Brightness.light, fontFamily: _settings.font.family),
-            darkTheme: launcherTheme(Brightness.dark, fontFamily: _settings.font.family),
+            themeMode: wallpaper.isDark ? ThemeMode.dark : ThemeMode.light,
+            theme: launcherTheme(Brightness.light, fontFamily: font, wallpaper: wallpaper),
+            darkTheme: launcherTheme(Brightness.dark, fontFamily: font, wallpaper: wallpaper),
             // A chosen 12/24-hour format overrides the phone's for every
             // time shown (TimeOfDay.format and Home's clock read this), and
             // the text size scales on top of the phone's font size.

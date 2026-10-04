@@ -9,6 +9,7 @@ import 'package:launcher/models/home_layout_mode.dart';
 import 'package:launcher/state/app_settings.dart';
 import 'package:launcher/state/app_settings_scope.dart';
 import 'package:launcher/models/tile_kind.dart';
+import 'package:launcher/models/wallpaper.dart';
 import 'package:launcher/mind_space/tool_pages.dart';
 import 'package:launcher/onboarding/onboarding_flow.dart';
 import 'package:launcher/onboarding/steps/welcome_step.dart';
@@ -304,7 +305,9 @@ void main() {
     final now = DateTime.now();
     final time = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
     expect(tester.widget<Text>(find.text(time)).style!.color, const Color(0xFFEBEBEB)); // the dark palette's ink
-    expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode, ThemeMode.light);
+    // Every screen sits on the wallpaper (Phase 12 task 8), so the whole app
+    // takes the light-on-dark ink, not just Home.
+    expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode, ThemeMode.dark);
     // The search pill is a translucent wash over the gradient, not a solid slab.
     final pill = tester.widget<Container>(
       find.ancestor(of: find.text('Search apps'), matching: find.byType(Container)).first,
@@ -1546,9 +1549,66 @@ void main() {
     await tester.pumpAndSettle();
     final theme = Theme.of(tester.element(find.byType(HomePanel)));
     expect(theme.textTheme.bodyMedium!.fontFamily, 'DM Sans');
-    expect(theme.scaffoldBackgroundColor, Colors.black);
+    // Pages are painted on the wallpaper (plain black here), not the scaffold.
+    expect(theme.scaffoldBackgroundColor, Colors.transparent);
+    expect(theme.colorScheme.surface, Colors.black);
     expect(theme.colorScheme.onSurface, const Color(0xFFEBEBEB));
     expect(theme.colorScheme.onSurfaceVariant, const Color(0xFF757575));
+  });
+
+  testWidgets('every page sits on the wallpaper, with see-through cards and solid sheets', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'settings_theme': 'dark',
+      'settings_wallpaper_dark': 'gradient-dusk',
+    });
+    final dusk = gradients.firstWhere((w) => w.id == 'gradient-dusk');
+
+    await tester.pumpWidget(const StudentLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.longPress(find.byType(HomePanel));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Launcher Settings'));
+    await tester.pumpAndSettle();
+
+    final onDusk = find.ancestor(
+      of: find.text('Home Settings'),
+      matching: find.byWidgetPredicate(
+        (w) => w is DecoratedBox && (w.decoration as BoxDecoration?)?.gradient == dusk.gradient,
+      ),
+    );
+    expect(onDusk, findsOneWidget); // the page is painted on the wallpaper
+    final scheme = Theme.of(tester.element(find.text('Home Settings'))).colorScheme;
+    expect(scheme.surfaceContainer.a, lessThan(0.2)); // cards: a translucent wash
+    expect(scheme.surfaceContainerLow.a, 1); // sheets: solid
+    expect(scheme.surfaceContainerLow, Color.lerp(dusk.edge, dusk.band, 0.5));
+  });
+
+  testWidgets('on a coloured wallpaper, the editor\'s swatches stay solid', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'onboarding_complete': true,
+      'settings_theme': 'dark',
+      'settings_wallpaper_dark': 'gradient-dusk',
+    });
+
+    await tester.pumpWidget(const StudentLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.longPress(find.byType(HomePanel));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Appearance'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Wallpaper'));
+    await tester.pumpAndSettle();
+
+    // A decoration paints its gradient at its colour's opacity, so a swatch
+    // over the translucent card colour all but vanished.
+    final swatches = tester
+        .widgetList<Container>(find.byType(Container))
+        .map((c) => c.decoration)
+        .whereType<BoxDecoration>()
+        .where((d) => d.gradient != null && d.borderRadius == BorderRadius.circular(10));
+    expect(swatches, isNotEmpty);
+    expect(swatches.every((d) => d.color == null), true);
   });
 
   testWidgets('the Home key brings any panel back to Home', (WidgetTester tester) async {

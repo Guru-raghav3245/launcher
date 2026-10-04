@@ -337,7 +337,10 @@ class _AppearanceEditorState extends State<AppearanceEditor> {
       child: Container(
         height: height,
         decoration: BoxDecoration(
-          color: o.selected ? colors.surface : colors.surfaceContainerHigh,
+          // No colour under a swatch's fill: a decoration paints its gradient
+          // at the colour's opacity, and on a coloured wallpaper the card
+          // colour is a translucent wash (the swatches all but vanished).
+          color: o.fill != null ? null : (o.selected ? colors.surface : colors.surfaceContainerHigh),
           gradient: o.fill,
           // Swatches keep a hairline so white shows on a white ground.
           border: o.selected
