@@ -74,6 +74,21 @@ class _AppDrawerPanelState extends State<AppDrawerPanel> with ShowsVisibleApps {
     super.dispose();
   }
 
+  var _pulledDown = false;
+
+  bool _onListScroll(ScrollNotification notification) {
+    if (notification is ScrollStartNotification) _pulledDown = false;
+    if (notification is OverscrollNotification &&
+        notification.overscroll < 0 &&
+        notification.dragDetails != null &&
+        !_pulledDown) {
+      _pulledDown = true;
+      _searchFocus.unfocus();
+      widget.onClose?.call();
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -92,56 +107,65 @@ class _AppDrawerPanelState extends State<AppDrawerPanel> with ShowsVisibleApps {
                 ),
                 const SizedBox(height: 23),
                 Expanded(
-                  child: FutureBuilder<List<AppInfo>>(
-                    future: _appsFuture,
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      final settings = AppSettingsScope.of(context);
-                      final query = _searchController.text;
-                      final showSections = query.trim().isEmpty && _sortMode == AppSortMode.alphabetical;
-                      final visible = visibleApps(snapshot.data!);
-                      final apps = filterAndSortApps(visible, query: query, sortMode: _sortMode);
+                  // The list takes every vertical drag, so the shell's pager
+                  // never sees a pull down. Like the original, pulling down
+                  // past the top of the list goes back Home, once per drag.
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: _onListScroll,
+                    child: FutureBuilder<List<AppInfo>>(
+                      future: _appsFuture,
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+                        final settings = AppSettingsScope.of(context);
+                        final query = _searchController.text;
+                        final showSections = query.trim().isEmpty && _sortMode == AppSortMode.alphabetical;
+                        final visible = visibleApps(snapshot.data!);
+                        final apps = filterAndSortApps(visible, query: query, sortMode: _sortMode);
 
-                      final pinned = customizations.pinned;
-                      void openMenu(AppInfo app) => showAppMenu(context, app, pinned: pinned.contains(app.packageName));
-                      void open(AppInfo app) => launchApp(context, app);
+                        final pinned = customizations.pinned;
+                        void openMenu(AppInfo app) =>
+                            showAppMenu(context, app, pinned: pinned.contains(app.packageName));
+                        void open(AppInfo app) => launchApp(context, app);
 
-                      if (!showSections) {
-                        // Search results or another sort: one plain section.
+                        if (!showSections) {
+                          // Search results or another sort: one plain section.
+                          return DrawerAppsView(
+                            sections: [(key: '', apps: apps)],
+                            look: settings.drawerLook,
+                            onLaunch: open,
+                            onMenu: openMenu,
+                            showIndex: false,
+                          );
+                        }
+                        final byPackage = {for (final app in apps) app.packageName: app};
+                        final hideUnused = settings.drawerOption(DrawerOption.hideUnusedApps);
+                        // Pinned under ★ and recent under ◷ first (they stay under
+                        // their letter too); unused apps leave the list but stay
+                        // searchable.
+                        final letters = <String, List<AppInfo>>{};
+                        for (final app in apps) {
+                          if (!hideUnused || !isUnused(app)) (letters[_sectionKey(app.name)] ??= []).add(app);
+                        }
                         return DrawerAppsView(
-                          sections: [(key: '', apps: apps)],
+                          sections: [
+                            (key: '★', apps: [for (final p in pinned) ?byPackage[p]]),
+                            (
+                              key: recentSectionKey,
+                              apps: settings.drawerOption(DrawerOption.recentAppsOnTop)
+                                  ? recentApps(visible)
+                                  : const [],
+                            ),
+                            for (final MapEntry(:key, :value) in letters.entries) (key: key, apps: value),
+                          ],
                           look: settings.drawerLook,
+                          scrollController: _scrollController,
                           onLaunch: open,
                           onMenu: openMenu,
-                          showIndex: false,
                         );
-                      }
-                      final byPackage = {for (final app in apps) app.packageName: app};
-                      final hideUnused = settings.drawerOption(DrawerOption.hideUnusedApps);
-                      // Pinned under ★ and recent under ◷ first (they stay under
-                      // their letter too); unused apps leave the list but stay
-                      // searchable.
-                      final letters = <String, List<AppInfo>>{};
-                      for (final app in apps) {
-                        if (!hideUnused || !isUnused(app)) (letters[_sectionKey(app.name)] ??= []).add(app);
-                      }
-                      return DrawerAppsView(
-                        sections: [
-                          (key: '★', apps: [for (final p in pinned) ?byPackage[p]]),
-                          (
-                            key: recentSectionKey,
-                            apps: settings.drawerOption(DrawerOption.recentAppsOnTop) ? recentApps(visible) : const [],
-                          ),
-                          for (final MapEntry(:key, :value) in letters.entries) (key: key, apps: value),
-                        ],
-                        look: settings.drawerLook,
-                        scrollController: _scrollController,
-                        onLaunch: open,
-                        onMenu: openMenu,
-                      );
-                    },
+                      },
+                    ),
                   ),
                 ),
               ],

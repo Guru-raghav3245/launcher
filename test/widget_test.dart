@@ -1537,4 +1537,33 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.getTopLeft(find.byType(HomePanel)).dy, 0);
   });
+
+  testWidgets('pulling down past the top of the drawer list goes back Home', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('installed_apps'),
+      // Enough apps that the list scrolls (and so takes the drag itself).
+      (call) async => [
+        for (var i = 0; i < 40; i++) {'name': 'App ${String.fromCharCode(65 + i % 26)}$i', 'package_name': 'com.app$i'},
+      ],
+    );
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up → App Drawer
+    await tester.pumpAndSettle();
+    final list = find.descendant(of: find.byType(AppDrawerPanel), matching: find.byType(ListView));
+
+    // Scrolled down, a pull down scrolls the list back first.
+    await tester.drag(list, const Offset(0, -300));
+    await tester.pumpAndSettle();
+    await tester.drag(list, const Offset(0, 200));
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(find.byType(AppDrawerPanel)).dy, 0);
+
+    // At the top, the next pull goes Home.
+    await tester.drag(list, const Offset(0, 300));
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(find.byType(HomePanel)).dy, 0);
+  });
 }
