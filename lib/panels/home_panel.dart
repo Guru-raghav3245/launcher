@@ -77,6 +77,7 @@ class _HomePanelState extends State<HomePanel> {
     super.initState();
     DockService.changes.addListener(_refreshDock);
     AppCustomizationsService.changes.addListener(_refreshDock);
+    InstalledAppsService.changes.addListener(_refreshDock);
     _refreshDock();
     TourService.changes.addListener(_refreshTour);
     _refreshTour();
@@ -132,6 +133,7 @@ class _HomePanelState extends State<HomePanel> {
     DockService.changes.removeListener(_refreshDock);
     TourService.changes.removeListener(_refreshTour);
     AppCustomizationsService.changes.removeListener(_refreshDock);
+    InstalledAppsService.changes.removeListener(_refreshDock);
     super.dispose();
   }
 
@@ -163,6 +165,9 @@ class _HomePanelState extends State<HomePanel> {
             child: ValueListenableBuilder<Tour?>(
               valueListenable: TourService.active,
               builder: (context, tour, content) => Stack(
+                // Full width for every layout; loose, the Focus session's
+                // column shrank to its text and sat left of centre.
+                fit: StackFit.expand,
                 children: [
                   content!,
                   if (tour != null) TourOverlay(tour: tour, isDark: isDark),

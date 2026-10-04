@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:installed_apps/app_info.dart';
 import 'package:launcher/services/app_customizations_service.dart';
+import 'package:launcher/services/installed_apps_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 AppInfo app(String name, String packageName) => AppInfo.create({'name': name, 'package_name': packageName});
@@ -10,6 +11,7 @@ void main() {
   final apps = [app('Camera', 'com.camera'), app('Chrome', 'com.chrome'), app('Clock', 'com.clock')];
 
   setUp(() {
+    InstalledAppsService.invalidate();
     SharedPreferences.setMockInitialValues({});
   });
 

@@ -37,7 +37,7 @@ class AppDrawerPanel extends StatefulWidget {
 
 class _AppDrawerPanelState extends State<AppDrawerPanel> with ShowsVisibleApps {
   final _service = const InstalledAppsService();
-  late final Future<List<AppInfo>> _appsFuture;
+  late Future<List<AppInfo>> _appsFuture;
   List<AppInfo>? _apps;
   final _scrollController = ScrollController();
   final _searchController = TextEditingController();
@@ -47,7 +47,8 @@ class _AppDrawerPanelState extends State<AppDrawerPanel> with ShowsVisibleApps {
   @override
   void initState() {
     super.initState();
-    _appsFuture = _service.loadApps()..then((apps) => _apps = apps);
+    _appsFuture = _fetchApps();
+    InstalledAppsService.changes.addListener(_reloadApps);
     _searchController.addListener(() {
       setState(() {});
       openIfSingleResult(_searchController, _apps);
@@ -65,8 +66,13 @@ class _AppDrawerPanelState extends State<AppDrawerPanel> with ShowsVisibleApps {
     }
   }
 
+  Future<List<AppInfo>> _fetchApps() => _service.loadApps()..then((apps) => _apps = apps);
+
+  void _reloadApps() => setState(() => _appsFuture = _fetchApps());
+
   @override
   void dispose() {
+    InstalledAppsService.changes.removeListener(_reloadApps);
     widget.shown?.removeListener(_onShownChanged);
     _scrollController.dispose();
     _searchController.dispose();

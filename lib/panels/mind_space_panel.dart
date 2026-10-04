@@ -194,15 +194,19 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _appsService.loadApps().then((apps) {
-      if (mounted) setState(() => _appsByPackage = {for (final app in apps) app.packageName: app});
-    });
+    _loadApps();
+    InstalledAppsService.changes.addListener(_loadApps);
     _refresh();
   }
+
+  void _loadApps() => _appsService.loadApps().then((apps) {
+    if (mounted) setState(() => _appsByPackage = {for (final app in apps) app.packageName: app});
+  });
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    InstalledAppsService.changes.removeListener(_loadApps);
     super.dispose();
   }
 

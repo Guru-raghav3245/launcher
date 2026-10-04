@@ -7,6 +7,7 @@ import '../panels/mind_space_panel.dart';
 import '../panels/my_space_panel.dart';
 import '../panels/spotlight_search_panel.dart';
 import '../services/gestures_service.dart';
+import '../services/installed_apps_service.dart';
 import '../services/tour_service.dart';
 import '../state/app_settings.dart';
 import '../state/app_settings_scope.dart';
@@ -28,7 +29,7 @@ class _LauncherShellState extends State<LauncherShell> {
   final _rowController = PageController(initialPage: 1);
 
   // Which vertical page has settled on screen, so Spotlight and the drawer
-  // can raise or drop the keyboard (all pages are built up front).
+  // can raise or drop the keyboard (every page stays alive, see _KeepAlive).
   final _spotlightShown = ValueNotifier(false);
   final _drawerShown = ValueNotifier(false);
 
@@ -47,6 +48,7 @@ class _LauncherShellState extends State<LauncherShell> {
     // onNewIntent): close any sheet or page and go back to the Home panel.
     _appChannel.setMethodCallHandler((call) async {
       if (call.method == 'home' && mounted) _goHome();
+      if (call.method == 'packagesChanged') InstalledAppsService.invalidate();
     });
   }
 
@@ -113,8 +115,8 @@ class _LauncherShellState extends State<LauncherShell> {
             if (_drawerShown.value) TourService.complete(Tour.findApps);
           },
           children: [
-            if (hasSpotlight) SpotlightSearchPanel(shown: _spotlightShown),
-            PageView(
+            if (hasSpotlight) _KeepAlive(SpotlightSearchPanel(shown: _spotlightShown)),
+            _KeepAlive(PageView(
               controller: _rowController,
               physics: const ClampingScrollPhysics(),
               // A running tour is done once its page arrives.
@@ -123,12 +125,35 @@ class _LauncherShellState extends State<LauncherShell> {
                 2 => TourService.complete(Tour.usePhoneLess),
                 _ => null,
               },
-              children: const [MySpacePanel(), HomePanel(), MindSpacePanel()],
-            ),
-            AppDrawerPanel(shown: _drawerShown, onClose: _goHome),
+              children: const [_KeepAlive(MySpacePanel()), _KeepAlive(HomePanel()), _KeepAlive(MindSpacePanel())],
+            )),
+            _KeepAlive(AppDrawerPanel(shown: _drawerShown, onClose: _goHome)),
           ],
         ),
       ),
     );
+  }
+}
+
+/// Keeps a pager's page alive off screen. A PageView disposes pages it
+/// scrolls away from, which made every swipe rebuild its panel and reload
+/// every app icon (seconds of empty dock and drawer on a low-end phone).
+class _KeepAlive extends StatefulWidget {
+  const _KeepAlive(this.child);
+
+  final Widget child;
+
+  @override
+  State<_KeepAlive> createState() => _KeepAliveState();
+}
+
+class _KeepAliveState extends State<_KeepAlive> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }

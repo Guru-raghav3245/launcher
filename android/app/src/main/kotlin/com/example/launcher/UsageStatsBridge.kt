@@ -3,8 +3,10 @@ package com.example.launcher
 import android.app.AppOpsManager
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Process
 import android.provider.Settings
 import io.flutter.embedding.engine.FlutterEngine
@@ -24,8 +26,17 @@ class UsageStatsBridge(private val activity: MainActivity) {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "hasAccess" -> result.success(hasAccess())
+                // With our package, Settings opens this app's switch directly
+                // instead of the list (where it's just "launcher" among dozens);
+                // not every Settings app supports that, hence the fallback.
                 "requestAccess" -> {
-                    activity.openExternal(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                    try {
+                        activity.openExternal(
+                            Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS, Uri.parse("package:${activity.packageName}")),
+                        )
+                    } catch (_: ActivityNotFoundException) {
+                        activity.openExternal(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                    }
                     result.success(null)
                 }
                 "queryEvents" -> result.success(

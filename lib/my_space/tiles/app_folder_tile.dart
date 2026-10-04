@@ -30,15 +30,19 @@ class _AppFolderTileState extends State<AppFolderTile> {
   @override
   void initState() {
     super.initState();
-    _service.loadApps().then((apps) {
-      if (mounted) setState(() => _apps = apps);
-    });
+    _loadApps();
+    InstalledAppsService.changes.addListener(_loadApps);
     AppCustomizationsService.changes.addListener(_loadCustomizations);
     _loadCustomizations();
   }
 
+  void _loadApps() => _service.loadApps().then((apps) {
+    if (mounted) setState(() => _apps = apps);
+  });
+
   @override
   void dispose() {
+    InstalledAppsService.changes.removeListener(_loadApps);
     AppCustomizationsService.changes.removeListener(_loadCustomizations);
     super.dispose();
   }

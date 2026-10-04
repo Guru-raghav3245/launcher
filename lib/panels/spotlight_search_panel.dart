@@ -24,7 +24,7 @@ class SpotlightSearchPanel extends StatefulWidget {
 
 class _SpotlightSearchPanelState extends State<SpotlightSearchPanel> with ShowsVisibleApps {
   final _service = const InstalledAppsService();
-  late final Future<List<AppInfo>> _appsFuture;
+  late Future<List<AppInfo>> _appsFuture;
   List<AppInfo>? _apps;
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
@@ -32,7 +32,8 @@ class _SpotlightSearchPanelState extends State<SpotlightSearchPanel> with ShowsV
   @override
   void initState() {
     super.initState();
-    _appsFuture = _service.loadApps()..then((apps) => _apps = apps);
+    _appsFuture = _fetchApps();
+    InstalledAppsService.changes.addListener(_reloadApps);
     _searchController.addListener(() {
       setState(() {});
       openIfSingleResult(_searchController, _apps);
@@ -44,8 +45,13 @@ class _SpotlightSearchPanelState extends State<SpotlightSearchPanel> with ShowsV
   // autofocus: every page is built at launch) and goes down as it leaves.
   void _onShownChanged() => widget.shown!.value ? _searchFocus.requestFocus() : _searchFocus.unfocus();
 
+  Future<List<AppInfo>> _fetchApps() => _service.loadApps()..then((apps) => _apps = apps);
+
+  void _reloadApps() => setState(() => _appsFuture = _fetchApps());
+
   @override
   void dispose() {
+    InstalledAppsService.changes.removeListener(_reloadApps);
     widget.shown?.removeListener(_onShownChanged);
     _searchController.dispose();
     _searchFocus.dispose();

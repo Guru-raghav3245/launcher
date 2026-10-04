@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:installed_apps/app_info.dart';
 import 'package:installed_apps/installed_apps.dart';
@@ -11,8 +12,21 @@ class InstalledAppsService {
 
   /// Launchable apps (system or not — a launcher's drawer must include
   /// system apps like Phone/Camera), sorted alphabetically by name, each
-  /// with its icon loaded.
+  /// with its icon loaded. Loaded once and shared by every caller (icons are
+  /// heavy: seconds on a low-end phone) until [invalidate].
   Future<List<AppInfo>> loadApps() async {
+    final cached = _cache ??= _fetch()..ignore();
+    try {
+      return [...await cached];
+    } catch (_) {
+      if (identical(_cache, cached)) _cache = null; // Retry next time.
+      rethrow;
+    }
+  }
+
+  static Future<List<AppInfo>>? _cache;
+
+  static Future<List<AppInfo>> _fetch() async {
     final apps = await InstalledApps.getInstalledApps(
       excludeSystemApps: false,
       excludeNonLaunchableApps: true,
@@ -20,6 +34,16 @@ class InstalledAppsService {
     );
     // This launcher never lists itself (it's always the one showing).
     return [for (final app in apps) if (app.packageName != ownPackage) app];
+  }
+
+  /// Bumped by [invalidate], so long-lived lists reload.
+  static final changes = ValueNotifier(0);
+
+  /// An app was installed, removed, or updated (MainActivity's package
+  /// receiver): drop the cache and tell listeners.
+  static void invalidate() {
+    _cache = null;
+    changes.value++;
   }
 
   /// This app's applicationId (android/app/build.gradle.kts).

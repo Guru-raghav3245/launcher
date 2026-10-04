@@ -20,12 +20,15 @@ import 'package:launcher/panels/mind_space_panel.dart';
 import 'package:launcher/services/app_customizations_service.dart';
 import 'package:launcher/services/dock_service.dart';
 import 'package:launcher/services/focus_mode_service.dart';
+import 'package:launcher/services/installed_apps_service.dart';
 import 'package:launcher/services/my_space_service.dart';
 import 'package:launcher/services/tour_service.dart';
 import 'package:launcher/settings/drawer_look_page.dart';
 import 'package:launcher/settings/settings_screen.dart';
 
 void main() {
+  setUp(InstalledAppsService.invalidate);
+
   testWidgets('shows onboarding on first run', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
 

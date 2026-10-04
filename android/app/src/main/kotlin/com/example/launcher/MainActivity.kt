@@ -3,7 +3,11 @@ package com.example.launcher
 import android.app.Activity
 import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -97,6 +101,29 @@ class MainActivity : FlutterActivity() {
         calendarBridge = CalendarBridge(this)
         calendarBridge.attach(flutterEngine)
         MusicBridge(this).attach(flutterEngine)
+        registerReceiver(
+            packagesReceiver,
+            IntentFilter().apply {
+                addAction(Intent.ACTION_PACKAGE_ADDED)
+                addAction(Intent.ACTION_PACKAGE_REMOVED)
+                addAction(Intent.ACTION_PACKAGE_CHANGED)
+                addAction(Intent.ACTION_PACKAGE_REPLACED)
+                addDataScheme("package")
+            },
+        )
+    }
+
+    // An app was installed, removed, updated, or enabled/disabled: Dart drops
+    // its cached app list (InstalledAppsService.invalidate) and reloads.
+    private val packagesReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            appChannel?.invokeMethod("packagesChanged", null)
+        }
+    }
+
+    override fun onDestroy() {
+        unregisterReceiver(packagesReceiver)
+        super.onDestroy()
     }
 
     // Pressing Home while this launcher is already running (singleTop) lands
@@ -160,8 +187,14 @@ class MainActivity : FlutterActivity() {
         } else {
             null
         }
+        // With no default set, several handlers resolve to the system chooser
+        // ("android"); then take the preinstalled one (e.g. the camera app,
+        // not Snapchat, which also claims the camera intent).
         fun handler(intent: Intent) = packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
             ?.activityInfo?.packageName?.takeIf { it != "android" }
+            ?: packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+                .firstOrNull { it.activityInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0 }
+                ?.activityInfo?.packageName
         return listOf(
             dialer,
             Telephony.Sms.getDefaultSmsPackage(this),
