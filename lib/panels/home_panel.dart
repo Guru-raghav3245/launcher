@@ -301,10 +301,13 @@ class _ClassicLayout extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final clock = _Clock(time: time, subtitle: subtitle, isDark: isDark, style: settings.clockStyle);
     final iconColor = colors.onSurface;
-    // Outlined on the card fill, like the original's pill and dock tiles.
+    // Outlined on the card fill, like the original's pill and dock tiles. On
+    // a coloured or gradient wallpaper the card fill would be a solid slab,
+    // so the tiles take a translucent wash of the ink instead.
+    final plain = settings.wallpaper.band == null && settings.wallpaper.edge == colors.surface;
     BoxDecoration outlined(double radius, double width) => BoxDecoration(
-      color: colors.surfaceContainer,
-      border: Border.all(color: colors.outline, width: width),
+      color: plain ? colors.surfaceContainer : colors.onSurface.withValues(alpha: 0.1),
+      border: Border.all(color: plain ? colors.outline : colors.onSurface.withValues(alpha: 0.35), width: width),
       borderRadius: BorderRadius.circular(radius),
     );
     return Padding(
@@ -331,7 +334,10 @@ class _ClassicLayout extends StatelessWidget {
                       'Spotlight search',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 18, color: colors.onSurfaceVariant),
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: plain ? colors.onSurfaceVariant : colors.onSurface.withValues(alpha: 0.7),
+                      ),
                     ),
                   ),
                 ],

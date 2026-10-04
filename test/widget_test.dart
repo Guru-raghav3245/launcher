@@ -235,6 +235,11 @@ void main() {
     final time = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
     expect(tester.widget<Text>(find.text(time)).style!.color, const Color(0xFFEBEBEB)); // the dark palette's ink
     expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode, ThemeMode.light);
+    // The search pill is a translucent wash over the gradient, not a solid slab.
+    final pill = tester.widget<Container>(
+      find.ancestor(of: find.text('Spotlight search'), matching: find.byType(Container)).first,
+    );
+    expect((pill.decoration! as BoxDecoration).color!.a, closeTo(0.1, 0.01));
   });
 
   testWidgets('a 12-hour time format shows Home as zero-padded 12-hour time and applies app-wide', (
