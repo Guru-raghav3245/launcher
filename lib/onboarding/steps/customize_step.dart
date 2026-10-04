@@ -57,10 +57,7 @@ class _CustomizeStepState extends State<CustomizeStep> {
                 SegmentedToggle<bool>(
                   value: settings.isDark,
                   onChanged: settings.setDark,
-                  options: const [
-                    (false, Icons.wb_sunny_outlined, 'Light'),
-                    (true, Icons.nightlight_round, 'Dark'),
-                  ],
+                  options: const [(false, Icons.wb_sunny_outlined, 'Light'), (true, Icons.nightlight_round, 'Dark')],
                 ),
                 SegmentedToggle<HomeLayoutMode>(
                   value: settings.layoutMode,
@@ -73,7 +70,7 @@ class _CustomizeStepState extends State<CustomizeStep> {
               ],
             ),
             const SizedBox(height: 24),
-            const PhoneMockup(child: HomePanel()),
+            const PhoneMockup(child: HomePanel(preview: true)),
             const Spacer(),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),

@@ -28,13 +28,13 @@ const _monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Se
 /// "20:30" in 24-hour, "08:30" in 12-hour: zero-padded either way and no
 /// AM/PM on Home's big clock, as in the original (the format follows
 /// Settings → Time & units).
-String _formatTime(DateTime time, {required bool use24}) {
+String formatClockTime(DateTime time, {required bool use24}) {
   final hour = (use24 ? time.hour : (time.hour % 12 == 0 ? 12 : time.hour % 12)).toString().padLeft(2, '0');
   final minute = time.minute.toString().padLeft(2, '0');
   return '$hour:$minute';
 }
 
-String _formatDate(DateTime date) {
+String formatClockDate(DateTime date) {
   final weekday = _weekdayNames[date.weekday - 1];
   final month = _monthNames[date.month - 1];
   return '$weekday, ${date.day} $month';
@@ -54,7 +54,11 @@ typedef _DockItem = ({AppInfo? app, IconData? glyph});
 /// Home panel: wallpaper background, live clock, date, and
 /// pinned apps in either Classic or Minimal layout.
 class HomePanel extends StatefulWidget {
-  const HomePanel({super.key});
+  const HomePanel({super.key, this.preview = false});
+
+  /// Drawn inside a phone preview (onboarding, the Appearance editor):
+  /// no tour chip.
+  final bool preview;
 
   @override
   State<HomePanel> createState() => _HomePanelState();
@@ -138,9 +142,9 @@ class _HomePanelState extends State<HomePanel> {
     // text even in the light theme, as in the original.
     final wallpaper = settings.wallpaper;
     final isDark = wallpaper.isDark;
-    final subtitle = _formatDate(_now);
+    final subtitle = formatClockDate(_now);
 
-    final tourChip = _offerTour ? TourChip(ink: Theme.of(context).colorScheme.onSurface) : null;
+    final tourChip = _offerTour && !widget.preview ? TourChip(ink: Theme.of(context).colorScheme.onSurface) : null;
 
     return GestureDetector(
       onLongPress: () => showSettingsScreen(context),
@@ -169,7 +173,7 @@ class _HomePanelState extends State<HomePanel> {
                     ? FocusSessionView(status: _focus, now: _now)
                     : settings.layoutMode == HomeLayoutMode.classic
                     ? _ClassicLayout(
-                        time: _formatTime(_now, use24: MediaQuery.alwaysUse24HourFormatOf(context)),
+                        time: formatClockTime(_now, use24: MediaQuery.alwaysUse24HourFormatOf(context)),
                         subtitle: subtitle,
                         isDark: isDark,
                         settings: settings,
@@ -179,7 +183,7 @@ class _HomePanelState extends State<HomePanel> {
                         tourChip: tourChip,
                       )
                     : _MinimalLayout(
-                        time: _formatTime(_now, use24: MediaQuery.alwaysUse24HourFormatOf(context)),
+                        time: formatClockTime(_now, use24: MediaQuery.alwaysUse24HourFormatOf(context)),
                         subtitle: subtitle,
                         isDark: isDark,
                         settings: settings,
@@ -198,12 +202,7 @@ class _HomePanelState extends State<HomePanel> {
 }
 
 class _Clock extends StatelessWidget {
-  const _Clock({
-    required this.time,
-    required this.subtitle,
-    required this.isDark,
-    required this.style,
-  });
+  const _Clock({required this.time, required this.subtitle, required this.isDark, required this.style});
 
   final String time;
   final String subtitle;
@@ -231,7 +230,13 @@ class _Clock extends StatelessWidget {
             ),
             Text(
               time,
-              style: TextStyle(fontFamily: 'Roboto', fontSize: 87, height: 1.05, fontWeight: FontWeight.w500, color: primary),
+              style: TextStyle(
+                fontFamily: 'Roboto',
+                fontSize: 87,
+                height: 1.05,
+                fontWeight: FontWeight.w500,
+                color: primary,
+              ),
             ),
           ],
         ),
@@ -321,7 +326,14 @@ class _ClassicLayout extends StatelessWidget {
                 children: [
                   Icon(Icons.search, color: iconColor, size: 24),
                   const SizedBox(width: 14),
-                  Text('Spotlight search', style: TextStyle(fontSize: 18, color: colors.onSurfaceVariant)),
+                  Flexible(
+                    child: Text(
+                      'Spotlight search',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 18, color: colors.onSurfaceVariant),
+                    ),
+                  ),
                 ],
               ),
             ),

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../state/app_settings.dart';
+import '../state/app_settings_scope.dart';
+
 /// Shared chrome for a My Space dashboard tile: a bordered card with a
 /// small icon+label header above the tile's own content. Used by both the
 /// empty-state preview cards and the real tile bodies (tasks 3-6).
@@ -13,11 +16,12 @@ class TileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final style = context.dependOnInheritedWidgetOfExactType<AppSettingsScope>()?.notifier?.cardStyle;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
-        border: Border.all(color: Theme.of(context).colorScheme.outline),
+        border: style == CardStyle.borderless ? null : Border.all(color: Theme.of(context).colorScheme.outline),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(

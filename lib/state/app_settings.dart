@@ -105,6 +105,9 @@ enum ClockStyle { standard, large, compact }
 /// Where Home's clock sits.
 enum ClockPosition { top, center, bottom }
 
+/// My Space tiles drawn with an outline or on their fill alone.
+enum CardStyle { bordered, borderless }
+
 /// The theme the user picked; [auto] follows the phone's dark mode.
 enum ThemeChoice { light, dark, auto }
 
@@ -118,6 +121,7 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
   /// the launcher's colours (Mindful Timer's "Time's up" overlay).
   static const _isDarkKey = 'settings_is_dark';
   static const _layoutModeKey = 'settings_layout_mode';
+
   /// Before per-theme wallpapers: an index into the light Classic flats.
   static const _legacyWallpaperIndexKey = 'settings_wallpaper_index';
 
@@ -127,8 +131,7 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
   /// What every screen reads: the chosen theme, or the phone's for Auto.
   bool get isDark =>
       _theme == ThemeChoice.dark ||
-      (_theme == ThemeChoice.auto &&
-          WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark);
+      (_theme == ThemeChoice.auto && WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark);
 
   HomeLayoutMode _layoutMode = HomeLayoutMode.classic;
   HomeLayoutMode get layoutMode => _layoutMode;
@@ -193,6 +196,9 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
   bool _showStatusBar = true;
   bool get showStatusBar => _showStatusBar;
 
+  CardStyle _cardStyle = CardStyle.bordered;
+  CardStyle get cardStyle => _cardStyle;
+
   final Set<DrawerOption> _drawerOptions = {};
   bool drawerOption(DrawerOption option) => _drawerOptions.contains(option);
 
@@ -213,6 +219,7 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
     _tempUnit = TempUnit.values.byName(prefs.getString('settings_temp_unit') ?? TempUnit.celsius.name);
     _showSearchBar = prefs.getBool('settings_show_search_bar') ?? true;
     _showStatusBar = prefs.getBool('settings_show_status_bar') ?? true;
+    _cardStyle = CardStyle.values.byName(prefs.getString('settings_card_style') ?? CardStyle.bordered.name);
     if (!_showStatusBar) _applyStatusBar(); // shown is the window's default
     _swipeDown = SwipeDownAction.values.byName(prefs.getString(_swipeDownKey) ?? SwipeDownAction.spotlight.name);
     _doubleTap = DoubleTapAction.values.byName(prefs.getString(_doubleTapKey) ?? DoubleTapAction.none.name);
@@ -223,9 +230,7 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
     WidgetsBinding.instance
       ..removeObserver(this)
       ..addObserver(this);
-    _layoutMode = HomeLayoutMode.values.byName(
-      prefs.getString(_layoutModeKey) ?? HomeLayoutMode.classic.name,
-    );
+    _layoutMode = HomeLayoutMode.values.byName(prefs.getString(_layoutModeKey) ?? HomeLayoutMode.classic.name);
     // The pre-Phase 10 index pointed into the five `light-N` flats.
     final legacy = prefs.getInt(_legacyWallpaperIndexKey);
     _lightWallpaper =
@@ -270,8 +275,16 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Sets the wallpaper for the light or dark theme ([forDark]).
   Future<void> setWallpaper(Wallpaper value, {required bool forDark}) => forDark
-      ? _save(_darkWallpaper != value, () => _darkWallpaper = value, (p) => p.setString('settings_wallpaper_dark', value.id))
-      : _save(_lightWallpaper != value, () => _lightWallpaper = value, (p) => p.setString('settings_wallpaper_light', value.id));
+      ? _save(
+          _darkWallpaper != value,
+          () => _darkWallpaper = value,
+          (p) => p.setString('settings_wallpaper_dark', value.id),
+        )
+      : _save(
+          _lightWallpaper != value,
+          () => _lightWallpaper = value,
+          (p) => p.setString('settings_wallpaper_light', value.id),
+        );
 
   Future<void> setDrawerOption(DrawerOption option, bool on) async {
     if (drawerOption(option) == on) return;
@@ -300,11 +313,15 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> setClockStyle(ClockStyle value) =>
       _save(_clockStyle != value, () => _clockStyle = value, (p) => p.setString('settings_clock_style', value.name));
 
-  Future<void> setClockPosition(ClockPosition value) => _save(
+  /// Null goes back to each layout's own default (see [clockPositionFor]).
+  Future<void> setClockPosition(ClockPosition? value) => _save(
     _clockPosition != value,
     () => _clockPosition = value,
-    (p) => p.setString('settings_clock_position', value.name),
+    (p) => value == null ? p.remove('settings_clock_position') : p.setString('settings_clock_position', value.name),
   );
+
+  Future<void> setCardStyle(CardStyle value) =>
+      _save(_cardStyle != value, () => _cardStyle = value, (p) => p.setString('settings_card_style', value.name));
 
   Future<void> setDrawerLook(DrawerLook value) => _save(
     _drawerLook != value,
@@ -343,7 +360,8 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
   /// launcher's own window (see MainActivity.setStatusBarVisible).
   Future<void> _applyStatusBar() async {
     try {
-      await const MethodChannel('yinyang.launcher/app').invokeMethod('setStatusBarVisible', {'visible': _showStatusBar});
+      await const MethodChannel('yinyang.launcher/app')
+          .invokeMethod('setStatusBarVisible', {'visible': _showStatusBar});
     } on MissingPluginException {
       // Tests and non-Android hosts.
     }

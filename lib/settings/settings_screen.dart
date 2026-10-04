@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 
-import '../models/home_layout_mode.dart';
 import '../onboarding/onboarding_flow.dart';
 import '../panels/mind_space_panel.dart';
 import '../search/app_multi_picker_sheet.dart';
@@ -16,8 +15,8 @@ import '../search/app_search_bar.dart';
 import '../state/app_settings.dart';
 import '../state/app_settings_scope.dart';
 import '../widgets/segmented_toggle.dart';
+import 'appearance_editor.dart';
 import '../widgets/tour.dart';
-import '../widgets/wallpaper_gallery.dart';
 import 'drawer_look_page.dart';
 import 'lock_gesture.dart';
 
@@ -54,7 +53,7 @@ const _toggleTerms = ['toggles', 'theme', 'dark', 'light', 'focus mode'];
 const _appChannel = MethodChannel('yinyang.launcher/app');
 
 const _entries = <_SettingsEntry>[
-  (group: 'Settings', icon: Icons.palette_outlined, title: 'Appearance', onTap: _showAppearance),
+  (group: 'Settings', icon: Icons.palette_outlined, title: 'Appearance', onTap: showAppearanceEditor),
   (group: 'Settings', icon: Icons.contrast, title: 'Launcher Settings', onTap: _showLauncherSettings),
   (group: 'Settings', icon: Icons.apps, title: 'App Drawer & Search', onTap: _showDrawerSettings),
   (group: 'Settings', icon: Icons.swipe_outlined, title: 'Gestures', onTap: _showGestures),
@@ -137,10 +136,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               rows: [for (final e in entries) _SettingsRow(icon: e.icon, title: e.title, onTap: e.onTap)],
             ),
           ],
-          if (showMindSpace) ...[
-            _SectionHeader('Mind Space', isDark: isDark),
-            const FocusQuickActions(),
-          ],
+          if (showMindSpace) ...[_SectionHeader('Mind Space', isDark: isDark), const FocusQuickActions()],
           if (showRestart) ...[
             const SizedBox(height: 24),
             Divider(indent: 24, endIndent: 24, color: Theme.of(context).colorScheme.outlineVariant),
@@ -329,7 +325,9 @@ Widget _labeled(String label, Widget control) {
         const SizedBox(width: 16),
         // The label keeps its width; the control gets the rest, so a toggle
         // shrinks to fit instead of overflowing.
-        Expanded(child: Align(alignment: Alignment.centerRight, child: control)),
+        Expanded(
+          child: Align(alignment: Alignment.centerRight, child: control),
+        ),
       ],
     ),
   );
@@ -383,85 +381,12 @@ Future<void> _showHiddenApps(BuildContext context) async {
   );
 }
 
-/// The theme options, shared by Appearance and the Toggles row.
+/// The theme options, for the Toggles row.
 const _themeOptions = [
   (ThemeChoice.light, Icons.wb_sunny_outlined, 'Light'),
   (ThemeChoice.dark, Icons.nightlight_round, 'Dark'),
   (ThemeChoice.auto, Icons.brightness_auto_outlined, 'Auto'),
 ];
-
-/// Appearance: Light / Dark / Auto (the onboarding toggle offers just Light
-/// and Dark), the font, the app icon tint, and the text size.
-void _showAppearance(BuildContext context) {
-  _showSubSheet(
-    context,
-    'Appearance',
-    (context, settings) => [
-      _labeledAbove(
-        'Theme',
-        SegmentedToggle<ThemeChoice>(value: settings.theme, onChanged: settings.setTheme, options: _themeOptions),
-      ),
-      _labeledAbove(
-        'Font',
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            // Each option is shown in its own typeface.
-            for (final font in LauncherFont.values)
-              ChoiceChip(
-                label: Text(font.label),
-                selected: settings.font == font,
-                showCheckmark: false,
-                selectedColor: settings.isDark ? Colors.white : Colors.black,
-                labelStyle: TextStyle(
-                  fontFamily: font.family ?? 'Roboto',
-                  color: settings.font == font
-                      ? (settings.isDark ? Colors.black : Colors.white)
-                      : (settings.isDark ? Colors.white : Colors.black),
-                ),
-                onSelected: (_) => settings.setFont(font),
-              ),
-          ],
-        ),
-      ),
-      _labeledAbove(
-        'App icons',
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final tint in IconTint.values)
-              ChoiceChip(
-                label: Text(tint.label),
-                selected: settings.iconTint == tint,
-                showCheckmark: false,
-                selectedColor: settings.isDark ? Colors.white : Colors.black,
-                labelStyle: TextStyle(
-                  color: settings.iconTint == tint
-                      ? (settings.isDark ? Colors.black : Colors.white)
-                      : (settings.isDark ? Colors.white : Colors.black),
-                ),
-                onSelected: (_) => settings.setIconTint(tint),
-              ),
-          ],
-        ),
-      ),
-      _labeledAbove(
-        'Text size',
-        SegmentedToggle<TextSize>(
-          value: settings.textSize,
-          onChanged: settings.setTextSize,
-          options: const [
-            (TextSize.small, Icons.text_decrease, 'Small'),
-            (TextSize.normal, Icons.text_fields, 'Default'),
-            (TextSize.large, Icons.text_increase, 'Large'),
-          ],
-        ),
-      ),
-    ],
-  );
-}
 
 /// Time & units: 12/24-hour times everywhere, and the Weather tile's unit.
 void _showTimeAndUnits(BuildContext context) {
@@ -566,14 +491,27 @@ void _showGestures(BuildContext context) {
         (SwipeDownAction.none, 'None', 'Disable this gesture'),
       ]),
       const SizedBox(height: 16),
-      group('Double tap', settings.doubleTap, (action) {
-        settings.setDoubleTap(action);
-        setUpLock(context, action);
-      }, [
-        (DoubleTapAction.none, 'None', 'Disable this gesture'),
-        (DoubleTapAction.lockAccessibility, 'Lock screen (Accessibility)', 'Recommended; works with fingerprint or face unlock'),
-        (DoubleTapAction.lockDeviceAdmin, 'Lock screen (Device admin)', 'Legacy method; may disable fingerprint unlock'),
-      ]),
+      group(
+        'Double tap',
+        settings.doubleTap,
+        (action) {
+          settings.setDoubleTap(action);
+          setUpLock(context, action);
+        },
+        [
+          (DoubleTapAction.none, 'None', 'Disable this gesture'),
+          (
+            DoubleTapAction.lockAccessibility,
+            'Lock screen (Accessibility)',
+            'Recommended; works with fingerprint or face unlock',
+          ),
+          (
+            DoubleTapAction.lockDeviceAdmin,
+            'Lock screen (Device admin)',
+            'Legacy method; may disable fingerprint unlock',
+          ),
+        ],
+      ),
     ];
   });
 }
@@ -585,57 +523,6 @@ void _showLauncherSettings(BuildContext context) {
     context,
     'Launcher Settings',
     (context, settings) => [
-      _labeled(
-        'Layout',
-        SegmentedToggle<HomeLayoutMode>(
-          value: settings.layoutMode,
-          onChanged: settings.setLayoutMode,
-          options: const [
-            (HomeLayoutMode.classic, Icons.dashboard_outlined, 'Classic'),
-            (HomeLayoutMode.minimal, Icons.short_text, 'Minimal'),
-          ],
-        ),
-      ),
-      _labeledAbove(
-        'Clock',
-        SegmentedToggle<ClockStyle>(
-          value: settings.clockStyle,
-          onChanged: settings.setClockStyle,
-          options: const [
-            (ClockStyle.standard, Icons.schedule, 'Standard'),
-            (ClockStyle.large, Icons.format_size, 'Large'),
-            (ClockStyle.compact, Icons.short_text, 'Compact'),
-          ],
-        ),
-      ),
-      _labeledAbove(
-        'Clock position',
-        SegmentedToggle<ClockPosition>(
-          value: settings.clockPositionFor(settings.layoutMode),
-          onChanged: settings.setClockPosition,
-          options: const [
-            (ClockPosition.top, Icons.vertical_align_top, 'Top'),
-            (ClockPosition.center, Icons.vertical_align_center, 'Center'),
-            (ClockPosition.bottom, Icons.vertical_align_bottom, 'Bottom'),
-          ],
-        ),
-      ),
-      for (final (title, value, onChanged) in [
-        if (settings.layoutMode == HomeLayoutMode.classic)
-          ('Spotlight search bar', settings.showSearchBar, settings.setShowSearchBar),
-        ('Status bar', settings.showStatusBar, settings.setShowStatusBar),
-      ])
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: Text(title, style: const TextStyle(fontSize: 18, letterSpacing: 0.5)),
-          value: value,
-          activeThumbColor: settings.isDark ? Colors.black : Colors.white,
-          activeTrackColor: settings.isDark ? Colors.white : Colors.black,
-          onChanged: onChanged,
-        ),
-      const SizedBox(height: 8),
-      WallpaperGallery(settings: settings),
-      const SizedBox(height: 16),
       ListTile(
         contentPadding: EdgeInsets.zero,
         leading: const Icon(Icons.replay),

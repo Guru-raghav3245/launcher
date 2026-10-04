@@ -37,9 +37,7 @@ void main() {
     expect(find.byType(HomePanel), findsNothing);
   });
 
-  testWidgets('launches on the Home panel once onboarding is complete', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('launches on the Home panel once onboarding is complete', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
 
     await tester.pumpWidget(const YinYangLauncherApp());
@@ -94,21 +92,37 @@ void main() {
     expect(find.textContaining('No settings match'), findsOneWidget);
   });
 
-  testWidgets('Appearance toggle switches the app theme', (WidgetTester tester) async {
+  testWidgets('the Appearance editor previews live, Cancel reverts and Save keeps', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
 
     await tester.pumpWidget(const YinYangLauncherApp());
     await tester.pumpAndSettle();
-    await tester.longPress(find.byType(HomePanel));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Appearance'));
-    await tester.pumpAndSettle();
+    final settings = AppSettingsScope.of(tester.element(find.byType(HomePanel)));
+    Future<void> openHomeStyle() async {
+      await tester.longPress(find.byType(HomePanel).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Appearance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Home'));
+      await tester.pumpAndSettle();
+    }
 
-    await tester.tap(find.text('Dark'));
+    await openHomeStyle();
+    expect(find.text('Home › Style'), findsOneWidget);
+    await tester.tap(find.text('Minimal'));
     await tester.pumpAndSettle();
+    expect(settings.layoutMode, HomeLayoutMode.minimal); // the preview is the real thing
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(settings.layoutMode, HomeLayoutMode.classic);
 
-    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(app.themeMode, ThemeMode.dark);
+    await openHomeStyle();
+    await tester.tap(find.text('Minimal'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(settings.layoutMode, HomeLayoutMode.minimal);
+    expect((await SharedPreferences.getInstance()).getString('settings_layout_mode'), 'minimal');
   });
 
   testWidgets('Auto theme follows the phone as it changes', (WidgetTester tester) async {
@@ -217,7 +231,9 @@ void main() {
     expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode, ThemeMode.light);
   });
 
-  testWidgets('a 12-hour time format shows Home as zero-padded 12-hour time and applies app-wide', (WidgetTester tester) async {
+  testWidgets('a 12-hour time format shows Home as zero-padded 12-hour time and applies app-wide', (
+    WidgetTester tester,
+  ) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true, 'settings_time_format': 'h12'});
 
     await tester.pumpWidget(const YinYangLauncherApp());
@@ -251,7 +267,7 @@ void main() {
     expect(MediaQuery.textScalerOf(home).scale(10), closeTo(11.5, 0.01));
   });
 
-  testWidgets('Launcher Settings switches layout and re-runs onboarding', (WidgetTester tester) async {
+  testWidgets('Launcher Settings re-runs onboarding', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
 
     await tester.pumpWidget(const YinYangLauncherApp());
@@ -261,13 +277,6 @@ void main() {
     await tester.tap(find.text('Launcher Settings'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Spotlight search'), findsOneWidget); // Classic layout
-    await tester.tap(find.text('Minimal'));
-    await tester.pumpAndSettle();
-    expect(find.text('Spotlight search'), findsNothing);
-
-    await tester.ensureVisible(find.text('Re-run onboarding')); // below the wallpaper gallery
-    await tester.pumpAndSettle();
     await tester.tap(find.text('Re-run onboarding'));
     await tester.pumpAndSettle();
     expect(find.byType(WelcomeStep), findsOneWidget);
@@ -635,13 +644,10 @@ void main() {
     expect(started, hasLength(1));
   });
 
-  testWidgets('an app on a Mindful Break is hidden from the drawer and blocked elsewhere', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('an app on a Mindful Break is hidden from the drawer and blocked elsewhere', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
       'onboarding_complete': true,
-      'mindful_break_apps':
-          '{"com.chrome":${DateTime.now().add(const Duration(days: 3)).millisecondsSinceEpoch}}',
+      'mindful_break_apps': '{"com.chrome":${DateTime.now().add(const Duration(days: 3)).millisecondsSinceEpoch}}',
       'my_space_tiles': '[{"id":"1","kind":"appFolder","data":{"packages":["com.chrome"]}}]',
     });
     final started = <Object?>[];
@@ -998,7 +1004,12 @@ void main() {
     messenger.setMockMethodCallHandler(
       const MethodChannel('installed_apps'),
       (call) async => [
-        for (final (name, pkg) in [('Feed', 'com.feed'), ('Chat', 'com.chat'), ('Maps', 'com.maps'), ('Work', 'com.work')])
+        for (final (name, pkg) in [
+          ('Feed', 'com.feed'),
+          ('Chat', 'com.chat'),
+          ('Maps', 'com.maps'),
+          ('Work', 'com.work'),
+        ])
           {'name': name, 'package_name': pkg},
       ],
     );
@@ -1006,7 +1017,13 @@ void main() {
       if (call.method == 'hasAccess') return true;
       var at = start;
       return [
-        for (final (pkg, minutes) in [('com.feed', 30), ('com.work', 20), ('com.chat', 10), ('com.maps', 5), ('com.x', 1)])
+        for (final (pkg, minutes) in [
+          ('com.feed', 30),
+          ('com.work', 20),
+          ('com.chat', 10),
+          ('com.maps', 5),
+          ('com.x', 1),
+        ])
           for (final type in ['foreground', 'background'])
             {
               'packageName': pkg,
@@ -1052,8 +1069,20 @@ void main() {
           return null;
         default:
           return [
-            {'id': 1, 'title': 'Standup', 'begin': later.millisecondsSinceEpoch, 'end': later.millisecondsSinceEpoch, 'allDay': false},
-            {'id': 2, 'title': 'Trip', 'begin': tomorrow.millisecondsSinceEpoch, 'end': tomorrow.millisecondsSinceEpoch, 'allDay': true},
+            {
+              'id': 1,
+              'title': 'Standup',
+              'begin': later.millisecondsSinceEpoch,
+              'end': later.millisecondsSinceEpoch,
+              'allDay': false,
+            },
+            {
+              'id': 2,
+              'title': 'Trip',
+              'begin': tomorrow.millisecondsSinceEpoch,
+              'end': tomorrow.millisecondsSinceEpoch,
+              'allDay': true,
+            },
           ];
       }
     });
@@ -1201,7 +1230,10 @@ void main() {
     await tester.tap(find.byType(HomePanel), warnIfMissed: false);
     final settings = AppSettingsScope.of(tester.element(find.byType(HomePanel)));
     await tester.pumpWidget(
-      AppSettingsScope(settings: settings, child: const MaterialApp(home: DrawerLookPage())),
+      AppSettingsScope(
+        settings: settings,
+        child: const MaterialApp(home: DrawerLookPage()),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -1372,7 +1404,8 @@ void main() {
 
     await tester.pumpWidget(const YinYangLauncherApp());
     await tester.pumpAndSettle();
-    final theme = Theme.of(tester.element(find.byType(HomePanel)));    expect(theme.textTheme.bodyMedium!.fontFamily, 'DM Sans');
+    final theme = Theme.of(tester.element(find.byType(HomePanel)));
+    expect(theme.textTheme.bodyMedium!.fontFamily, 'DM Sans');
     expect(theme.scaffoldBackgroundColor, Colors.black);
     expect(theme.colorScheme.onSurface, const Color(0xFFEBEBEB));
     expect(theme.colorScheme.onSurfaceVariant, const Color(0xFF757575));
