@@ -5,6 +5,7 @@ import '../models/tile_kind.dart';
 import '../services/app_widget_service.dart';
 import '../services/system_stats_service.dart';
 import 'built_in_tile_specs.dart';
+import 'widget_preview.dart';
 import 'tiles/hydration_tile.dart';
 import 'tiles/quote_tile.dart';
 
@@ -99,8 +100,8 @@ class _ManageTilesPageState extends State<ManageTilesPage> {
               onReorderItem: (from, to) => _update(() => _tiles.insert(to, _tiles.removeAt(from))),
               itemBuilder: (context, index) {
                 final tile = _tiles[index];
-                return ListTile(
-                  key: ValueKey(tile.id),
+                final provider = tile.kind == TileKind.fromApp ? tile.data['provider'] as String? : null;
+                final row = ListTile(
                   leading: Icon(tileIcon(tile)),
                   title: Text(tileTitle(tile)),
                   subtitle: Text(_summary(tile), maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -118,6 +119,20 @@ class _ManageTilesPageState extends State<ManageTilesPage> {
                       ),
                     ],
                   ),
+                );
+                // A From-Apps tile shows what its widget looks like, as in
+                // the Add New Tile sheet.
+                if (provider == null) return KeyedSubtree(key: ValueKey(tile.id), child: row);
+                return Column(
+                  key: ValueKey(tile.id),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    row,
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(72, 0, 16, 12),
+                      child: WidgetPreview(provider: provider, height: 96),
+                    ),
+                  ],
                 );
               },
             ),

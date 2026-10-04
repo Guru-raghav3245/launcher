@@ -4,12 +4,20 @@ import android.app.Activity
 import android.appwidget.AppWidgetHost
 import android.appwidget.AppWidgetHostView
 import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProviderInfo
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.Drawable
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.ViewTreeObserver
+import android.widget.FrameLayout
+import android.widget.RemoteViews
+import java.io.ByteArrayOutputStream
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.StandardMessageCodec
@@ -35,6 +43,7 @@ class AppWidgetHostBridge(private val activity: MainActivity) {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "listProviders" -> result.success(listProviders())
+                "preview" -> result.success(preview(call.argument<String>("provider")!!))
                 "allocateId" -> result.success(host.allocateAppWidgetId())
                 "bind" -> bind(
                     call.argument<Int>("widgetId")!!,
@@ -67,6 +76,61 @@ class AppWidgetHostBridge(private val activity: MainActivity) {
                 "packageName" to info.provider.packageName,
                 "label" to info.label,
             )
+        }
+    }
+
+    // A picture of a provider's widget for the Add New Tile sheet and Manage
+    // tiles (Phase 12 task 6), as a PNG at most 600 px wide: its preview
+    // layout (Android 12+) drawn off screen, else its preview image, else its
+    // icon. Null if it has none of those.
+    private fun preview(provider: String): ByteArray? {
+        val component = ComponentName.unflattenFromString(provider) ?: return null
+        val info = manager.installedProviders.firstOrNull { it.provider == component } ?: return null
+        val bitmap = runCatching { renderPreviewLayout(info) }.getOrNull()
+            ?: runCatching { info.loadPreviewImage(activity, 0)?.toBitmap() }.getOrNull()
+            ?: runCatching { info.loadIcon(activity, 0)?.toBitmap() }.getOrNull()
+            ?: return null
+        val scale = minOf(1f, 600f / bitmap.width)
+        val scaled = if (scale < 1f) {
+            Bitmap.createScaledBitmap(bitmap, (bitmap.width * scale).toInt(), (bitmap.height * scale).toInt(), true)
+        } else {
+            bitmap
+        }
+        return ByteArrayOutputStream().also { scaled.compress(Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
+    }
+
+    // Inflates the provider's preview layout like a host would show it, at
+    // its target width in cells (about 74 dp each), or its minimum width; it
+    // gets its target height or the height its content needs, whichever is
+    // taller (Spotify's declares less than its layout uses, which clipped it).
+    private fun renderPreviewLayout(info: AppWidgetProviderInfo): Bitmap? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || info.previewLayout == 0) return null
+        val density = activity.resources.displayMetrics.density
+        val maxWidth = activity.resources.displayMetrics.widthPixels - (32 * density).toInt()
+        val cell = 74 * density
+        val width = (if (info.targetCellWidth > 0) (info.targetCellWidth * cell).toInt() else info.minWidth)
+            .coerceIn((80 * density).toInt(), maxWidth)
+        val target = if (info.targetCellHeight > 0) (info.targetCellHeight * cell).toInt() else info.minHeight
+        val view = RemoteViews(info.provider.packageName, info.previewLayout).apply(activity, FrameLayout(activity))
+        view.measure(
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+        )
+        val height = maxOf(target, view.measuredHeight).coerceIn((40 * density).toInt(), (400 * density).toInt())
+        view.measure(
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY),
+        )
+        view.layout(0, 0, width, height)
+        return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).also { view.draw(Canvas(it)) }
+    }
+
+    private fun Drawable.toBitmap(): Bitmap {
+        val width = intrinsicWidth.takeIf { it > 0 } ?: 200
+        val height = intrinsicHeight.takeIf { it > 0 } ?: 200
+        return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).also {
+            setBounds(0, 0, width, height)
+            draw(Canvas(it))
         }
     }
 

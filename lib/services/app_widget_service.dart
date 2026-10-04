@@ -31,6 +31,15 @@ class AppWidgetService {
     ];
   }
 
+  /// A PNG picture of [provider]'s widget (its preview layout, preview
+  /// image, or icon), or null if it has none. Rendered once per provider
+  /// and kept, so the sheet and Manage tiles share it.
+  Future<Uint8List?> preview(String provider) => _previews[provider] ??= _channel
+      .invokeMethod<Uint8List>('preview', {'provider': provider})
+      .catchError((Object _) => null);
+
+  static final _previews = <String, Future<Uint8List?>>{};
+
   Future<int> allocateId() async => (await _channel.invokeMethod<int>('allocateId'))!;
 
   /// Binds [widgetId] to [provider], prompting the user for consent if this

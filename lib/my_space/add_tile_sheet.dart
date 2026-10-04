@@ -9,6 +9,7 @@ import '../search/app_search_bar.dart';
 import '../services/app_widget_service.dart';
 import '../services/installed_apps_service.dart';
 import 'built_in_tile_specs.dart';
+import 'widget_preview.dart';
 
 /// Opens "Add New Tile" over a dark scrim, full screen, as in the original.
 /// Resolves with the tile the user added, or null if they backed out.
@@ -191,9 +192,10 @@ class _BuiltInListState extends State<_BuiltInList> {
   }
 }
 
-/// Lists other apps' home-screen widgets, searchable by app or widget name.
-/// Tapping one triggers [onAdd], which allocates + binds it natively before
-/// the tile is created (Phase 3 task 7).
+/// Lists other apps' home-screen widgets, searchable by app or widget name,
+/// each with a thumbnail of the widget. Tapping one expands its preview
+/// (Phase 12 task 6); its "Add tile" triggers [onAdd], which allocates +
+/// binds it natively before the tile is created (Phase 3 task 7).
 class _FromAppsList extends StatefulWidget {
   const _FromAppsList({required this.onAdd, required this.busy});
 
@@ -206,6 +208,8 @@ class _FromAppsList extends StatefulWidget {
 
 class _FromAppsListState extends State<_FromAppsList> {
   final _controller = TextEditingController();
+  // The expanded row's provider.
+  String? _open;
   late final Future<(List<AppInfo>, List<WidgetProvider>)> _future;
 
   @override
@@ -274,12 +278,49 @@ class _FromAppsListState extends State<_FromAppsList> {
                           itemBuilder: (context, index) {
                             final provider = filtered[index];
                             final app = appsByPackage[provider.packageName];
-                            return ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: AppIcon(icon: app?.icon, size: 40),
-                              title: Text(app?.name ?? provider.packageName),
-                              subtitle: Text(provider.label),
-                              onTap: () => widget.onAdd(provider),
+                            final open = _open == provider.provider;
+                            final colors = Theme.of(context).colorScheme;
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: AppIcon(icon: app?.icon, size: 40),
+                                  title: Text(app?.name ?? provider.packageName),
+                                  subtitle: Text(provider.label),
+                                  trailing: open
+                                      ? Icon(Icons.arrow_drop_up, color: colors.onSurfaceVariant)
+                                      : WidgetPreview(provider: provider.provider, height: 40, width: 64),
+                                  onTap: () => setState(() => _open = open ? null : provider.provider),
+                                ),
+                                if (open) ...[
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    // The card fill, so the sheet's backdrop doesn't show through.
+                                    decoration: BoxDecoration(
+                                      color: colors.surfaceContainer,
+                                      border: Border.all(color: colors.outline),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: WidgetPreview(provider: provider.provider, height: 180),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  FilledButton(
+                                    onPressed: () => widget.onAdd(provider),
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: colors.primary,
+                                      foregroundColor: colors.onPrimary,
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                    child: const Text(
+                                      'Add tile',
+                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                ],
+                              ],
                             );
                           },
                         );
