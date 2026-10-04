@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:launcher/services/focus_mode_service.dart';
+import 'package:launcher/services/focus_session_notification.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -99,5 +102,50 @@ void main() {
     await service.stop();
     await service.start(strict: true); // indefinite: strict would never end
     expect((await service.status()).strict, false);
+  });
+
+  test('a session shows a lock-screen notification that Android counts, and stop removes it', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    AndroidFlutterLocalNotificationsPlugin.registerWith();
+    FocusSessionNotification.ready = true;
+    final calls = <MethodCall>[];
+    const channel = MethodChannel('dexterous.com/flutter/local_notifications');
+    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return call.method == 'requestNotificationsPermission' ? true : null;
+    });
+    addTearDown(() {
+      FocusSessionNotification.ready = false;
+      debugDefaultTargetPlatformOverride = null;
+      messenger.setMockMethodCallHandler(channel, null);
+    });
+    Map<String, dynamic> lastShown() =>
+        Map<String, dynamic>.from(calls.lastWhere((c) => c.method == 'show').arguments['platformSpecifics'] as Map);
+
+    // Timed and strict: a countdown to the end that removes itself then.
+    await service.start(duration: const Duration(minutes: 30), strict: true);
+    await pumpEventQueue();
+    final timed = calls.lastWhere((c) => c.method == 'show').arguments as Map;
+    expect(timed['id'], 9000);
+    expect(timed['title'], 'Strict Focus session');
+    final details = lastShown();
+    expect(details['ongoing'], true);
+    expect(details['usesChronometer'], true);
+    expect(details['chronometerCountDown'], true);
+    expect(details['visibility'], NotificationVisibility.public.index);
+    expect(details['timeoutAfter'] as int, closeTo(const Duration(minutes: 30).inMilliseconds, 5000));
+    expect(details['when'], (await service.status()).endsAt!.millisecondsSinceEpoch);
+
+    await service.stop();
+    expect(calls.last.method, 'cancel');
+    expect((calls.last.arguments as Map)['id'], 9000);
+
+    // Indefinite: counts up from the start and never times out.
+    await service.start();
+    await pumpEventQueue();
+    expect(calls.lastWhere((c) => c.method == 'show').arguments['title'], 'Focus Mode');
+    expect(lastShown()['chronometerCountDown'], false);
+    expect(lastShown()['timeoutAfter'], null);
   });
 }

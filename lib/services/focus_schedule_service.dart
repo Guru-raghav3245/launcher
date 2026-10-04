@@ -7,6 +7,7 @@ import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
 import 'focus_mode_service.dart';
+import 'focus_session_notification.dart';
 
 /// A weekly Focus Mode reminder: on [days] (DateTime.monday..sunday) at
 /// [hour]:[minute], a notification offers a [durationMinutes] session.
@@ -105,6 +106,7 @@ class FocusScheduleService {
       onDidReceiveNotificationResponse: (response) => startFromReminder(response.payload),
     );
     _ready = true;
+    FocusSessionNotification.ready = true;
     final launch = await _plugin.getNotificationAppLaunchDetails();
     if (launch?.didNotificationLaunchApp ?? false) await startFromReminder(launch!.notificationResponse?.payload);
   }
@@ -161,9 +163,11 @@ class FocusScheduleService {
   }
 
   /// Rebuilds every reminder from scratch: one weekly notification per
-  /// enabled schedule and day, with id `index * 10 + weekday`.
+  /// enabled schedule and day, with id `index * 10 + weekday`. Only pending
+  /// ones are cancelled: cancelAll would also remove a showing Focus
+  /// session notification.
   static Future<void> _reschedule(List<FocusSchedule> all) async {
-    await _plugin.cancelAll();
+    await _plugin.cancelAllPendingNotifications();
     final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
     final mode = (await android?.canScheduleExactNotifications() ?? false)
         ? AndroidScheduleMode.exactAllowWhileIdle

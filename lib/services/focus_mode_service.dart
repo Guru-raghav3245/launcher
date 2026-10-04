@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'focus_session_notification.dart';
 import 'launcher_role_service.dart';
 
 /// A Focus Mode session: active with an optional end time (null means
@@ -56,15 +59,20 @@ class FocusModeService {
   /// [strict] only applies to a timed session.
   Future<void> start({Duration? duration, bool strict = false}) async {
     final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now();
+    final endsAt = duration == null ? null : now.add(duration);
     await prefs.setBool(_activeKey, true);
     await prefs.setBool(_strictKey, strict && duration != null);
-    await prefs.setInt(_startedAtKey, DateTime.now().millisecondsSinceEpoch);
-    if (duration == null) {
+    await prefs.setInt(_startedAtKey, now.millisecondsSinceEpoch);
+    if (endsAt == null) {
       await prefs.remove(_endsAtKey);
     } else {
-      await prefs.setInt(_endsAtKey, DateTime.now().add(duration).millisecondsSinceEpoch);
+      await prefs.setInt(_endsAtKey, endsAt.millisecondsSinceEpoch);
     }
     changes.value++;
+    // Not awaited: the first time, it waits on Android's permission dialog,
+    // and the session shouldn't.
+    unawaited(FocusSessionNotification.show(startedAt: now, endsAt: endsAt, strict: strict && endsAt != null));
   }
 
   Future<void> stop() async {
@@ -74,6 +82,7 @@ class FocusModeService {
     await prefs.remove(_startedAtKey);
     await prefs.remove(_strictKey);
     changes.value++;
+    await FocusSessionNotification.cancel();
   }
 
   /// Package names that stay launchable during a session. On first use it
