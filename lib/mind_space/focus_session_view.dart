@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:installed_apps/app_info.dart';
 
 import '../panels/mind_space_panel.dart';
@@ -186,18 +187,29 @@ class _AllowedAppsSheet extends StatelessWidget {
                 style: TextStyle(fontSize: 15, color: secondary),
               )
             else ...[
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  // A tap only explains; holding is what exits.
-                  onPressed: () {},
-                  onLongPress: () => Navigator.of(context).pop(true),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: ink,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              // A tick as the hold starts, a strong one when it exits (the
+              // button's own long-press feedback is off so it isn't doubled).
+              Listener(
+                onPointerDown: (_) => HapticFeedback.selectionClick(),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    // A tap only explains; holding is what exits.
+                    onPressed: () {},
+                    onLongPress: () {
+                      // The long-press effect: on Android the firmest of
+                      // the system haptics (heavyImpact felt like a tick).
+                      HapticFeedback.vibrate();
+                      Navigator.of(context).pop(true);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      enableFeedback: false,
+                      foregroundColor: ink,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Exit focus mode', style: TextStyle(fontSize: 16)),
                   ),
-                  child: const Text('Exit focus mode', style: TextStyle(fontSize: 16)),
                 ),
               ),
               const SizedBox(height: 6),

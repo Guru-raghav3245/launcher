@@ -149,7 +149,10 @@ class _HomePanelState extends State<HomePanel> {
     final tourChip = _offerTour && !widget.preview ? TourChip(ink: Theme.of(context).colorScheme.onSurface) : null;
 
     return GestureDetector(
-      onLongPress: () => showSettingsScreen(context),
+      onLongPress: () {
+        Feedback.forLongPress(context);
+        showSettingsScreen(context);
+      },
       // Only listened for when set: a double-tap recognizer makes every
       // single tap on Home wait out the double-tap window first.
       onDoubleTap: settings.doubleTap == DoubleTapAction.none ? null : () => lockScreen(context, settings.doubleTap),
@@ -360,7 +363,10 @@ class _ClassicLayout extends StatelessWidget {
                 for (final (i, item) in dock.indexed)
                   GestureDetector(
                     onTap: () => onOpen(i),
-                    onLongPress: () => onChange(i),
+                    onLongPress: () {
+                      Feedback.forLongPress(context);
+                      onChange(i);
+                    },
                     child: Container(
                       width: 70,
                       height: 70,
@@ -413,7 +419,10 @@ class _MinimalLayout extends StatelessWidget {
       for (final (i, item) in dock.indexed)
         GestureDetector(
           onTap: () => onOpen(i),
-          onLongPress: () => onChange(i),
+          onLongPress: () {
+            Feedback.forLongPress(context);
+            onChange(i);
+          },
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 24),
             child: Text(

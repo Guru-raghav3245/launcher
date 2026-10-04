@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// A pill-shaped 2-segment toggle (Light/Dark, Classic/Minimal, ...),
 /// shared by the onboarding Customize step's pickers (tasks 3-4).
@@ -29,7 +30,10 @@ class SegmentedToggle<T> extends StatelessWidget {
                 icon: option.$2,
                 label: option.$3,
                 selected: option.$1 == value,
-                onTap: () => onChanged(option.$1),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  onChanged(option.$1);
+                },
               ),
           ],
         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:installed_apps/app_info.dart';
 
 import '../panels/mind_space_panel.dart';
@@ -40,7 +41,10 @@ class _MindfulPauseDialogState extends State<_MindfulPauseDialog> with TickerPro
     super.initState();
     _progress
       ..addStatusListener((status) {
-        if (status == AnimationStatus.completed && mounted) Navigator.of(context).pop(true);
+        if (status == AnimationStatus.completed && mounted) {
+          HapticFeedback.vibrate(); // Firmer than the ticks elsewhere.
+          Navigator.of(context).pop(true);
+        }
       })
       ..forward();
     _loadUsage();

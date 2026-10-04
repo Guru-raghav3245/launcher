@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../panels/mind_space_panel.dart';
 import '../services/focus_schedule_service.dart';
@@ -84,6 +85,7 @@ class _FocusSchedulesPageState extends State<FocusSchedulesPage> {
                     activeThumbColor: isDark ? Colors.black : Colors.white,
                     activeTrackColor: ink,
                     onChanged: (enabled) async {
+                      HapticFeedback.selectionClick();
                       await _service.save(schedule.copyWith(enabled: enabled));
                       await _refresh();
                     },
@@ -239,7 +241,10 @@ class _FocusScheduleEditorState extends State<FocusScheduleEditor> {
             value: _strict,
             activeThumbColor: paper,
             activeTrackColor: ink,
-            onChanged: (value) => setState(() => _strict = value),
+            onChanged: (value) {
+              HapticFeedback.selectionClick();
+              setState(() => _strict = value);
+            },
           ),
           const SizedBox(height: 24),
           FilledButton(

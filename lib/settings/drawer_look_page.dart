@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:installed_apps/app_info.dart';
 
 import '../models/drawer_look.dart';
@@ -165,7 +166,10 @@ class _DrawerLookPageState extends State<DrawerLookPage> {
                     value: value,
                     activeThumbColor: settings.isDark ? Colors.black : Colors.white,
                     activeTrackColor: settings.isDark ? Colors.white : Colors.black,
-                    onChanged: onChanged,
+                    onChanged: (v) {
+                      HapticFeedback.selectionClick();
+                      onChanged(v);
+                    },
                   ),
               ],
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:installed_apps/app_info.dart';
 
 import '../models/drawer_look.dart';
@@ -264,14 +265,24 @@ class _SectionHeader extends StatelessWidget {
 }
 
 /// A-Z/#/★-style side strip: tap or drag to jump the list to a section.
-class _FastScrollIndex extends StatelessWidget {
+class _FastScrollIndex extends StatefulWidget {
   const _FastScrollIndex({required this.letters, required this.onLetterSelected});
 
   final List<String> letters;
   final ValueChanged<String> onLetterSelected;
 
   @override
+  State<_FastScrollIndex> createState() => _FastScrollIndexState();
+}
+
+class _FastScrollIndexState extends State<_FastScrollIndex> {
+  // The letter under the finger, so a drag ticks once per letter, not on
+  // every move.
+  String? _current;
+
+  @override
   Widget build(BuildContext context) {
+    final letters = widget.letters;
     // A centred column at the original's pitch, squeezed if it can't fit.
     return SizedBox(
       width: 24,
@@ -281,16 +292,18 @@ class _FastScrollIndex extends StatelessWidget {
             height: (letters.length * 18.0).clamp(0, constraints.maxHeight),
             child: Builder(
               builder: (indexContext) {
-                void handlePointer(Offset globalPosition) {
+                void handlePointer(Offset globalPosition, {bool tap = false}) {
                   final box = indexContext.findRenderObject() as RenderBox;
                   final local = box.globalToLocal(globalPosition);
                   final index = (local.dy / box.size.height * letters.length).floor().clamp(0, letters.length - 1);
-                  onLetterSelected(letters[index]);
+                  if (tap || letters[index] != _current) HapticFeedback.selectionClick();
+                  _current = letters[index];
+                  widget.onLetterSelected(letters[index]);
                 }
 
                 return GestureDetector(
                   behavior: HitTestBehavior.translucent,
-                  onTapDown: (d) => handlePointer(d.globalPosition),
+                  onTapDown: (d) => handlePointer(d.globalPosition, tap: true),
                   onVerticalDragUpdate: (d) => handlePointer(d.globalPosition),
                   child: Column(
                     children: [

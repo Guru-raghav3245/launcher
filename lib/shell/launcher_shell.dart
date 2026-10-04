@@ -110,6 +110,7 @@ class _LauncherShellState extends State<LauncherShell> {
           controller: _verticalController,
           physics: const ClampingScrollPhysics(),
           onPageChanged: (page) {
+            HapticFeedback.selectionClick();
             _spotlightShown.value = hasSpotlight && page == 0;
             _drawerShown.value = page == 1 + spotlightPages;
             if (_drawerShown.value) TourService.complete(Tour.findApps);
@@ -120,10 +121,14 @@ class _LauncherShellState extends State<LauncherShell> {
               controller: _rowController,
               physics: const ClampingScrollPhysics(),
               // A running tour is done once its page arrives.
-              onPageChanged: (page) => switch (page) {
-                0 => TourService.complete(Tour.organizeDay),
-                2 => TourService.complete(Tour.usePhoneLess),
-                _ => null,
+              onPageChanged: (page) {
+                HapticFeedback.selectionClick();
+                switch (page) {
+                  case 0:
+                    TourService.complete(Tour.organizeDay);
+                  case 2:
+                    TourService.complete(Tour.usePhoneLess);
+                }
               },
               children: const [_KeepAlive(MySpacePanel()), _KeepAlive(HomePanel()), _KeepAlive(MindSpacePanel())],
             )),

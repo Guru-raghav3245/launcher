@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../panels/mind_space_panel.dart';
 import '../search/app_multi_picker_sheet.dart';
@@ -116,7 +117,10 @@ class _FocusDurationSheetState extends State<_FocusDurationSheet> {
               value: _strict,
               activeThumbColor: isDark ? Colors.black : Colors.white,
               activeTrackColor: ink,
-              onChanged: (value) => setState(() => _strict = value),
+              onChanged: (value) {
+                HapticFeedback.selectionClick();
+                setState(() => _strict = value);
+              },
             ),
             const SizedBox(height: 8),
             SizedBox(

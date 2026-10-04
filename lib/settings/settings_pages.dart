@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../onboarding/onboarding_flow.dart';
 import '../search/app_multi_picker_sheet.dart';
@@ -214,7 +215,12 @@ class SmallSwitch extends StatelessWidget {
     return Semantics(
       toggled: value,
       child: GestureDetector(
-        onTap: onChanged == null ? null : () => onChanged!(!value),
+        onTap: onChanged == null
+            ? null
+            : () {
+                HapticFeedback.selectionClick();
+                onChanged!(!value);
+              },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           width: 40,
@@ -296,7 +302,10 @@ Future<T?> showChoiceSheet<T>(
                     SettingsRow(
                       title: label,
                       subtitle: subtitle,
-                      onTap: () => Navigator.of(context).pop(value),
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        Navigator.of(context).pop(value);
+                      },
                       trailing: Icon(
                         value == selected ? Icons.check_circle : Icons.radio_button_unchecked,
                         size: 22,

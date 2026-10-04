@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:installed_apps/app_info.dart';
 
 import '../services/app_customizations_service.dart';
@@ -70,6 +71,7 @@ class _AppMultiPickerSheetState extends State<_AppMultiPickerSheet> {
   }
 
   Future<void> _toggle(String packageName, bool selected) async {
+    HapticFeedback.selectionClick();
     setState(() => selected ? _selected.add(packageName) : _selected.remove(packageName));
     await widget.onChanged(packageName, selected);
   }

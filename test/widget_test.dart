@@ -153,6 +153,30 @@ void main() {
     expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode, ThemeMode.dark);
   });
 
+  testWidgets('haptics: long-press on Home vibrates, and a chooser pick ticks', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+    final haptics = <Object?>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'HapticFeedback.vibrate') haptics.add(call.arguments);
+      return null;
+    });
+
+    await tester.pumpWidget(const StudentLauncherApp());
+    await tester.pumpAndSettle();
+    haptics.clear();
+    await tester.longPress(find.byType(HomePanel));
+    await tester.pumpAndSettle();
+    // Feedback.forLongPress on Android: a plain vibrate.
+    expect(haptics, [null]);
+
+    haptics.clear();
+    await tester.tap(find.text('Theme · Light'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Auto'));
+    await tester.pumpAndSettle();
+    expect(haptics, ['HapticFeedbackType.selectionClick']);
+  });
+
   testWidgets('Toggles pick the theme and start or stop Focus Mode', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
 
