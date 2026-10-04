@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// after the original launcher's: each points at one gesture, and doing
 /// that gesture for real completes it.
 enum Tour {
-  findApps('Find my apps', 'Swipe up', Icons.arrow_upward, 'Swipe up to see all your apps'),
+  findApps('Find my apps', 'Swipe up', Icons.arrow_upward, 'Swipe up to search or see all your apps'),
   usePhoneLess('Use my phone less', 'Swipe left', Icons.arrow_back, 'Swipe left to see where your time goes'),
   organizeDay('Organize my day', 'Swipe right', Icons.arrow_forward, 'Swipe right for notes, to-dos and more'),
   customizeHome(

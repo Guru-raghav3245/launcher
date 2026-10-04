@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
 import '../state/app_settings_scope.dart';
 
-/// A single app row (icon + name), shared by the App Drawer's flat/search
-/// results and Spotlight Search.
+/// A single app row (icon + name), used by the App Drawer's list and
+/// search results and the app pickers.
 class AppResultRow extends StatelessWidget {
   const AppResultRow({
     super.key,

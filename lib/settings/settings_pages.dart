@@ -20,7 +20,6 @@ void _push(BuildContext context, Widget page) =>
 
 void openLauncherSettings(BuildContext context) => _push(context, const LauncherSettingsPage());
 void openHomeSettings(BuildContext context) => _push(context, const HomeSettingsPage());
-void openSpotlightSettings(BuildContext context) => _push(context, const SpotlightSettingsPage());
 void openDrawerSettings(BuildContext context) => _push(context, const DrawerSettingsPage());
 void openAppVisibility(BuildContext context) => _push(context, const AppVisibilityPage());
 void openGeneralSettings(BuildContext context) => _push(context, const GeneralSettingsPage());
@@ -338,8 +337,7 @@ class LauncherSettingsPage extends StatelessWidget {
         card(Icons.home_outlined, 'Home Settings', 'Customize gestures', openHomeSettings),
         card(Icons.palette_outlined, 'Appearance', 'Customize themes, fonts and more', showAppearanceEditor),
         gap,
-        card(Icons.search, 'Spotlight', 'Search behavior', openSpotlightSettings),
-        card(Icons.apps, 'App Drawer', 'Layout, keyboard, and search behavior', openDrawerSettings),
+        card(Icons.apps, 'App Drawer', 'Layout and search behavior', openDrawerSettings),
         card(Icons.visibility_off_outlined, 'App Visibility', 'Hidden apps', openAppVisibility),
         gap,
         card(Icons.settings_outlined, 'General', 'Time, units & onboarding', openGeneralSettings),
@@ -356,7 +354,6 @@ class LauncherSettingsPage extends StatelessWidget {
 }
 
 const _swipeDownChoices = [
-  (SwipeDownAction.spotlight, 'Spotlight Search', 'Quickly search apps from your home screen'),
   (SwipeDownAction.notifications, 'Notification Tray', 'Pull down to view notifications and toggles'),
   (SwipeDownAction.none, 'None', 'Disable this swipe gesture'),
 ];
@@ -428,32 +425,8 @@ class HomeSettingsPage extends StatelessWidget {
   }
 }
 
-/// Spotlight: its one behaviour switch (shared with the drawer).
-class SpotlightSettingsPage extends StatelessWidget {
-  const SpotlightSettingsPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final settings = AppSettingsScope.of(context);
-    return SettingsPage(
-      title: 'Spotlight',
-      children: [
-        SettingsBox(
-          children: [
-            SwitchRow(
-              title: 'Auto open',
-              subtitle: 'Open the app immediately when search narrows to a single result',
-              value: settings.drawerOption(DrawerOption.autoOpenSingleResult),
-              onChanged: (on) => settings.setDrawerOption(DrawerOption.autoOpenSingleResult, on),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-/// App Drawer: its look, then the behaviour switches.
+/// App Drawer (the search + apps screen): its look, then the behaviour
+/// switches.
 class DrawerSettingsPage extends StatelessWidget {
   const DrawerSettingsPage({super.key});
 
@@ -484,14 +457,8 @@ class DrawerSettingsPage extends StatelessWidget {
         const _Caps('BEHAVIOUR'),
         SettingsBox(
           children: [
-            option(
-              DrawerOption.keyboardOnOpen,
-              'Open ready to type',
-              'Search focused and the keyboard up as the drawer opens',
-            ),
             option(DrawerOption.autoOpenSingleResult, 'Open single match', 'Opens the app when one result is left'),
             option(DrawerOption.hideUnusedApps, 'Hide unused apps', 'Not opened in 30 days · still searchable'),
-            option(DrawerOption.recentAppsOnTop, 'Recent apps', 'The apps you opened last, at the top of the list'),
           ],
         ),
       ],
@@ -499,7 +466,7 @@ class DrawerSettingsPage extends StatelessWidget {
   }
 }
 
-/// Hidden apps: the ones kept out of the App Drawer and Spotlight, ticked at
+/// Hidden apps: the ones kept out of the App Drawer and its search, ticked at
 /// the top; untick one to bring it back (or tick more to hide them).
 Future<void> showHiddenApps(BuildContext context) async {
   const customizations = AppCustomizationsService();

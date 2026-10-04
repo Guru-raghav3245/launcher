@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'app_search.dart';
 
-/// Search field + sort control, shared by the App Drawer (task 7) and
-/// Spotlight Search (task 8).
+/// Search field + sort control, used by the App Drawer's search (which
+/// took in Spotlight Search in Phase 12 task 7), Settings, and the pickers.
 class AppSearchBar extends StatelessWidget {
   const AppSearchBar({
     super.key,
@@ -30,7 +30,7 @@ class AppSearchBar extends StatelessWidget {
   /// drawer's way back Home, as in the original).
   final VoidCallback? onClose;
 
-  /// Enter on the keyboard (Spotlight opens its first result).
+  /// Enter on the keyboard (the App Drawer opens its top match).
   final ValueChanged<String>? onSubmitted;
 
   @override

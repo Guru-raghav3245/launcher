@@ -5,8 +5,8 @@ import 'package:installed_apps/installed_apps.dart';
 
 import 'focus_mode_service.dart';
 
-/// Shared installed-app data source for the App Drawer, drawer search, and
-/// Spotlight Search (Phase 1 tasks 6-8) and Home's pinned-app dock.
+/// Shared installed-app data source for the App Drawer and its search
+/// (Phase 1 tasks 6-8), Home's dock, and every app picker.
 class InstalledAppsService {
   const InstalledAppsService();
 

@@ -4,8 +4,8 @@ import 'package:installed_apps/app_info.dart';
 enum AppSortMode { alphabetical, recentlyInstalled }
 
 /// Filters [apps] by [query] (case-insensitive substring of the app name)
-/// and sorts the result per [sortMode]. Shared by the App Drawer (task 7)
-/// and Spotlight Search (task 8), which both search the same app list.
+/// and sorts the result per [sortMode]. Used by the App Drawer's search and
+/// the app pickers.
 List<AppInfo> filterAndSortApps(
   List<AppInfo> apps, {
   required String query,

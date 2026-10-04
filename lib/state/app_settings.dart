@@ -8,24 +8,21 @@ import '../models/drawer_look.dart';
 import '../models/home_layout_mode.dart';
 import '../models/wallpaper.dart';
 
-/// App Drawer / Spotlight behaviour switches (Phase 8 task 5), all off by
-/// default.
+/// Search + apps screen behaviour switches (Phase 8 task 5), all off by
+/// default. (Keyboard on open and Recent apps on top went in Phase 12 task
+/// 7: the keyboard always comes up, and recent apps are always shown as
+/// cards; their stored values are ignored.)
 enum DrawerOption {
-  /// Focus the drawer's search (keyboard up) whenever the drawer opens.
-  keyboardOnOpen,
-
-  /// When typing leaves exactly one result, open it (drawer and Spotlight).
+  /// When typing leaves exactly one result, open it.
   autoOpenSingleResult,
-
-  /// A Recent section at the top of the drawer, from usage stats.
-  recentAppsOnTop,
 
   /// Leave apps unused for 30 days out of the drawer list (search finds them).
   hideUnusedApps,
 }
 
-/// What swiping down on Home does (Phase 8 task 7).
-enum SwipeDownAction { spotlight, notifications, none }
+/// What swiping down on Home does (Phase 8 task 7). Search moved to swipe
+/// up in Phase 12 task 7, so a stored `spotlight` loads as [notifications].
+enum SwipeDownAction { notifications, none }
 
 /// What double-tapping Home does. The lock methods match the original:
 /// accessibility (recommended, keeps fingerprint unlock) or device admin.
@@ -148,7 +145,7 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
   static const _swipeDownKey = 'settings_swipe_down';
   static const _doubleTapKey = 'settings_double_tap';
 
-  SwipeDownAction _swipeDown = SwipeDownAction.spotlight;
+  SwipeDownAction _swipeDown = SwipeDownAction.notifications;
   SwipeDownAction get swipeDown => _swipeDown;
 
   DoubleTapAction _doubleTap = DoubleTapAction.none;
@@ -168,7 +165,7 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
 
   bool _showSearchBar = true;
 
-  /// Classic layout's Spotlight search pill.
+  /// Classic layout's search pill (opens the App Drawer's search).
   bool get showSearchBar => _showSearchBar;
 
   DrawerLook _drawerLook = const DrawerLook();
@@ -228,7 +225,9 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
     _cardStyle = CardStyle.values.byName(prefs.getString('settings_card_style') ?? CardStyle.bordered.name);
     _lockWallpaperSync = prefs.getBool('settings_lock_wallpaper') ?? false;
     if (!_showStatusBar) _applyStatusBar(); // shown is the window's default
-    _swipeDown = SwipeDownAction.values.byName(prefs.getString(_swipeDownKey) ?? SwipeDownAction.spotlight.name);
+    _swipeDown = prefs.getString(_swipeDownKey) == SwipeDownAction.none.name
+        ? SwipeDownAction.none
+        : SwipeDownAction.notifications;
     _doubleTap = DoubleTapAction.values.byName(prefs.getString(_doubleTapKey) ?? DoubleTapAction.none.name);
     // Before Auto existed only the dark flag was stored.
     _theme = ThemeChoice.values.byName(

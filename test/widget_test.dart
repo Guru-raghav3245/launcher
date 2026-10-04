@@ -13,9 +13,9 @@ import 'package:launcher/mind_space/tool_pages.dart';
 import 'package:launcher/onboarding/onboarding_flow.dart';
 import 'package:launcher/onboarding/steps/welcome_step.dart';
 import 'package:launcher/panels/app_drawer_panel.dart';
+import 'package:launcher/search/app_cards.dart';
 import 'package:launcher/panels/home_panel.dart';
 import 'package:launcher/panels/my_space_panel.dart';
-import 'package:launcher/panels/spotlight_search_panel.dart';
 import 'package:launcher/panels/mind_space_panel.dart';
 import 'package:launcher/services/app_customizations_service.dart';
 import 'package:launcher/services/dock_service.dart';
@@ -279,7 +279,7 @@ void main() {
     // Bottom: the clock sits below the middle of Home.
     final clockY = tester.getCenter(find.text(minute).last).dy;
     expect(clockY, greaterThan(tester.getSize(find.byType(HomePanel)).height / 2));
-    expect(find.text('Spotlight search'), findsNothing);
+    expect(find.text('Search apps'), findsNothing);
     expect(appCalls.where((c) => c.method == 'setStatusBarVisible').last.arguments, {'visible': false});
   });
 
@@ -307,7 +307,7 @@ void main() {
     expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode, ThemeMode.light);
     // The search pill is a translucent wash over the gradient, not a solid slab.
     final pill = tester.widget<Container>(
-      find.ancestor(of: find.text('Spotlight search'), matching: find.byType(Container)).first,
+      find.ancestor(of: find.text('Search apps'), matching: find.byType(Container)).first,
     );
     expect((pill.decoration! as BoxDecoration).color!.a, closeTo(0.1, 0.01));
   });
@@ -396,22 +396,23 @@ void main() {
 
     await tester.tap(find.text('Home Settings'));
     await tester.pumpAndSettle();
-    expect(find.text('Spotlight Search'), findsOneWidget); // Swipe Down's current action
+    expect(find.text('Notification Tray'), findsOneWidget); // Swipe Down's default action
     await tester.tap(find.text('Swipe Down'));
     await tester.pumpAndSettle();
     expect(find.text('Choose Swipe Action'), findsOneWidget);
-    await tester.tap(find.text('Notification Tray'));
+    expect(find.text('Spotlight Search'), findsNothing); // search is on swipe up now
+    await tester.tap(find.text('None').last); // the chooser's (Double Tap's row reads None too)
     await tester.pumpAndSettle();
-    expect(settings.swipeDown, SwipeDownAction.notifications);
-    expect(find.text('Notification Tray'), findsOneWidget); // the row's value now
+    expect(settings.swipeDown, SwipeDownAction.none);
+    expect(find.text('None'), findsNWidgets(2)); // Swipe Down's row value now, beside Double Tap's
 
     await tester.tap(find.byIcon(Icons.chevron_left));
     await tester.pumpAndSettle();
     await tester.tap(find.text('App Drawer'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Recent apps'));
+    await tester.tap(find.text('Hide unused apps'));
     await tester.pumpAndSettle();
-    expect(settings.drawerOption(DrawerOption.recentAppsOnTop), true);
+    expect(settings.drawerOption(DrawerOption.hideUnusedApps), true);
   });
 
   testWidgets('System Settings shows permission and launcher status', (WidgetTester tester) async {
@@ -492,8 +493,9 @@ void main() {
     expect(calls, ['openClock']);
   });
 
-  testWidgets('swipe down can open the notification tray instead of Spotlight', (WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({'onboarding_complete': true, 'settings_swipe_down': 'notifications'});
+  testWidgets('swipe down opens the notification tray (a stored Spotlight choice too)', (WidgetTester tester) async {
+    // Spotlight was a swipe-down choice before Phase 12 task 7; it loads as the tray.
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true, 'settings_swipe_down': 'spotlight'});
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       const MethodChannel('installed_apps'),
       (call) async => <Object>[],
@@ -508,13 +510,13 @@ void main() {
 
     await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
-    expect(find.byType(SpotlightSearchPanel), findsNothing);
+    expect(AppSettingsScope.of(tester.element(find.byType(HomePanel))).swipeDown, SwipeDownAction.notifications);
     await tester.fling(find.byType(HomePanel), const Offset(0, 400), 1000);
     await tester.pumpAndSettle();
     expect(calls, ['expandNotifications']);
     expect(find.byType(HomePanel), findsOneWidget); // still on Home
 
-    // Swipe up still reaches the App Drawer.
+    // Swipe up reaches the search + apps screen.
     await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000);
     await tester.pumpAndSettle();
     expect(find.byType(AppDrawerPanel), findsOneWidget);
@@ -861,7 +863,7 @@ void main() {
     expect(find.text('45m'), findsNWidgets(2)); // the day's total and Feed's row
   });
 
-  testWidgets('hidden and renamed apps show up that way in the drawer and Spotlight', (WidgetTester tester) async {
+  testWidgets('hidden and renamed apps show up that way in the drawer and its search', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
       'onboarding_complete': true,
       'apps_hidden': ['com.camera'],
@@ -885,10 +887,6 @@ void main() {
     expect(find.text('Camera'), findsNothing);
     expect(find.text('Clock'), findsOneWidget);
 
-    await tester.fling(find.text('Clock'), const Offset(0, 400), 1000); // back to Home
-    await tester.pumpAndSettle();
-    await tester.fling(find.byType(HomePanel), const Offset(0, 400), 1000); // swipe down → Spotlight
-    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, 'c');
     await tester.pumpAndSettle();
     expect(find.text('Clock'), findsOneWidget);
@@ -985,13 +983,9 @@ void main() {
     expect((await const DockService().slots()).first.packageName, 'com.camera');
   });
 
-  testWidgets('drawer options: keyboard, recent apps, unused apps hidden, single result opens', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('drawer options: unused apps hidden, single result opens', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
       'onboarding_complete': true,
-      'settings_drawer_keyboardOnOpen': true,
-      'settings_drawer_recentAppsOnTop': true,
       'settings_drawer_hideUnusedApps': true,
       'settings_drawer_autoOpenSingleResult': true,
     });
@@ -1019,9 +1013,7 @@ void main() {
     await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up → App Drawer
     await tester.pumpAndSettle();
 
-    expect(tester.testTextInput.isVisible, true); // keyboard on open
-    expect(find.text('◷'), findsNWidgets(2)); // the Recent header and its index entry
-    expect(find.text('Chrome'), findsNWidgets(2)); // under Recent and under C
+    expect(find.text('Chrome'), findsNWidgets(2)); // a recent card and under C
     expect(find.text('Camera'), findsNothing); // unused for 30 days
     expect(find.text('Clock'), findsOneWidget); // new, so kept
 
@@ -1031,7 +1023,7 @@ void main() {
     expect(started, hasLength(1));
   });
 
-  testWidgets('Spotlight raises the keyboard and shows recent apps', (WidgetTester tester) async {
+  testWidgets('swiping up raises the keyboard, with recent cards above the A-Z list', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
     final messenger = tester.binding.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(
@@ -1050,11 +1042,28 @@ void main() {
     await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     expect(tester.testTextInput.isVisible, false);
-    await tester.fling(find.byType(HomePanel), const Offset(0, 400), 1000); // swipe down → Spotlight
+    await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up
     await tester.pumpAndSettle();
-    expect(tester.testTextInput.isVisible, true);
-    expect(find.text('Chrome'), findsOneWidget); // a recent app card
-    expect(find.text('Camera'), findsNothing);
+    expect(tester.testTextInput.isVisible, true); // always ready to type
+    expect(find.byType(AppCards), findsOneWidget);
+    expect(find.text('Chrome'), findsNWidgets(2)); // its recent card, and under C
+    expect(find.text('Camera'), findsOneWidget); // not recent: only in the list
+
+    // Typing swaps the cards for results.
+    await tester.enterText(find.byType(TextField).first, 'cam');
+    await tester.pumpAndSettle();
+    expect(find.byType(AppCards), findsNothing);
+    expect(find.text('Camera'), findsOneWidget);
+    expect(find.text('Chrome'), findsNothing);
+
+    // Leaving clears the search: back Home (pull down), then up again.
+    await tester.fling(find.text('Camera'), const Offset(0, 400), 1000);
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(find.byType(HomePanel)).dy, 0);
+    await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000);
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(find.byType(TextField).first).controller!.text, isEmpty);
+    expect(find.byType(AppCards), findsOneWidget);
   });
 
   testWidgets('a built-in tile is previewed before it is added', (WidgetTester tester) async {
@@ -1392,13 +1401,13 @@ void main() {
     expect(find.text('Pick one. You can open this again anytime.'), findsOneWidget);
     await tester.tap(find.text('Find my apps'));
     await tester.pumpAndSettle();
-    expect(find.text('Swipe up to see all your apps'), findsOneWidget);
+    expect(find.text('Swipe up to search or see all your apps'), findsOneWidget);
 
     // The hint lets the real swipe through; arriving in the drawer ends it.
     await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000);
     await tester.pumpAndSettle();
     expect(find.byType(AppDrawerPanel), findsOneWidget);
-    expect(find.text('Swipe up to see all your apps'), findsNothing);
+    expect(find.text('Swipe up to search or see all your apps'), findsNothing);
     expect(await const TourService().done(), {Tour.findApps});
   });
 
@@ -1508,7 +1517,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('FOCUS SESSION'), findsOneWidget);
     expect(find.text('ELAPSED'), findsOneWidget);
-    expect(find.text('Spotlight search'), findsNothing); // the normal Home layout is hidden
+    expect(find.text('Search apps'), findsNothing); // the normal Home layout is hidden
 
     await tester.tap(find.text('APPS'));
     await tester.pumpAndSettle();
@@ -1527,7 +1536,7 @@ void main() {
     await tester.tap(find.text('DONE'));
     await tester.pumpAndSettle();
     expect(find.text('FOCUS SESSION'), findsNothing);
-    expect(find.text('Spotlight search'), findsOneWidget);
+    expect(find.text('Search apps'), findsOneWidget);
   });
 
   testWidgets('DM Sans and the original palette are the defaults', (WidgetTester tester) async {
@@ -1561,7 +1570,23 @@ void main() {
     expect(tester.getTopLeft(find.byType(HomePanel)).dx, 0);
   });
 
-  testWidgets('Spotlight shows four cards, recent first, and Enter opens the first', (WidgetTester tester) async {
+  testWidgets("Home's search pill opens search with the keyboard up", (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('installed_apps'),
+      (call) async => <Object>[],
+    );
+
+    await tester.pumpWidget(const StudentLauncherApp());
+    await tester.pumpAndSettle();
+    expect(tester.testTextInput.isVisible, false);
+    await tester.tap(find.text('Search apps'));
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(find.byType(AppDrawerPanel)).dy, 0); // the screen is up
+    expect(tester.testTextInput.isVisible, true);
+  });
+
+  testWidgets('search shows every match, most recent first, and Enter opens the top one', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
     final started = <Object?>[];
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('installed_apps'), (call) async {
@@ -1588,16 +1613,23 @@ void main() {
 
     await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
-    await tester.fling(find.byType(HomePanel), const Offset(0, 400), 1000); // swipe down → Spotlight
+    await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, 'c');
     await tester.pumpAndSettle();
-    // Recently used Chrome first, then alphabetical, four at most.
-    expect(find.text('Chrome'), findsOneWidget);
-    expect(find.text('Calculator'), findsOneWidget);
-    expect(find.text('Camera'), findsOneWidget);
-    expect(find.text('Clock'), findsNothing);
+    // Every match (no cap), recently used Chrome first, then alphabetical.
+    for (final name in ['Chrome', 'Calculator', 'Calendar', 'Camera', 'Clock']) {
+      expect(find.text(name), findsOneWidget);
+    }
     expect(find.text('launcher'), findsNothing);
+    final top = tester.getTopLeft(find.text('Chrome')).dy;
+    expect(top, lessThan(tester.getTopLeft(find.text('Calculator')).dy));
+    // The top match is ringed as the one Enter opens.
+    final ringed = find.ancestor(of: find.text('Chrome'), matching: find.byType(DecoratedBox));
+    expect(
+      tester.widgetList<DecoratedBox>(ringed).any((box) => (box.decoration as BoxDecoration?)?.border != null),
+      true,
+    );
 
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();

@@ -6,7 +6,6 @@ import '../panels/app_drawer_panel.dart';
 import '../panels/home_panel.dart';
 import '../panels/mind_space_panel.dart';
 import '../panels/my_space_panel.dart';
-import '../panels/spotlight_search_panel.dart';
 import '../services/gestures_service.dart';
 import '../services/installed_apps_service.dart';
 import '../services/tour_service.dart';
@@ -29,15 +28,12 @@ class LauncherShell extends StatefulWidget {
 class _LauncherShellState extends State<LauncherShell> {
   final _rowController = PageController(initialPage: 1);
 
-  // Which vertical page has settled on screen, so Spotlight and the drawer
-  // can raise or drop the keyboard (every page stays alive, see _KeepAlive).
-  final _spotlightShown = ValueNotifier(false);
+  // Whether the search + apps screen (the vertical pager's page 1) has
+  // settled on screen, so it can raise or drop the keyboard (every page
+  // stays alive, see _KeepAlive).
   final _drawerShown = ValueNotifier(false);
 
-  // Spotlight is only a page while swipe down opens it (Settings → Gestures);
-  // the controller is rebuilt when that changes, landing back on Home.
-  PageController? _verticalController;
-  bool? _hasSpotlight;
+  final _verticalController = PageController();
   var _pulledDown = false;
 
   // What [mySpaceOnScreen] is worked out from: the row's page (My Space is
@@ -72,18 +68,23 @@ class _LauncherShellState extends State<LauncherShell> {
     });
   }
 
+  static const _pageDuration = Duration(milliseconds: 300);
+
   /// Closes any sheet or page and animates both pagers back to Home. The
-  /// row's pager is detached while Spotlight or the drawer is showing, so it
-  /// moves once the vertical pager has brought it back.
+  /// row's pager is detached while the search + apps screen is showing, so
+  /// it moves once the vertical pager has brought it back.
   Future<void> _goHome() async {
     Navigator.of(context).popUntil((route) => route.isFirst);
-    const duration = Duration(milliseconds: 300);
-    final vertical = _verticalController;
-    if (vertical != null && vertical.hasClients) {
-      await vertical.animateToPage(_hasSpotlight! ? 1 : 0, duration: duration, curve: Curves.easeOut);
+    if (_verticalController.hasClients) {
+      await _verticalController.animateToPage(0, duration: _pageDuration, curve: Curves.easeOut);
     }
-    if (_rowController.hasClients) await _rowController.animateToPage(1, duration: duration, curve: Curves.easeOut);
+    if (_rowController.hasClients) {
+      await _rowController.animateToPage(1, duration: _pageDuration, curve: Curves.easeOut);
+    }
   }
+
+  /// Home's search pill: up to the search + apps screen, as a swipe up would.
+  void _openSearch() => _verticalController.animateToPage(1, duration: _pageDuration, curve: Curves.easeOut);
 
   @override
   void dispose() {
@@ -91,15 +92,13 @@ class _LauncherShellState extends State<LauncherShell> {
     _lifecycle.dispose();
     mySpaceOnScreen.value = false;
     _rowController.dispose();
-    _verticalController?.dispose();
-    _spotlightShown.dispose();
+    _verticalController.dispose();
     _drawerShown.dispose();
     super.dispose();
   }
 
-  /// Without a Spotlight page, a pull down past the top of the pager (on
-  /// Home's row, not inside a panel's own list) runs the swipe-down action,
-  /// once per drag.
+  /// A pull down past the top of the pager (on Home's row, not inside a
+  /// panel's own list) runs the swipe-down action, once per drag.
   bool _onScroll(ScrollNotification notification, SwipeDownAction action) {
     if (notification.depth != 0) return false;
     if (notification is ScrollStartNotification) _pulledDown = false;
@@ -116,31 +115,20 @@ class _LauncherShellState extends State<LauncherShell> {
   @override
   Widget build(BuildContext context) {
     final swipeDown = AppSettingsScope.of(context).swipeDown;
-    final hasSpotlight = swipeDown == SwipeDownAction.spotlight;
-    if (hasSpotlight != _hasSpotlight) {
-      _verticalController?.dispose();
-      _verticalController = PageController(initialPage: hasSpotlight ? 1 : 0);
-      _hasSpotlight = hasSpotlight;
-      _onRow = true; // the rebuilt pager starts on the row
-    }
-    final spotlightPages = hasSpotlight ? 1 : 0;
     return Scaffold(
       body: NotificationListener<ScrollNotification>(
         onNotification: (n) => _onScroll(n, swipeDown),
         child: PageView(
-          key: ValueKey(hasSpotlight),
           scrollDirection: Axis.vertical,
           controller: _verticalController,
           physics: const ClampingScrollPhysics(),
           onPageChanged: (page) {
             HapticFeedback.selectionClick();
-            _spotlightShown.value = hasSpotlight && page == 0;
-            _drawerShown.value = page == 1 + spotlightPages;
-            _setVisibility(onRow: page == spotlightPages);
+            _drawerShown.value = page == 1;
+            _setVisibility(onRow: page == 0);
             if (_drawerShown.value) TourService.complete(Tour.findApps);
           },
           children: [
-            if (hasSpotlight) _KeepAlive(SpotlightSearchPanel(shown: _spotlightShown)),
             _KeepAlive(PageView(
               controller: _rowController,
               physics: const ClampingScrollPhysics(),
@@ -155,7 +143,11 @@ class _LauncherShellState extends State<LauncherShell> {
                     TourService.complete(Tour.usePhoneLess);
                 }
               },
-              children: const [_KeepAlive(MySpacePanel()), _KeepAlive(HomePanel()), _KeepAlive(MindSpacePanel())],
+              children: [
+                const _KeepAlive(MySpacePanel()),
+                _KeepAlive(HomePanel(onSearch: _openSearch)),
+                const _KeepAlive(MindSpacePanel()),
+              ],
             )),
             _KeepAlive(AppDrawerPanel(shown: _drawerShown, onClose: _goHome)),
           ],

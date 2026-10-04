@@ -54,11 +54,14 @@ typedef _DockItem = ({AppInfo? app, IconData? glyph});
 /// Home panel: wallpaper background, live clock, date, and
 /// pinned apps in either Classic or Minimal layout.
 class HomePanel extends StatefulWidget {
-  const HomePanel({super.key, this.preview = false});
+  const HomePanel({super.key, this.preview = false, this.onSearch});
 
   /// Drawn inside a phone preview (onboarding, the Appearance editor):
   /// no tour chip.
   final bool preview;
+
+  /// The Classic layout's search pill: opens the search + apps screen.
+  final VoidCallback? onSearch;
 
   @override
   State<HomePanel> createState() => _HomePanelState();
@@ -181,6 +184,7 @@ class _HomePanelState extends State<HomePanel> {
                     ? FocusSessionView(status: _focus, now: _now)
                     : settings.layoutMode == HomeLayoutMode.classic
                     ? _ClassicLayout(
+                        onSearch: widget.onSearch,
                         time: formatClockTime(_now, use24: MediaQuery.alwaysUse24HourFormatOf(context)),
                         subtitle: subtitle,
                         isDark: isDark,
@@ -291,6 +295,7 @@ class _ClassicLayout extends StatelessWidget {
     required this.onOpen,
     required this.onChange,
     this.tourChip,
+    this.onSearch,
   });
 
   final String time;
@@ -303,6 +308,9 @@ class _ClassicLayout extends StatelessWidget {
 
   /// "Take a look around", until the tours are done or skipped.
   final Widget? tourChip;
+
+  /// Tapping the search pill.
+  final VoidCallback? onSearch;
 
   @override
   Widget build(BuildContext context) {
@@ -329,26 +337,29 @@ class _ClassicLayout extends StatelessWidget {
           },
           if (tourChip case final chip?) ...[chip, const SizedBox(height: 12)],
           if (settings.showSearchBar)
-            Container(
-              height: 46,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: outlined(23, 1),
-              child: Row(
-                children: [
-                  Icon(Icons.search, color: iconColor, size: 24),
-                  const SizedBox(width: 14),
-                  Flexible(
-                    child: Text(
-                      'Spotlight search',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: plain ? colors.onSurfaceVariant : colors.onSurface.withValues(alpha: 0.7),
+            GestureDetector(
+              onTap: onSearch,
+              child: Container(
+                height: 46,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: outlined(23, 1),
+                child: Row(
+                  children: [
+                    Icon(Icons.search, color: iconColor, size: 24),
+                    const SizedBox(width: 14),
+                    Flexible(
+                      child: Text(
+                        'Search apps',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: plain ? colors.onSurfaceVariant : colors.onSurface.withValues(alpha: 0.7),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           if (settings.showSearchBar) const SizedBox(height: 42),

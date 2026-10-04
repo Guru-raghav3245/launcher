@@ -9,7 +9,7 @@ import '../state/app_settings_scope.dart';
 import '../widgets/launch_app.dart';
 import 'app_search.dart';
 
-/// For the long-lived app lists (App Drawer, Spotlight Search): keeps the
+/// For the long-lived App Drawer (search included): keeps the
 /// user's [AppCustomizations] and the apps on a Mindful Break current
 /// (re-read whenever either changes, and on resume so an expired break shows
 /// its app again), and turns the cached installed-apps list into what the

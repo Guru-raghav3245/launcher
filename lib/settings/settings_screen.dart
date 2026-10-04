@@ -65,7 +65,6 @@ const _entries = <_SettingsEntry>[
   (icon: Icons.replay, title: 'Re-run onboarding', onTap: rerunOnboarding, searchOnly: false),
   (icon: Icons.home_outlined, title: 'Home Settings', onTap: openHomeSettings, searchOnly: true),
   (icon: Icons.swipe_outlined, title: 'Gestures', onTap: openHomeSettings, searchOnly: true),
-  (icon: Icons.search, title: 'Spotlight', onTap: openSpotlightSettings, searchOnly: true),
   (icon: Icons.apps, title: 'App Drawer', onTap: openDrawerSettings, searchOnly: true),
   (icon: Icons.visibility_off_outlined, title: 'Hidden apps', onTap: showHiddenApps, searchOnly: true),
   (icon: Icons.schedule, title: 'Time & units', onTap: openGeneralSettings, searchOnly: true),

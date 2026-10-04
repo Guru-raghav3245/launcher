@@ -8,7 +8,7 @@ import 'app_result_row.dart';
 
 /// The App Drawer's long-press menu for [app]: Open, Rename, Pin/Unpin,
 /// Hide, App info. Changes go through [AppCustomizationsService], whose
-/// change notifier refreshes the drawer and Spotlight.
+/// change notifier refreshes the drawer.
 Future<void> showAppMenu(BuildContext context, AppInfo app, {required bool pinned}) async {
   const customizations = AppCustomizationsService();
   final messenger = ScaffoldMessenger.of(context);

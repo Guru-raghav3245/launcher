@@ -9,8 +9,7 @@ import 'app_result_row.dart';
 // generous space above (sizes measured from it, Phase 11).
 const _headerHeight = 113.0;
 
-/// The index always lists every letter, like the original; ◷ only appears
-/// when the Recent section does.
+/// The index always lists every letter, like the original.
 const _indexLetters = [
   '★',
   'A',
@@ -42,10 +41,7 @@ const _indexLetters = [
   '#',
 ];
 
-/// The key of the drawer's recent-apps section (shown as ◷ in the index).
-const recentSectionKey = 'Recent';
-
-/// A titled group of apps: '★', [recentSectionKey], or a letter.
+/// A titled group of apps: '★' or a letter.
 typedef AppSection = ({String key, List<AppInfo> apps});
 
 /// The App Drawer's app list in a given [DrawerLook]: list rows or a grid,
@@ -63,6 +59,7 @@ class DrawerAppsView extends StatelessWidget {
     this.scrollController,
     this.showIndex = true,
     this.physics,
+    this.highlightFirst = false,
   });
 
   final List<AppSection> sections;
@@ -72,6 +69,9 @@ class DrawerAppsView extends StatelessWidget {
   final ScrollController? scrollController;
   final bool showIndex;
   final ScrollPhysics? physics;
+
+  /// Rings the first app in ink: the search result Enter opens.
+  final bool highlightFirst;
 
   /// Height of one row of apps: a list row, or a grid row of icon + label.
   static double rowHeight(DrawerLook look) {
@@ -126,15 +126,18 @@ class DrawerAppsView extends StatelessWidget {
     final list = ListView.builder(
       controller: scrollController,
       physics: physics,
+      // Browsing puts the search keyboard away (its button brings it back).
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: EdgeInsets.only(right: showIndex ? 28 : 0),
       itemCount: items.length,
       itemBuilder: (context, index) {
         final item = items[index];
         if (item is String) return _SectionHeader(label: item);
         final row = item as List<AppInfo>;
+        final ring = Border.all(color: Theme.of(context).colorScheme.onSurface, width: 1.5);
         if (!look.grid) {
           final app = row.single;
-          return AppResultRow(
+          final result = AppResultRow(
             app: app,
             inset: 11,
             height: rowPx,
@@ -143,6 +146,11 @@ class DrawerAppsView extends StatelessWidget {
             labelLines: look.labelLines,
             onTap: () => onLaunch(app),
             onLongPress: onMenu == null ? null : () => onMenu!(app),
+          );
+          if (!(highlightFirst && index == 0)) return result;
+          return DecoratedBox(
+            decoration: BoxDecoration(border: ring, borderRadius: BorderRadius.circular(10)),
+            child: result,
           );
         }
         return SizedBox(
@@ -155,6 +163,7 @@ class DrawerAppsView extends StatelessWidget {
                       ? _GridCell(
                           app: row[i],
                           look: look,
+                          ring: highlightFirst && index == 0 && i == 0 ? ring : null,
                           onTap: () => onLaunch(row[i]),
                           onLongPress: onMenu == null ? null : () => onMenu!(row[i]),
                         )
@@ -165,46 +174,47 @@ class DrawerAppsView extends StatelessWidget {
         );
       },
     );
-    if (!showIndex || offsets.isEmpty) return list;
-    final letters = [
-      ..._indexLetters.take(1),
-      if (offsets.containsKey(recentSectionKey)) recentSectionKey,
-      ..._indexLetters.skip(1),
-    ];
+    if (offsets.isEmpty) return list;
+    const letters = _indexLetters;
+    // Always the same Stack, the index coming and going inside it: swapping
+    // between a bare list and a Stack rebuilt the list and lost its scroll
+    // position (the drawer hides the index while its keyboard is up).
     return Stack(
       // The index sits in the panel's margin, as near the edge as the original's.
       clipBehavior: Clip.none,
       children: [
         list,
-        Positioned(
-          right: -11,
-          top: 0,
-          bottom: 0,
-          child: _FastScrollIndex(
-            letters: letters,
-            onLetterSelected: (letter) {
-              final controller = scrollController;
-              if (controller == null || !controller.hasClients) return;
-              // A letter with no apps jumps to the next one that has some
-              // (or the last section, past the end).
-              final i = letters.indexOf(letter);
-              final target = letters.skip(i).where(offsets.containsKey).firstOrNull ?? offsets.keys.last;
-              controller.jumpTo(offsets[target]!.clamp(0, controller.position.maxScrollExtent));
-            },
+        if (showIndex)
+          Positioned(
+            right: -11,
+            top: 0,
+            bottom: 0,
+            child: _FastScrollIndex(
+              letters: letters,
+              onLetterSelected: (letter) {
+                final controller = scrollController;
+                if (controller == null || !controller.hasClients) return;
+                // A letter with no apps jumps to the next one that has some
+                // (or the last section, past the end).
+                final i = letters.indexOf(letter);
+                final target = letters.skip(i).where(offsets.containsKey).firstOrNull ?? offsets.keys.last;
+                controller.jumpTo(offsets[target]!.clamp(0, controller.position.maxScrollExtent));
+              },
+            ),
           ),
-        ),
       ],
     );
   }
 }
 
 class _GridCell extends StatelessWidget {
-  const _GridCell({required this.app, required this.look, required this.onTap, this.onLongPress});
+  const _GridCell({required this.app, required this.look, required this.onTap, this.onLongPress, this.ring});
 
   final AppInfo app;
   final DrawerLook look;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
+  final Border? ring;
 
   @override
   Widget build(BuildContext context) {
@@ -212,10 +222,13 @@ class _GridCell extends StatelessWidget {
       onTap: onTap,
       onLongPress: onLongPress,
       borderRadius: BorderRadius.circular(12),
-      child: Padding(
+      child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        decoration: ring == null ? null : BoxDecoration(border: ring, borderRadius: BorderRadius.circular(12)),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          // Top-aligned, so icons in a row line up whether a name takes one
+          // line or two (centred, a two-line name pushed its icon up).
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             if (look.iconPx > 0) AppIcon(icon: app.icon, size: look.iconPx),
             if (look.iconPx > 0 && look.labelPx > 0) const SizedBox(height: 6),
@@ -252,7 +265,7 @@ class _SectionHeader extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              label == recentSectionKey ? '◷' : label,
+              label,
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 19, color: colors.onSurface),
             ),
             const SizedBox(height: 12),
@@ -311,7 +324,7 @@ class _FastScrollIndexState extends State<_FastScrollIndex> {
                         Expanded(
                           child: Center(
                             child: Text(
-                              letter == recentSectionKey ? '◷' : letter,
+                              letter,
                               style: TextStyle(fontSize: 11.5, color: Theme.of(context).colorScheme.onSurface),
                             ),
                           ),

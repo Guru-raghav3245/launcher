@@ -43,7 +43,7 @@ class AppCustomizations {
 }
 
 /// Persists [AppCustomizations]. Every write bumps [changes], so the App
-/// Drawer and Spotlight Search re-apply them without reloading app icons.
+/// Drawer re-applies them without reloading app icons.
 class AppCustomizationsService {
   const AppCustomizationsService();
 
@@ -92,7 +92,7 @@ class AppCustomizationsService {
 
 /// Installed apps as the user sees them: renamed, and without hidden apps
 /// unless [includeHidden]. The one-shot loader for pickers; long-lived lists
-/// (App Drawer, Spotlight) apply [AppCustomizations] to a cached list instead.
+/// (the App Drawer) apply [AppCustomizations] to a cached list instead.
 Future<List<AppInfo>> loadCustomizedApps({bool includeHidden = false}) async {
   final (apps, customizations) = await (
     const InstalledAppsService().loadApps(),

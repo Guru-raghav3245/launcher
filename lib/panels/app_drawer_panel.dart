@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
 
+import '../search/app_cards.dart';
 import '../search/app_menu_sheet.dart';
 import '../search/app_search.dart';
 import '../search/app_search_bar.dart';
@@ -20,12 +21,14 @@ String _sectionKey(String name) {
   return RegExp(r'^[A-Z]$').hasMatch(letter) ? letter : '#';
 }
 
-/// App Drawer panel: alphabetical installed-app list with a draggable
-/// fast-scroll index. Search (task 7) layers on top of this list.
+/// The search + apps screen (swipe up from Home; Spotlight was merged in
+/// here in Phase 12 task 7): search with the keyboard up, the recent apps
+/// as cards, then the alphabetical list with its fast-scroll index. Typing
+/// shows every match, most recently used first, and Enter opens the top one.
 class AppDrawerPanel extends StatefulWidget {
   const AppDrawerPanel({super.key, this.shown, this.onClose});
 
-  /// True while the drawer is the page on screen (from the shell).
+  /// True while this screen is the page on screen (from the shell).
   final ValueListenable<bool>? shown;
 
   /// The search bar's ✕ (with nothing typed): back to Home.
@@ -57,14 +60,22 @@ class _AppDrawerPanelState extends State<AppDrawerPanel> with ShowsVisibleApps {
     widget.shown?.addListener(_onShownChanged);
   }
 
-  /// Keyboard up on arrival if the option is on; always down on leaving.
+  /// Keyboard up on arrival (not via autofocus: every page is built at
+  /// launch); on leaving, keyboard down and the search cleared, so each
+  /// visit starts fresh.
   void _onShownChanged() {
-    if (!widget.shown!.value) {
-      _searchFocus.unfocus();
-    } else if (AppSettingsScope.of(context).drawerOption(DrawerOption.keyboardOnOpen)) {
+    if (widget.shown!.value) {
       _searchFocus.requestFocus();
+    } else {
+      _searchFocus.unfocus();
+      _searchController.clear();
     }
   }
+
+  /// The matches for [query], most recently used first: the top one is
+  /// what Enter opens.
+  List<AppInfo> _matches(List<AppInfo> apps, String query) =>
+      byRecency(filterAndSortApps(visibleApps(apps), query: query, sortMode: AppSortMode.alphabetical));
 
   Future<List<AppInfo>> _fetchApps() => _service.loadApps()..then((apps) => _apps = apps);
 
@@ -110,7 +121,17 @@ class _AppDrawerPanelState extends State<AppDrawerPanel> with ShowsVisibleApps {
                   sortMode: _sortMode,
                   onSortModeChanged: (mode) => setState(() => _sortMode = mode),
                   onClose: widget.onClose,
+                  onSubmitted: (query) {
+                    final first = _apps == null || query.trim().isEmpty ? null : _matches(_apps!, query).firstOrNull;
+                    if (first != null) launchApp(context, first);
+                  },
                 ),
+                // Before typing, the recent apps as cards (none without usage data).
+                if (_searchController.text.trim().isEmpty && _apps != null)
+                  if (recentApps(visibleApps(_apps!)) case final recent when recent.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    AppCards(apps: recent, onOpen: (app) => launchApp(context, app)),
+                  ],
                 const SizedBox(height: 23),
                 Expanded(
                   // The list takes every vertical drag, so the shell's pager
@@ -126,9 +147,12 @@ class _AppDrawerPanelState extends State<AppDrawerPanel> with ShowsVisibleApps {
                         }
                         final settings = AppSettingsScope.of(context);
                         final query = _searchController.text;
-                        final showSections = query.trim().isEmpty && _sortMode == AppSortMode.alphabetical;
+                        final typing = query.trim().isNotEmpty;
+                        final showSections = !typing && _sortMode == AppSortMode.alphabetical;
                         final visible = visibleApps(snapshot.data!);
-                        final apps = filterAndSortApps(visible, query: query, sortMode: _sortMode);
+                        final apps = typing
+                            ? _matches(snapshot.data!, query)
+                            : filterAndSortApps(visible, query: query, sortMode: _sortMode);
 
                         final pinned = customizations.pinned;
                         void openMenu(AppInfo app) =>
@@ -143,13 +167,13 @@ class _AppDrawerPanelState extends State<AppDrawerPanel> with ShowsVisibleApps {
                             onLaunch: open,
                             onMenu: openMenu,
                             showIndex: false,
+                            highlightFirst: typing,
                           );
                         }
                         final byPackage = {for (final app in apps) app.packageName: app};
                         final hideUnused = settings.drawerOption(DrawerOption.hideUnusedApps);
-                        // Pinned under ★ and recent under ◷ first (they stay under
-                        // their letter too); unused apps leave the list but stay
-                        // searchable.
+                        // Pinned under ★ first (they stay under their letter too);
+                        // unused apps leave the list but stay searchable.
                         final letters = <String, List<AppInfo>>{};
                         for (final app in apps) {
                           if (!hideUnused || !isUnused(app)) (letters[_sectionKey(app.name)] ??= []).add(app);
@@ -157,18 +181,17 @@ class _AppDrawerPanelState extends State<AppDrawerPanel> with ShowsVisibleApps {
                         return DrawerAppsView(
                           sections: [
                             (key: '★', apps: [for (final p in pinned) ?byPackage[p]]),
-                            (
-                              key: recentSectionKey,
-                              apps: settings.drawerOption(DrawerOption.recentAppsOnTop)
-                                  ? recentApps(visible)
-                                  : const [],
-                            ),
                             for (final MapEntry(:key, :value) in letters.entries) (key: key, apps: value),
                           ],
                           look: settings.drawerLook,
                           scrollController: _scrollController,
                           onLaunch: open,
                           onMenu: openMenu,
+                          // Squeezed above the keyboard the letters overlap, so it's
+                          // hidden while search has focus (the keyboard is up then;
+                          // the shell's Scaffold hides its height from viewInsets).
+                          // Dragging the list drops the keyboard and brings it back.
+                          showIndex: !_searchFocus.hasFocus,
                         );
                       },
                     ),

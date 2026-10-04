@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Persists Mindful Break: apps put away until a set time. An app on break
-/// is hidden from the App Drawer and Spotlight Search, and `launchApp`
+/// is hidden from the App Drawer and its search, and `launchApp`
 /// refuses it with a block screen until the break ends.
 class MindfulBreakService {
   const MindfulBreakService();
@@ -12,7 +12,7 @@ class MindfulBreakService {
   static const _key = 'mindful_break_apps';
   static const lengthsInDays = [1, 3, 7, 30];
 
-  /// Bumped on every start/end so the drawer and Spotlight re-filter.
+  /// Bumped on every start/end so the drawer re-filters.
   static final changes = ValueNotifier<int>(0);
 
   /// Apps currently on break, with when each break ends. Expired breaks are
