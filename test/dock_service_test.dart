@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   const service = DockService();
-  const role = MethodChannel('yinyang.launcher/role');
+  const role = MethodChannel('student.launcher/role');
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});

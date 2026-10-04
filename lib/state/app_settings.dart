@@ -360,7 +360,7 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
   /// launcher's own window (see MainActivity.setStatusBarVisible).
   Future<void> _applyStatusBar() async {
     try {
-      await const MethodChannel('yinyang.launcher/app')
+      await const MethodChannel('student.launcher/app')
           .invokeMethod('setStatusBarVisible', {'visible': _showStatusBar});
     } on MissingPluginException {
       // Tests and non-Android hosts.

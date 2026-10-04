@@ -1,6 +1,6 @@
 {
-    "name": "launcher",
-    "short_name": "launcher",
+    "name": "Student Launcher",
+    "short_name": "Student Launcher",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

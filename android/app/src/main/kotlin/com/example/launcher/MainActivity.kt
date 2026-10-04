@@ -23,8 +23,8 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
-private const val CHANNEL = "yinyang.launcher/role"
-private const val APP_CHANNEL = "yinyang.launcher/app"
+private const val CHANNEL = "student.launcher/role"
+private const val APP_CHANNEL = "student.launcher/app"
 private const val REQUEST_HOME_ROLE = 4242
 
 /// Opens a system (or other app's) screen in its own task. Started plainly,

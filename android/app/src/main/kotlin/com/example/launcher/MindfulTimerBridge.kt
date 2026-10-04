@@ -21,7 +21,7 @@ import android.widget.TextView
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
-private const val CHANNEL = "yinyang.launcher/timer"
+private const val CHANNEL = "student.launcher/timer"
 
 /// Mindful Timer's session timer (Phase 7 task 6), modelled on the original
 /// Yin Yang Launcher: the countdown lives in this (HOME, so long-lived)

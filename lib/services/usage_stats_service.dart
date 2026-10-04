@@ -22,7 +22,7 @@ class UsageEvent {
 class UsageStatsService {
   const UsageStatsService();
 
-  static const _channel = MethodChannel('yinyang.launcher/usage');
+  static const _channel = MethodChannel('student.launcher/usage');
 
   Future<bool> hasAccess() async => (await _channel.invokeMethod<bool>('hasAccess')) ?? false;
 

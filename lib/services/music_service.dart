@@ -16,7 +16,7 @@ class NowPlaying {
 class MusicService {
   const MusicService();
 
-  static const _channel = MethodChannel('yinyang.launcher/music');
+  static const _channel = MethodChannel('student.launcher/music');
 
   Future<bool> hasAccess() async => await _channel.invokeMethod<bool>('hasAccess') ?? false;
 

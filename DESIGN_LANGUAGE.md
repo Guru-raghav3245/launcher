@@ -1,4 +1,4 @@
-# Yin Yang Launcher — Design Language
+# Student Launcher — Design Language
 
 Derived from the onboarding, My Space, Mind Space, App Drawer, and Settings mockups in `screenshots/`. This is a description of the *intended* visual system, not an audit of current code.
 

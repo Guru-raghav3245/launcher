@@ -23,7 +23,7 @@
     <!-- Calendar tile (Phase 9 task 5); asked for from the tile itself. -->
     <uses-permission android:name="android.permission.READ_CALENDAR"/>
     <application
-        android:label="launcher"
+        android:label="Student Launcher"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -67,7 +67,7 @@
         <service
             android:name=".LockAccessibilityService"
             android:exported="false"
-            android:label="Yin Yang double tap to lock"
+            android:label="Student Launcher double tap to lock"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
@@ -79,7 +79,7 @@
         <receiver
             android:name=".LockAdminReceiver"
             android:exported="true"
-            android:label="Yin Yang double tap to lock"
+            android:label="Student Launcher double tap to lock"
             android:permission="android.permission.BIND_DEVICE_ADMIN">
             <meta-data
                 android:name="android.app.device_admin"
@@ -93,7 +93,7 @@
         <service
             android:name=".MediaListenerService"
             android:exported="false"
-            android:label="Yin Yang music tile"
+            android:label="Student Launcher music tile"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />

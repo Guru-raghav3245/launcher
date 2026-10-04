@@ -39,7 +39,7 @@ class _LauncherShellState extends State<LauncherShell> {
   bool? _hasSpotlight;
   var _pulledDown = false;
 
-  static const _appChannel = MethodChannel('yinyang.launcher/app');
+  static const _appChannel = MethodChannel('student.launcher/app');
 
   @override
   void initState() {

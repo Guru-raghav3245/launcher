@@ -19,7 +19,7 @@ Future<void> setUpLock(BuildContext context, DoubleTapAction method) async {
           content: const Text(
             "Double tap to lock uses Android's Accessibility Service. It only sends the lock-screen action: no "
             'screen content, text, notifications, or other personal data is read, collected, or shared. You can '
-            'turn it off anytime in Android Settings.\n\nOn the next screen, choose "Yin Yang double tap to lock" '
+            'turn it off anytime in Android Settings.\n\nOn the next screen, choose "Student Launcher double tap to lock" '
             'and switch it on.',
           ),
           actions: [

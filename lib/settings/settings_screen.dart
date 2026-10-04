@@ -54,8 +54,8 @@ const _mindSpaceTerms = ['mind space', 'pause', 'timer', 'focus mode'];
 /// Search terms that keep the Toggles group (Theme, Focus Mode) visible.
 const _toggleTerms = ['toggles', 'theme', 'dark', 'light', 'focus mode'];
 
-/// Restarts the launcher process (see MainActivity.kt's `yinyang.launcher/app`).
-const _appChannel = MethodChannel('yinyang.launcher/app');
+/// Restarts the launcher process (see MainActivity.kt's `student.launcher/app`).
+const _appChannel = MethodChannel('student.launcher/app');
 
 const _entries = <_SettingsEntry>[
   (icon: Icons.palette_outlined, title: 'Appearance', onTap: showAppearanceEditor, searchOnly: false),
@@ -432,7 +432,7 @@ class _SystemSettingsRowsState extends State<_SystemSettingsRows> {
         _StatusRow(
           icon: Icons.home_outlined,
           title: 'Default launcher',
-          status: _status(_isDefault, 'Yin Yang Launcher', 'Another app'),
+          status: _status(_isDefault, 'Student Launcher', 'Another app'),
           onTap: _role.openHomeSettings,
         ),
         _StatusRow(

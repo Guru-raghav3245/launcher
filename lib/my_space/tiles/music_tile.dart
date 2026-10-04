@@ -15,7 +15,7 @@ Future<void> _askForAccess(BuildContext context) async {
       content: const Text(
         "To show what's playing and its controls, Android requires notification access. The launcher only "
         'reads the current song from music apps; your other notifications are never read, stored, or shared.\n\n'
-        'On the next screen, switch on "Yin Yang music tile".',
+        'On the next screen, switch on "Student Launcher music tile".',
       ),
       actions: [
         TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),

@@ -1,6 +1,6 @@
-# Yin Yang Launcher
+# Student Launcher
 
-An Android home-screen replacement app (yin/yang branding = light/dark duality) combining a calm home screen, a customizable widget dashboard, and screen-time/wellbeing insights.
+An Android home-screen replacement app (light/dark duality) combining a calm home screen, a customizable widget dashboard, and screen-time/wellbeing insights.
 
 Built with Flutter, targeting Android only.
 

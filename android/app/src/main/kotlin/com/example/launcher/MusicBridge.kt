@@ -15,7 +15,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 
-private const val CHANNEL = "yinyang.launcher/music"
+private const val CHANNEL = "student.launcher/music"
 
 /// The Music tile's now-playing and transport controls (Phase 9 task 6),
 /// through MediaSessionManager, which needs notification access for

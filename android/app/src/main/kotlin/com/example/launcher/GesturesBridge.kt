@@ -10,7 +10,7 @@ import android.provider.Settings
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
-private const val CHANNEL = "yinyang.launcher/gestures"
+private const val CHANNEL = "student.launcher/gestures"
 
 /// Home's configurable gestures (Phase 8 task 7), done the way the original
 /// Yin Yang Launcher does them: swipe down can open the notification shade

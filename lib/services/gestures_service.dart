@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 class GesturesService {
   const GesturesService();
 
-  static const _channel = MethodChannel('yinyang.launcher/gestures');
+  static const _channel = MethodChannel('student.launcher/gestures');
 
   Future<bool> expandNotifications() async => await _channel.invokeMethod<bool>('expandNotifications') ?? false;
 

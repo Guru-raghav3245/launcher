@@ -11,7 +11,7 @@ import android.provider.Settings
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
-private const val CHANNEL = "yinyang.launcher/calendar"
+private const val CHANNEL = "student.launcher/calendar"
 const val REQUEST_CALENDAR = 4343
 
 /// The Calendar tile's data (Phase 9 task 5): upcoming event instances from

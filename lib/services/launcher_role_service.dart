@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 class LauncherRoleService {
   const LauncherRoleService();
 
-  static const _channel = MethodChannel('yinyang.launcher/role');
+  static const _channel = MethodChannel('student.launcher/role');
 
   /// true = granted, false = user cancelled the dialog, null = this
   /// Android version has no ROLE_HOME (opened Settings instead, no result).

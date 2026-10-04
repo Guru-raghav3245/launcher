@@ -17,8 +17,8 @@ import io.flutter.plugin.platform.PlatformView
 import io.flutter.plugin.platform.PlatformViewFactory
 
 private const val HOST_ID = 4243
-private const val CHANNEL = "yinyang.launcher/appwidget"
-private const val VIEW_TYPE = "yinyang.launcher/appwidget_view"
+private const val CHANNEL = "student.launcher/appwidget"
+private const val VIEW_TYPE = "student.launcher/appwidget_view"
 const val REQUEST_BIND_WIDGET = 4244
 
 /// Embeds other apps' native Android AppWidgets in My Space (Phase 3 task

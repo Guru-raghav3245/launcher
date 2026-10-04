@@ -31,7 +31,7 @@ class WelcomeStep extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               const Text(
-                'Yin Yang Launcher.',
+                'Student Launcher.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
               ),

@@ -59,7 +59,7 @@ class MindfulTimerService {
 
   static const _groupsKey = 'mindful_timer_groups';
   static const _logKey = 'mindful_timer_log';
-  static const _channel = MethodChannel('yinyang.launcher/timer');
+  static const _channel = MethodChannel('student.launcher/timer');
 
   Future<List<TimerGroup>> groups() async {
     final prefs = await SharedPreferences.getInstance();

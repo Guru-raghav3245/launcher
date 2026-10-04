@@ -20,17 +20,17 @@ void main() {
   });
   // Not awaited: reminders shouldn't hold up the first frame.
   FocusScheduleService.init();
-  runApp(const YinYangLauncherApp());
+  runApp(const StudentLauncherApp());
 }
 
-class YinYangLauncherApp extends StatefulWidget {
-  const YinYangLauncherApp({super.key});
+class StudentLauncherApp extends StatefulWidget {
+  const StudentLauncherApp({super.key});
 
   @override
-  State<YinYangLauncherApp> createState() => _YinYangLauncherAppState();
+  State<StudentLauncherApp> createState() => _StudentLauncherAppState();
 }
 
-class _YinYangLauncherAppState extends State<YinYangLauncherApp> {
+class _StudentLauncherAppState extends State<StudentLauncherApp> {
   final _settings = AppSettings();
   late final Future<void> _settingsReady = _settings.load();
 
@@ -42,7 +42,7 @@ class _YinYangLauncherAppState extends State<YinYangLauncherApp> {
         listenable: _settings,
         builder: (context, _) {
           return MaterialApp(
-            title: 'Yin Yang Launcher',
+            title: 'Student Launcher',
             debugShowCheckedModeBanner: false,
             themeMode: _settings.isDark ? ThemeMode.dark : ThemeMode.light,
             theme: launcherTheme(Brightness.light, fontFamily: _settings.font.family),

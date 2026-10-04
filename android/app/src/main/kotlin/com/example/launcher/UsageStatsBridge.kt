@@ -12,7 +12,7 @@ import android.provider.Settings
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
-private const val CHANNEL = "yinyang.launcher/usage"
+private const val CHANNEL = "student.launcher/usage"
 
 /// Wraps Android's UsageStatsManager for Mind Space (Phase 4 task 1).
 /// PACKAGE_USAGE_STATS is a "special" permission: it can't be requested via
@@ -27,7 +27,7 @@ class UsageStatsBridge(private val activity: MainActivity) {
             when (call.method) {
                 "hasAccess" -> result.success(hasAccess())
                 // With our package, Settings opens this app's switch directly
-                // instead of the list (where it's just "launcher" among dozens);
+                // instead of the list (where it is one app among dozens);
                 // not every Settings app supports that, hence the fallback.
                 "requestAccess" -> {
                     try {

@@ -32,7 +32,7 @@ void main() {
   testWidgets('shows onboarding on first run', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
 
     expect(find.byType(OnboardingFlow), findsOneWidget);
@@ -43,7 +43,7 @@ void main() {
   testWidgets('launches on the Home panel once onboarding is complete', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
 
     expect(find.byType(HomePanel), findsOneWidget);
@@ -54,7 +54,7 @@ void main() {
   testWidgets('swiping right reveals My Space', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
 
     await tester.fling(find.byType(HomePanel), const Offset(400, 0), 1000);
@@ -66,7 +66,7 @@ void main() {
   testWidgets('long-pressing Home opens Settings', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
 
     await tester.longPress(find.byType(HomePanel));
@@ -79,7 +79,7 @@ void main() {
   testWidgets('Settings search filters entries by title', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.longPress(find.byType(HomePanel));
     await tester.pumpAndSettle();
@@ -98,7 +98,7 @@ void main() {
   testWidgets('the Appearance editor previews live, Cancel reverts and Save keeps', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     final settings = AppSettingsScope.of(tester.element(find.byType(HomePanel)));
     Future<void> openHomeStyle() async {
@@ -135,7 +135,7 @@ void main() {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     ThemeMode mode() => tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode!;
     expect(mode(), ThemeMode.light);
@@ -148,7 +148,7 @@ void main() {
 
   testWidgets('a dark flag saved before Auto existed loads as Dark', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true, 'settings_is_dark': true});
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode, ThemeMode.dark);
   });
@@ -156,7 +156,7 @@ void main() {
   testWidgets('Toggles pick the theme and start or stop Focus Mode', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.longPress(find.byType(HomePanel));
     await tester.pumpAndSettle();
@@ -193,14 +193,14 @@ void main() {
       'settings_show_status_bar': false,
     });
     final appCalls = <MethodCall>[];
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/app'), (
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('student.launcher/app'), (
       call,
     ) async {
       appCalls.add(call);
       return null;
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
 
     // Large: hours and minutes as separate lines.
@@ -232,7 +232,7 @@ void main() {
       'settings_wallpaper_light': 'gradient-ocean',
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     final now = DateTime.now();
     final time = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
@@ -250,7 +250,7 @@ void main() {
   ) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true, 'settings_time_format': 'h12'});
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     final now = DateTime.now();
     final hour12 = now.hour % 12 == 0 ? 12 : now.hour % 12;
@@ -274,7 +274,7 @@ void main() {
       'settings_text_size': 'large',
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     final home = tester.element(find.byType(HomePanel));
     expect(Theme.of(home).textTheme.bodyMedium!.fontFamily, 'Noto Serif');
@@ -284,7 +284,7 @@ void main() {
   testWidgets('Launcher Settings re-runs onboarding', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.longPress(find.byType(HomePanel));
     await tester.pumpAndSettle();
@@ -303,7 +303,7 @@ void main() {
   ) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     final settings = AppSettingsScope.of(tester.element(find.byType(HomePanel)));
     await tester.longPress(find.byType(HomePanel));
@@ -335,12 +335,12 @@ void main() {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
     final messenger = tester.binding.defaultBinaryMessenger;
     final opened = <String>[];
-    messenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/role'), (call) async {
+    messenger.setMockMethodCallHandler(const MethodChannel('student.launcher/role'), (call) async {
       opened.add(call.method);
       return call.method == 'isDefaultLauncher' ? true : null;
     });
     messenger.setMockMethodCallHandler(
-      const MethodChannel('yinyang.launcher/usage'),
+      const MethodChannel('student.launcher/usage'),
       (call) async => call.method == 'hasAccess' ? false : null,
     );
     // LocationPermission.whileInUse.index
@@ -349,7 +349,7 @@ void main() {
       (call) async => call.method == 'checkPermission' ? 2 : null,
     );
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.longPress(find.byType(HomePanel));
     await tester.pumpAndSettle();
@@ -358,7 +358,7 @@ void main() {
     await tester.tap(find.text('System Settings'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Yin Yang Launcher'), findsOneWidget);
+    expect(find.text('Student Launcher'), findsOneWidget);
     expect(find.text('Not allowed · Mind Space needs this'), findsOneWidget);
     expect(find.text('Allowed · used by the Weather tile'), findsOneWidget);
 
@@ -370,7 +370,7 @@ void main() {
   testWidgets('Settings Pause starts Focus Mode and Stop ends it', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.longPress(find.byType(HomePanel));
     await tester.pumpAndSettle();
@@ -395,14 +395,14 @@ void main() {
       'onboarding_complete': true,
     });
     final calls = <String>[];
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/app'), (
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('student.launcher/app'), (
       call,
     ) async {
       calls.add(call.method);
       return true;
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining(RegExp(r'^\d\d:\d\d$')));
     await tester.pump();
@@ -416,14 +416,14 @@ void main() {
       (call) async => <Object>[],
     );
     final calls = <String>[];
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/gestures'), (
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('student.launcher/gestures'), (
       call,
     ) async {
       calls.add(call.method);
       return true;
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     expect(find.byType(SpotlightSearchPanel), findsNothing);
     await tester.fling(find.byType(HomePanel), const Offset(0, 400), 1000);
@@ -441,7 +441,7 @@ void main() {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true, 'settings_double_tap': 'lockAccessibility'});
     final calls = <String>[];
     var ready = false;
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/gestures'), (
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('student.launcher/gestures'), (
       call,
     ) async {
       calls.add(call.method);
@@ -451,7 +451,7 @@ void main() {
       };
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     Future<void> doubleTap() async {
       await tester.tap(find.byType(HomePanel));
@@ -478,11 +478,11 @@ void main() {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
     final calls = <String>[];
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-      const MethodChannel('yinyang.launcher/app'),
+      const MethodChannel('student.launcher/app'),
       (call) async => calls.add(call.method),
     );
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.longPress(find.byType(HomePanel));
     await tester.pumpAndSettle();
@@ -504,7 +504,7 @@ void main() {
       ],
     );
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.longPress(find.byType(HomePanel));
     await tester.pumpAndSettle();
@@ -535,7 +535,7 @@ void main() {
       ],
     );
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.longPress(find.byType(HomePanel));
     await tester.pumpAndSettle();
@@ -569,7 +569,7 @@ void main() {
       ];
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up → App Drawer
     await tester.pumpAndSettle();
@@ -600,7 +600,7 @@ void main() {
       ];
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up → App Drawer
     await tester.pumpAndSettle();
@@ -647,12 +647,12 @@ void main() {
         {'name': 'Chrome', 'package_name': 'com.chrome'},
       ];
     });
-    messenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/timer'), (call) async {
+    messenger.setMockMethodCallHandler(const MethodChannel('student.launcher/timer'), (call) async {
       sessions.add(call.arguments);
       return null;
     });
     var usedMinutes = 0;
-    messenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/usage'), (call) async {
+    messenger.setMockMethodCallHandler(const MethodChannel('student.launcher/usage'), (call) async {
       if (call.method == 'hasAccess') return true;
       return [
         {'packageName': 'com.chrome', 'type': 'foreground', 'timestamp': 0},
@@ -660,7 +660,7 @@ void main() {
       ];
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up → App Drawer
     await tester.pumpAndSettle();
@@ -710,7 +710,7 @@ void main() {
       ];
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
 
     // My Space's App Folder still shows it, but opening it shows the block screen.
@@ -748,7 +748,7 @@ void main() {
         {'name': 'Work', 'package_name': 'com.work'},
       ],
     );
-    messenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/usage'), (call) async {
+    messenger.setMockMethodCallHandler(const MethodChannel('student.launcher/usage'), (call) async {
       if (call.method == 'hasAccess') return true;
       final yesterday = today.subtract(const Duration(days: 1));
       return [
@@ -763,7 +763,7 @@ void main() {
       ].where((e) => (e['timestamp'] as int) >= (call.arguments as Map)['start']).toList();
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(-400, 0), 1000); // swipe left → Mind Space
     await tester.pumpAndSettle();
@@ -793,7 +793,7 @@ void main() {
       ],
     );
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up → App Drawer
     await tester.pumpAndSettle();
@@ -822,7 +822,7 @@ void main() {
       ],
     );
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up → App Drawer
     await tester.pumpAndSettle();
@@ -877,7 +877,7 @@ void main() {
       ];
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
 
     // The default Phone slot draws its glyph and opens the app.
@@ -925,13 +925,13 @@ void main() {
         {'name': 'Clock', 'package_name': 'com.clock', 'installed_timestamp': DateTime.now().millisecondsSinceEpoch},
       ];
     });
-    messenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/usage'), (call) async {
+    messenger.setMockMethodCallHandler(const MethodChannel('student.launcher/usage'), (call) async {
       if (call.method == 'hasAccess') return true;
       if (call.method == 'lastUsed') return {'com.chrome': DateTime.now().millisecondsSinceEpoch};
       return <Object>[];
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up → App Drawer
     await tester.pumpAndSettle();
@@ -958,13 +958,13 @@ void main() {
         {'name': 'Chrome', 'package_name': 'com.chrome'},
       ],
     );
-    messenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/usage'), (call) async {
+    messenger.setMockMethodCallHandler(const MethodChannel('student.launcher/usage'), (call) async {
       if (call.method == 'hasAccess') return true;
       if (call.method == 'lastUsed') return {'com.chrome': DateTime.now().millisecondsSinceEpoch};
       return <Object>[];
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     expect(tester.testTextInput.isVisible, false);
     await tester.fling(find.byType(HomePanel), const Offset(0, 400), 1000); // swipe down → Spotlight
@@ -977,7 +977,7 @@ void main() {
   testWidgets('a built-in tile is previewed before it is added', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(400, 0), 1000); // swipe right → My Space
     await tester.pumpAndSettle();
@@ -1001,7 +1001,7 @@ void main() {
       'my_space_tiles': '[{"id":"q","kind":"quote","data":{}}]',
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(400, 0), 1000); // swipe right → My Space
     await tester.pumpAndSettle();
@@ -1021,7 +1021,7 @@ void main() {
       'my_space_tiles': '[{"id":"h","kind":"hydration","data":{"goal":6}}]',
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(400, 0), 1000); // swipe right → My Space
     await tester.pumpAndSettle();
@@ -1061,7 +1061,7 @@ void main() {
           {'name': name, 'package_name': pkg},
       ],
     );
-    messenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/usage'), (call) async {
+    messenger.setMockMethodCallHandler(const MethodChannel('student.launcher/usage'), (call) async {
       if (call.method == 'hasAccess') return true;
       var at = start;
       return [
@@ -1081,7 +1081,7 @@ void main() {
       ];
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(400, 0), 1000); // swipe right → My Space
     await tester.pumpAndSettle();
@@ -1104,7 +1104,7 @@ void main() {
     });
     var granted = false;
     final opened = <Object?>[];
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/calendar'), (
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('student.launcher/calendar'), (
       call,
     ) async {
       switch (call.method) {
@@ -1135,7 +1135,7 @@ void main() {
       }
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(400, 0), 1000); // swipe right → My Space
     await tester.pumpAndSettle();
@@ -1161,7 +1161,7 @@ void main() {
     var access = false;
     var playing = true;
     final calls = <String>[];
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/music'), (
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('student.launcher/music'), (
       call,
     ) async {
       calls.add(call.method == 'control' ? 'control:${(call.arguments as Map)['action']}' : call.method);
@@ -1177,7 +1177,7 @@ void main() {
       return null;
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(400, 0), 1000); // swipe right → My Space
     await tester.pumpAndSettle();
@@ -1211,7 +1211,7 @@ void main() {
           '{"id":"t","kind":"todo","data":{"items":[{"text":"Run","done":true},{"text":"Read","done":false}]}}]',
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(400, 0), 1000); // swipe right → My Space
     await tester.pumpAndSettle();
@@ -1251,7 +1251,7 @@ void main() {
       ],
     );
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up → App Drawer
     await tester.pumpAndSettle();
@@ -1273,7 +1273,7 @@ void main() {
       ],
     );
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.tap(find.byType(HomePanel), warnIfMissed: false);
     final settings = AppSettingsScope.of(tester.element(find.byType(HomePanel)));
@@ -1302,7 +1302,7 @@ void main() {
       (call) async => <Object>[],
     );
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take a look around'));
     await tester.pumpAndSettle();
@@ -1322,7 +1322,7 @@ void main() {
   testWidgets('Skip tour retires the Home chip', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take a look around'));
     await tester.pumpAndSettle();
@@ -1334,11 +1334,11 @@ void main() {
   testWidgets('Action tab opens a tool through its one-time explainer', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-      const MethodChannel('yinyang.launcher/usage'),
+      const MethodChannel('student.launcher/usage'),
       (call) async => call.method == 'hasAccess' ? false : null,
     );
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(-400, 0), 1000); // swipe left → Mind Space
     await tester.pumpAndSettle();
@@ -1389,7 +1389,7 @@ void main() {
       (call) async => <Object>[],
     );
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.tap(find.text('APPS'));
     await tester.pumpAndSettle();
@@ -1421,7 +1421,7 @@ void main() {
       ],
     );
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     expect(find.text('FOCUS SESSION'), findsOneWidget);
     expect(find.text('ELAPSED'), findsOneWidget);
@@ -1450,7 +1450,7 @@ void main() {
   testWidgets('DM Sans and the original palette are the defaults', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true, 'settings_theme': 'dark'});
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     final theme = Theme.of(tester.element(find.byType(HomePanel)));
     expect(theme.textTheme.bodyMedium!.fontFamily, 'DM Sans');
@@ -1462,7 +1462,7 @@ void main() {
   testWidgets('the Home key brings any panel back to Home', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(-400, 0), 1000);
     await tester.pumpAndSettle();
@@ -1470,7 +1470,7 @@ void main() {
 
     // What MainActivity.onNewIntent sends for a HOME intent.
     await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
-      'yinyang.launcher/app',
+      'student.launcher/app',
       const StandardMethodCodec().encodeMethodCall(const MethodCall('home')),
       (_) {},
     );
@@ -1495,7 +1495,7 @@ void main() {
         {'name': 'launcher', 'package_name': 'com.example.launcher'}, // this app: never listed
       ];
     });
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('yinyang.launcher/usage'), (
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('student.launcher/usage'), (
       call,
     ) async {
       if (call.method == 'hasAccess') return true;
@@ -1503,7 +1503,7 @@ void main() {
       return <Object>[];
     });
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(0, 400), 1000); // swipe down → Spotlight
     await tester.pumpAndSettle();
@@ -1530,7 +1530,7 @@ void main() {
       ],
     );
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up → App Drawer
     await tester.pumpAndSettle();
@@ -1551,7 +1551,7 @@ void main() {
       ],
     );
 
-    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpWidget(const StudentLauncherApp());
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(0, -400), 1000); // swipe up → App Drawer
     await tester.pumpAndSettle();

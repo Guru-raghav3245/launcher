@@ -63,12 +63,12 @@ void main() {
 
   test('essentials are seeded once with the default dialer and SMS apps', () async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-      const MethodChannel('yinyang.launcher/role'),
+      const MethodChannel('student.launcher/role'),
       (call) async => call.method == 'defaultCommsPackages' ? ['com.dialer', 'com.sms'] : null,
     );
     addTearDown(
       () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
-        const MethodChannel('yinyang.launcher/role'),
+        const MethodChannel('student.launcher/role'),
         null,
       ),
     );

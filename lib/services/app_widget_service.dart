@@ -17,7 +17,7 @@ class WidgetProvider {
 class AppWidgetService {
   const AppWidgetService();
 
-  static const _channel = MethodChannel('yinyang.launcher/appwidget');
+  static const _channel = MethodChannel('student.launcher/appwidget');
 
   Future<List<WidgetProvider>> listProviders() async {
     final result = await _channel.invokeMethod<List<Object?>>('listProviders') ?? [];

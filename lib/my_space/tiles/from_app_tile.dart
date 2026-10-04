@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import '../../models/my_space_tile.dart';
 import '../tile_card.dart';
 
-const _viewType = 'yinyang.launcher/appwidget_view';
+const _viewType = 'student.launcher/appwidget_view';
 
 /// From-Apps tile: embeds another app's native Android AppWidget via
 /// AppWidgetHost (Phase 3 task 7). The widget was already allocated and

@@ -21,7 +21,7 @@ class CalendarEvent {
 class CalendarService {
   const CalendarService();
 
-  static const _channel = MethodChannel('yinyang.launcher/calendar');
+  static const _channel = MethodChannel('student.launcher/calendar');
 
   Future<bool> hasAccess() async => await _channel.invokeMethod<bool>('hasAccess') ?? false;
 
