@@ -298,6 +298,22 @@ void main() {
     expect(find.byType(SettingsScreen), findsNothing);
   });
 
+  testWidgets('the long-press Settings sheet re-runs onboarding, and search finds it', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+
+    await tester.pumpWidget(const StudentLauncherApp());
+    await tester.pumpAndSettle();
+    await tester.longPress(find.byType(HomePanel));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'onboard');
+    await tester.pumpAndSettle();
+    expect(find.text('Appearance'), findsNothing);
+    await tester.tap(find.text('Re-run onboarding'));
+    await tester.pumpAndSettle();
+    expect(find.byType(WelcomeStep), findsOneWidget);
+    expect(find.byType(SettingsScreen), findsNothing);
+  });
+
   testWidgets('Launcher Settings pages: a chooser sets a gesture, a switch sets a drawer option', (
     WidgetTester tester,
   ) async {

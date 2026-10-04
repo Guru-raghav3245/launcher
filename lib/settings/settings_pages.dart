@@ -588,21 +588,22 @@ class GeneralSettingsPage extends StatelessWidget {
               title: 'Re-run onboarding',
               subtitle: 'The welcome and setup screens again',
               trailing: Icon(Icons.chevron_right, color: _soft(Theme.of(context).colorScheme)),
-              onTap: () {
-                // Close Settings, then show onboarding over the shell; it pops
-                // itself when finished (the completion flag stays set).
-                final navigator = Navigator.of(context);
-                navigator.popUntil((route) => route.isFirst);
-                navigator.push(
-                  MaterialPageRoute<void>(
-                    builder: (context) => OnboardingFlow(onFinished: () => Navigator.of(context).pop()),
-                  ),
-                );
-              },
+              onTap: () => rerunOnboarding(context),
             ),
           ],
         ),
       ],
     );
   }
+}
+
+/// Closes Settings, then shows onboarding over the shell; it pops itself
+/// when finished (the completion flag stays set). From General and the
+/// Settings sheet.
+void rerunOnboarding(BuildContext context) {
+  final navigator = Navigator.of(context);
+  navigator.popUntil((route) => route.isFirst);
+  navigator.push(
+    MaterialPageRoute<void>(builder: (context) => OnboardingFlow(onFinished: () => Navigator.of(context).pop())),
+  );
 }

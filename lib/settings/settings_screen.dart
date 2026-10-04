@@ -41,7 +41,8 @@ Future<void> showSettingsScreen(BuildContext context) {
 }
 
 /// One searchable settings entry. Only the original's three top-level rows
-/// show until something is typed; [searchOnly] ones reach deeper pages.
+/// (plus Re-run onboarding) show until something is typed; [searchOnly]
+/// ones reach deeper pages.
 typedef _SettingsEntry = ({IconData icon, String title, void Function(BuildContext) onTap, bool searchOnly});
 
 /// Every entry the sheet can show, in display order. Later Phase 5 tasks
@@ -61,6 +62,7 @@ const _entries = <_SettingsEntry>[
   (icon: Icons.palette_outlined, title: 'Appearance', onTap: showAppearanceEditor, searchOnly: false),
   (icon: Icons.contrast, title: 'Launcher Settings', onTap: openLauncherSettings, searchOnly: false),
   (icon: Icons.settings_outlined, title: 'System Settings', onTap: _openSystemSettings, searchOnly: false),
+  (icon: Icons.replay, title: 'Re-run onboarding', onTap: rerunOnboarding, searchOnly: false),
   (icon: Icons.home_outlined, title: 'Home Settings', onTap: openHomeSettings, searchOnly: true),
   (icon: Icons.swipe_outlined, title: 'Gestures', onTap: openHomeSettings, searchOnly: true),
   (icon: Icons.search, title: 'Spotlight', onTap: openSpotlightSettings, searchOnly: true),
