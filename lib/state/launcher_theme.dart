@@ -40,5 +40,6 @@ ThemeData launcherTheme(Brightness brightness, {String? fontFamily}) {
     colorScheme: scheme,
     scaffoldBackgroundColor: ground,
     dividerColor: scheme.outlineVariant,
+    bottomSheetTheme: BottomSheetThemeData(dragHandleColor: scheme.outlineVariant),
   );
 }

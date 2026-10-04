@@ -99,9 +99,11 @@ void main() {
     await tester.pumpAndSettle();
     final settings = AppSettingsScope.of(tester.element(find.byType(HomePanel)));
     Future<void> openHomeStyle() async {
-      await tester.longPress(find.byType(HomePanel).first);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Appearance'));
+      if (find.byType(SettingsScreen).evaluate().isEmpty) {
+        await tester.longPress(find.byType(HomePanel).first);
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.text('Appearance')); // Settings stays open under the editor
       await tester.pumpAndSettle();
       await tester.tap(find.text('Home'));
       await tester.pumpAndSettle();
@@ -148,7 +150,7 @@ void main() {
     expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode, ThemeMode.dark);
   });
 
-  testWidgets('Toggles cycle the theme and switch Focus Mode', (WidgetTester tester) async {
+  testWidgets('Toggles pick the theme and start or stop Focus Mode', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true});
 
     await tester.pumpWidget(const YinYangLauncherApp());
@@ -159,15 +161,19 @@ void main() {
     expect(find.text('Theme · Light'), findsOneWidget);
     await tester.tap(find.text('Theme · Light'));
     await tester.pumpAndSettle();
-    expect(find.text('Theme · Dark'), findsOneWidget);
-    await tester.tap(find.text('Theme · Dark'));
+    expect(find.text('Choose Theme'), findsOneWidget);
+    await tester.tap(find.text('Auto'));
     await tester.pumpAndSettle();
+    expect(find.text('Theme · Auto'), findsOneWidget);
     expect(find.text('Follows your phone'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(SwitchListTile, 'Focus Mode'));
+    // Off, Focus Mode opens its start sheet; on, a tap stops it.
+    await tester.tap(find.text('Focus Mode').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start'));
     await tester.pumpAndSettle();
     expect((await const FocusModeService().status()).active, true);
-    await tester.tap(find.widgetWithText(SwitchListTile, 'Focus Mode'));
+    await tester.tap(find.text('On · tap to stop'));
     await tester.pumpAndSettle();
     expect((await const FocusModeService().status()).active, false);
   });
@@ -276,11 +282,45 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Launcher Settings'));
     await tester.pumpAndSettle();
-
+    await tester.tap(find.text('General'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Re-run onboarding'));
     await tester.pumpAndSettle();
     expect(find.byType(WelcomeStep), findsOneWidget);
     expect(find.byType(SettingsScreen), findsNothing);
+  });
+
+  testWidgets('Launcher Settings pages: a chooser sets a gesture, a switch sets a drawer option', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+
+    await tester.pumpWidget(const YinYangLauncherApp());
+    await tester.pumpAndSettle();
+    final settings = AppSettingsScope.of(tester.element(find.byType(HomePanel)));
+    await tester.longPress(find.byType(HomePanel));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Launcher Settings'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Home Settings'));
+    await tester.pumpAndSettle();
+    expect(find.text('Spotlight Search'), findsOneWidget); // Swipe Down's current action
+    await tester.tap(find.text('Swipe Down'));
+    await tester.pumpAndSettle();
+    expect(find.text('Choose Swipe Action'), findsOneWidget);
+    await tester.tap(find.text('Notification Tray'));
+    await tester.pumpAndSettle();
+    expect(settings.swipeDown, SwipeDownAction.notifications);
+    expect(find.text('Notification Tray'), findsOneWidget); // the row's value now
+
+    await tester.tap(find.byIcon(Icons.chevron_left));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('App Drawer'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Recent apps'));
+    await tester.pumpAndSettle();
+    expect(settings.drawerOption(DrawerOption.recentAppsOnTop), true);
   });
 
   testWidgets('System Settings shows permission and launcher status', (WidgetTester tester) async {
@@ -460,8 +500,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.longPress(find.byType(HomePanel));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Allowed apps')); // below the Toggles group
-    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'allowed'); // a search-only entry
+    await tester.pump();
     await tester.tap(find.text('Allowed apps'));
     await tester.pumpAndSettle();
 
@@ -491,8 +531,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.longPress(find.byType(HomePanel));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Hidden apps')); // below the Toggles group
-    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'hidden'); // a search-only entry
+    await tester.pump();
     await tester.tap(find.text('Hidden apps'));
     await tester.pumpAndSettle();
     final checkbox = find.byType(Checkbox);
