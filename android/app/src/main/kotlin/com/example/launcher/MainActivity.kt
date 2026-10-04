@@ -1,6 +1,7 @@
 package com.example.launcher
 
 import android.app.Activity
+import android.app.WallpaperManager
 import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
@@ -19,6 +20,7 @@ import android.telecom.TelecomManager
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
+import java.io.ByteArrayInputStream
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -90,6 +92,14 @@ class MainActivity : FlutterActivity() {
                         false
                     },
                 )
+                // Lock screen wallpaper sync (Phase 12 task 4): a PNG drawn in
+                // Dart becomes the lock screen wallpaper only, never the home
+                // one; clearing puts the phone's own wallpaper back there.
+                // Off the main thread: writing a wallpaper is slow.
+                "setLockWallpaper" -> lockWallpaper(result) {
+                    setStream(ByteArrayInputStream(call.argument<ByteArray>("png")!!), null, true, WallpaperManager.FLAG_LOCK)
+                }
+                "clearLockWallpaper" -> lockWallpaper(result) { clear(WallpaperManager.FLAG_LOCK) }
                 else -> result.notImplemented()
             }
         }
@@ -124,6 +134,16 @@ class MainActivity : FlutterActivity() {
     override fun onDestroy() {
         unregisterReceiver(packagesReceiver)
         super.onDestroy()
+    }
+
+    private fun lockWallpaper(result: MethodChannel.Result, action: WallpaperManager.() -> Unit) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return result.success(false) // no separate lock wallpaper
+        Thread {
+            val error = runCatching { WallpaperManager.getInstance(this).action() }.exceptionOrNull()
+            runOnUiThread {
+                if (error == null) result.success(true) else result.error("wallpaper", error.message, null)
+            }
+        }.start()
     }
 
     // Pressing Home while this launcher is already running (singleTop) lands

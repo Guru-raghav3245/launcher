@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import 'onboarding/onboarding_flow.dart';
 import 'services/focus_schedule_service.dart';
+import 'services/lock_wallpaper_service.dart';
 import 'services/onboarding_service.dart';
 import 'shell/launcher_shell.dart';
 import 'state/app_settings.dart';
@@ -33,6 +34,27 @@ class StudentLauncherApp extends StatefulWidget {
 class _StudentLauncherAppState extends State<StudentLauncherApp> {
   final _settings = AppSettings();
   late final Future<void> _settingsReady = _settings.load();
+
+  // Whether lock wallpaper sync was on at the last settings change, so
+  // turning it off still runs once (to clear it).
+  var _lockSync = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _settingsReady.then((_) {
+      _settings.addListener(_onSettingsChanged);
+      _onSettingsChanged();
+    });
+  }
+
+  /// The lock wallpaper follows the wallpaper Home shows, which changes with
+  /// a pick, a theme flip (each theme has its own), or the switch itself.
+  void _onSettingsChanged() {
+    if (!_settings.lockWallpaperSync && !_lockSync) return;
+    _lockSync = _settings.lockWallpaperSync;
+    LockWallpaperService.schedule(_settings);
+  }
 
   @override
   Widget build(BuildContext context) {

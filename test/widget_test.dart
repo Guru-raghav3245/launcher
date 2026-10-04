@@ -130,6 +130,49 @@ void main() {
     expect((await SharedPreferences.getInstance()).getString('settings_layout_mode'), 'minimal');
   });
 
+  testWidgets('the Lock screen section turns wallpaper sync on; Cancel reverts and Save keeps', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({'onboarding_complete': true});
+
+    await tester.pumpWidget(const StudentLauncherApp());
+    await tester.pumpAndSettle();
+    final settings = AppSettingsScope.of(tester.element(find.byType(HomePanel)));
+    Future<void> openLockScreen() async {
+      if (find.byType(SettingsScreen).evaluate().isEmpty) {
+        await tester.longPress(find.byType(HomePanel).first);
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.text('Appearance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Wallpaper'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lock screen'));
+      await tester.pumpAndSettle();
+    }
+
+    expect(settings.lockWallpaperSync, false); // off by default
+    await openLockScreen();
+    // The lock screen follows whichever wallpaper is showing: no Light / Dark.
+    expect(find.text('Wallpaper › Lock screen'), findsOneWidget);
+    expect(find.text('Light'), findsNothing);
+    await tester.tap(find.text('Match Home'));
+    await tester.pumpAndSettle();
+    expect(settings.lockWallpaperSync, true);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(settings.lockWallpaperSync, false);
+
+    await openLockScreen();
+    await tester.tap(find.text('Match Home'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(settings.lockWallpaperSync, true);
+    expect((await SharedPreferences.getInstance()).getBool('settings_lock_wallpaper'), true);
+    await tester.pump(const Duration(seconds: 2)); // let the scheduled sync run
+  });
+
   testWidgets('Auto theme follows the phone as it changes', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({'onboarding_complete': true, 'settings_theme': 'auto'});
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;

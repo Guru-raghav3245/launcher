@@ -199,6 +199,12 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
   CardStyle _cardStyle = CardStyle.bordered;
   CardStyle get cardStyle => _cardStyle;
 
+  // Whether the lock screen wallpaper follows Home's (Phase 12 task 4;
+  // LockWallpaperService applies it). Off by default: it replaces the
+  // user's own lock wallpaper.
+  bool _lockWallpaperSync = false;
+  bool get lockWallpaperSync => _lockWallpaperSync;
+
   final Set<DrawerOption> _drawerOptions = {};
   bool drawerOption(DrawerOption option) => _drawerOptions.contains(option);
 
@@ -220,6 +226,7 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
     _showSearchBar = prefs.getBool('settings_show_search_bar') ?? true;
     _showStatusBar = prefs.getBool('settings_show_status_bar') ?? true;
     _cardStyle = CardStyle.values.byName(prefs.getString('settings_card_style') ?? CardStyle.bordered.name);
+    _lockWallpaperSync = prefs.getBool('settings_lock_wallpaper') ?? false;
     if (!_showStatusBar) _applyStatusBar(); // shown is the window's default
     _swipeDown = SwipeDownAction.values.byName(prefs.getString(_swipeDownKey) ?? SwipeDownAction.spotlight.name);
     _doubleTap = DoubleTapAction.values.byName(prefs.getString(_doubleTapKey) ?? DoubleTapAction.none.name);
@@ -322,6 +329,12 @@ class AppSettings extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> setCardStyle(CardStyle value) =>
       _save(_cardStyle != value, () => _cardStyle = value, (p) => p.setString('settings_card_style', value.name));
+
+  Future<void> setLockWallpaperSync(bool value) => _save(
+    _lockWallpaperSync != value,
+    () => _lockWallpaperSync = value,
+    (p) => p.setBool('settings_lock_wallpaper', value),
+  );
 
   Future<void> setDrawerLook(DrawerLook value) => _save(
     _drawerLook != value,

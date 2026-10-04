@@ -9,6 +9,7 @@ import '../onboarding/phone_mockup.dart';
 import '../panels/home_panel.dart';
 import '../search/app_result_row.dart';
 import '../services/app_customizations_service.dart';
+import '../services/lock_wallpaper_service.dart';
 import '../state/app_settings.dart';
 import '../state/app_settings_scope.dart';
 
@@ -21,6 +22,7 @@ Future<void> showAppearanceEditor(BuildContext context) =>
 typedef _Look = (
   Wallpaper,
   Wallpaper,
+  bool,
   HomeLayoutMode,
   bool,
   bool,
@@ -35,6 +37,7 @@ typedef _Look = (
 _Look _lookOf(AppSettings s) => (
   s.lightWallpaper,
   s.darkWallpaper,
+  s.lockWallpaperSync,
   s.layoutMode,
   s.showStatusBar,
   s.showSearchBar,
@@ -47,10 +50,11 @@ _Look _lookOf(AppSettings s) => (
 );
 
 void _restore(AppSettings s, _Look look) {
-  final (light, dark, layout, statusBar, searchBar, clock, position, font, size, tint, cards) = look;
+  final (light, dark, lockSync, layout, statusBar, searchBar, clock, position, font, size, tint, cards) = look;
   s
     ..setWallpaper(light, forDark: false)
     ..setWallpaper(dark, forDark: true)
+    ..setLockWallpaperSync(lockSync)
     ..setLayoutMode(layout)
     ..setShowStatusBar(statusBar)
     ..setShowSearchBar(searchBar)
@@ -64,7 +68,7 @@ void _restore(AppSettings s, _Look look) {
 
 /// The bottom tabs; each has sections chosen with the chips above them.
 enum _Tab {
-  wallpaper('Wallpaper', Icons.image_outlined, 'Collection', ['Classic', 'Gradient']),
+  wallpaper('Wallpaper', Icons.image_outlined, 'Collection', ['Classic', 'Gradient', 'Lock screen']),
   home('Home', Icons.call_to_action_outlined, 'Section', ['Style', 'Status bar', 'Search bar']),
   clock('Clock', Icons.schedule, 'Section', ['Style', 'Position']),
   fonts('Fonts', Icons.text_fields, 'Section', ['Family', 'Size']),
@@ -106,13 +110,23 @@ class _AppearanceEditorState extends State<AppearanceEditor> {
     _settings = context.findAncestorWidgetOfExactType<AppSettingsScope>()!.notifier!;
     _initial = _lookOf(_settings);
     _forDark = _settings.isDark;
+    LockWallpaperService.paused = true;
   }
 
   @override
   void dispose() {
     // Cancel, back, and the Home key all land here. After the frame, since
     // restoring notifies the whole app.
-    if (!_saved) Future.microtask(() => _restore(_settings, _initial));
+    // The lock screen only follows once the editor closes (picks here are
+    // previews), with whatever was kept.
+    LockWallpaperService.paused = false;
+    final settings = _settings;
+    final initial = _initial;
+    final saved = _saved;
+    Future.microtask(() {
+      if (!saved) _restore(settings, initial);
+      if (settings.lockWallpaperSync || initial.$3) LockWallpaperService.schedule(settings);
+    });
     super.dispose();
   }
 
@@ -189,7 +203,10 @@ class _AppearanceEditorState extends State<AppearanceEditor> {
   }
 
   Widget _header(_Tab tab, AppSettings settings, ColorScheme colors) {
-    final path = [tab.label, if (tab == _Tab.wallpaper) _forDark ? 'Dark' : 'Light', tab.sections[_section]];
+    // Light / Dark picks which theme's wallpaper is being chosen; the lock
+    // screen section has no such choice (it follows the one showing).
+    final themed = tab == _Tab.wallpaper && _section != 2;
+    final path = [tab.label, if (themed) _forDark ? 'Dark' : 'Light', tab.sections[_section]];
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 4, 16, 0),
       child: SizedBox(
@@ -200,7 +217,7 @@ class _AppearanceEditorState extends State<AppearanceEditor> {
               child: Text(path.join(' › '), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
             ),
             // Which theme's wallpaper is being picked.
-            if (tab == _Tab.wallpaper)
+            if (themed)
               Container(
                 padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
@@ -305,6 +322,7 @@ class _AppearanceEditorState extends State<AppearanceEditor> {
 
   /// Fixed widths scroll sideways; null shares the row evenly.
   double? _cardWidth(_Tab tab) => switch ((tab, _section)) {
+    (_Tab.wallpaper, 2) => null,
     (_Tab.wallpaper, _) => 60,
     (_Tab.clock, 0) => 126,
     (_Tab.fonts, 0) => 99,
@@ -342,6 +360,7 @@ class _AppearanceEditorState extends State<AppearanceEditor> {
       ),
     );
     final height = switch ((_tab, _section)) {
+      (_Tab.wallpaper, 2) => 97.0,
       (_Tab.wallpaper, _) => 111.0,
       (_Tab.fonts, 0) => 78.0,
       _ => 97.0,
@@ -383,6 +402,12 @@ class _AppearanceEditorState extends State<AppearanceEditor> {
       fill: null,
     );
     switch ((tab, _section)) {
+      // The lock screen follows whichever wallpaper Home is showing.
+      case (_Tab.wallpaper, 2):
+        return [
+          iconOption(Icons.lock_outline, 'Match Home', s.lockWallpaperSync, () => s.setLockWallpaperSync(true)),
+          iconOption(Icons.wallpaper, "Phone's own", !s.lockWallpaperSync, () => s.setLockWallpaperSync(false)),
+        ];
       case (_Tab.wallpaper, _):
         final current = _forDark ? s.darkWallpaper : s.lightWallpaper;
         final list = _section == 0 ? (_forDark ? classicDark : classicLight) : gradients;
