@@ -19,6 +19,7 @@ import '../state/app_settings.dart';
 import '../state/app_settings_scope.dart';
 import '../state/launcher_theme.dart';
 import '../widgets/launch_app.dart';
+import '../widgets/skeleton.dart';
 import '../widgets/tour.dart';
 
 const _weekdayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -71,6 +72,7 @@ class _HomePanelState extends State<HomePanel> {
   late final Timer _clockTimer;
   DateTime _now = DateTime.now();
   FocusStatus _focus = const FocusStatus(active: false);
+  // Empty until the first load finishes (a loaded dock always has its four slots), when stencils show.
   List<_DockItem> _dock = const [];
   var _offerTour = false;
   List<AppInfo> _apps = const [];
@@ -102,7 +104,11 @@ class _HomePanelState extends State<HomePanel> {
   /// Resolves the dock's slots against the installed apps (renamed, and
   /// including hidden ones: the user put them there).
   Future<void> _refreshDock() async {
-    final (slots, apps) = await (const DockService().slots(), loadCustomizedApps(includeHidden: true)).wait;
+    // If the apps can't be listed the slots still show (as empty ones), rather than stencils forever.
+    final (slots, apps) = await (
+      const DockService().slots(),
+      loadCustomizedApps(includeHidden: true).catchError((_) => <AppInfo>[]),
+    ).wait;
     final byPackage = {for (final app in apps) app.packageName: app};
     if (!mounted) return;
     setState(() {
@@ -365,7 +371,14 @@ class _ClassicLayout extends StatelessWidget {
           if (settings.showSearchBar) const SizedBox(height: 42),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Row(
+            child: dock.isEmpty
+                ? Skeleton(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [for (var i = 0; i < 4; i++) const _DockStencil()],
+                    ),
+                  )
+                : Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Tap opens the app (or picks one for an empty slot); long-press
@@ -427,6 +440,15 @@ class _MinimalLayout extends StatelessWidget {
     final textColor = Theme.of(context).colorScheme.onSurface;
     final clock = _Clock(time: time, subtitle: subtitle, isDark: isDark, style: settings.clockStyle);
     final apps = [
+      if (dock.isEmpty)
+        Skeleton(
+          child: Column(
+            children: [
+              for (var i = 0; i < 4; i++)
+                const Padding(padding: EdgeInsets.symmetric(vertical: 10, horizontal: 24), child: SkeletonBar(width: 110, height: 20)),
+            ],
+          ),
+        ),
       for (final (i, item) in dock.indexed)
         GestureDetector(
           onTap: () => onOpen(i),
@@ -458,4 +480,19 @@ class _MinimalLayout extends StatelessWidget {
       },
     );
   }
+}
+
+/// A dock tile's stencil, while the dock loads.
+class _DockStencil extends StatelessWidget {
+  const _DockStencil();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 70,
+    height: 70,
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(12),
+    ),
+  );
 }

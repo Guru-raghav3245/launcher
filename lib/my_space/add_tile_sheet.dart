@@ -1,3 +1,4 @@
+import '../widgets/skeleton.dart';
 import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
 
@@ -237,7 +238,7 @@ class _FromAppsListState extends State<_FromAppsList> {
       future: _future,
       builder: (context, snapshot) {
         final data = snapshot.data;
-        if (data == null) return const Center(child: CircularProgressIndicator());
+        if (data == null) return const AppListSkeleton();
         final (apps, providers) = data;
         if (providers.isEmpty) {
           return Center(
@@ -262,7 +263,7 @@ class _FromAppsListState extends State<_FromAppsList> {
             const SizedBox(height: 8),
             Expanded(
               child: widget.busy
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const AppListSkeleton()
                   : ListenableBuilder(
                       listenable: _controller,
                       builder: (context, _) {

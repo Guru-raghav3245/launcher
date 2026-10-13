@@ -1,3 +1,4 @@
+import '../widgets/skeleton.dart';
 import 'package:flutter/material.dart';
 
 import '../models/my_space_tile.dart';
@@ -77,7 +78,7 @@ class _MySpacePanelState extends State<MySpacePanel> {
     final tiles = _tiles;
     return SafeArea(
       child: tiles == null
-          ? const Center(child: CircularProgressIndicator())
+          ? const TileListSkeleton()
           : tiles.isEmpty
           ? _EmptyState(onAdd: _addTile)
           : _TileList(tiles: tiles, onAdd: _addTile, onManage: _manageTiles, onUpdate: _updateTileData),

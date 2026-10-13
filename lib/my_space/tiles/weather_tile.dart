@@ -1,3 +1,4 @@
+import '../../widgets/skeleton.dart';
 import 'package:flutter/material.dart';
 
 import '../../models/my_space_tile.dart';
@@ -87,7 +88,7 @@ class _WeatherMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (loading) return Text('Fetching weather…', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant));
+    if (loading) return const SkeletonLines();
     final message = error is LocationDeniedException
         ? 'Location access is needed for weather.'
         : 'Couldn\'t load weather.';

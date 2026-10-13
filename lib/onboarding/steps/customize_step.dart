@@ -4,6 +4,7 @@ import '../../models/home_layout_mode.dart';
 import '../../models/wallpaper.dart';
 import '../../panels/home_panel.dart';
 import '../../services/launcher_role_service.dart';
+import '../../services/onboarding_service.dart';
 import '../../state/app_settings.dart';
 import '../../state/app_settings_scope.dart';
 import '../phone_mockup.dart';
@@ -32,6 +33,9 @@ class _CustomizeStepState extends State<CustomizeStep> {
 
   Future<void> _setAsLauncher() async {
     setState(() => _requesting = true);
+    // Becoming the default launcher can restart the app; without this the
+    // restart would find the flag unset and run onboarding again.
+    await const OnboardingService().markComplete();
     await _roleService.requestHomeRole();
     if (!mounted) return;
     setState(() => _requesting = false);
@@ -41,6 +45,8 @@ class _CustomizeStepState extends State<CustomizeStep> {
   @override
   Widget build(BuildContext context) {
     final settings = AppSettingsScope.of(context);
+    // The preview shows the current theme's wallpaper, so pick from that theme's set.
+    final swatches = settings.isDark ? classicDark : classicLight;
 
     return Container(
       // The light wallpaper tints this step (a deep gradient would hide its text).
@@ -88,9 +94,9 @@ class _CustomizeStepState extends State<CustomizeStep> {
                   ),
                   const SizedBox(height: 8),
                   WallpaperPicker(
-                    colors: [for (final w in classicLight) w.edge],
-                    selectedIndex: classicLight.indexOf(settings.lightWallpaper),
-                    onSelected: (i) => settings.setWallpaper(classicLight[i], forDark: false),
+                    colors: [for (final w in swatches) w.edge],
+                    selectedIndex: swatches.indexOf(settings.wallpaper),
+                    onSelected: (i) => settings.setWallpaper(swatches[i], forDark: settings.isDark),
                   ),
                 ],
               ),

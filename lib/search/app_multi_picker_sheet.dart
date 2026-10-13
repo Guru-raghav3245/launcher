@@ -1,3 +1,4 @@
+import '../widgets/skeleton.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:installed_apps/app_info.dart';
@@ -115,7 +116,7 @@ class _AppMultiPickerSheetState extends State<_AppMultiPickerSheet> {
               const SizedBox(height: 8),
               Expanded(
                 child: apps == null
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const AppListSkeleton()
                     : ListenableBuilder(
                         listenable: _controller,
                         builder: (context, _) {

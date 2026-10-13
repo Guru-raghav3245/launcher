@@ -1,3 +1,4 @@
+import '../../widgets/skeleton.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -90,7 +91,7 @@ class _MusicTileState extends State<MusicTile> with PollsWhileOnScreen {
       label: 'MUSIC',
       icon: Icons.music_note_outlined,
       child: switch (_hasAccess) {
-        null => const SizedBox(height: 48, child: Center(child: CircularProgressIndicator())),
+        null => const SkeletonLines(lines: 2),
         false => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

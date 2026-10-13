@@ -28,7 +28,13 @@ import 'package:launcher/settings/drawer_look_page.dart';
 import 'package:launcher/settings/settings_screen.dart';
 
 void main() {
-  setUp(InstalledAppsService.invalidate);
+  setUp(() {
+    InstalledAppsService.invalidate();
+    // Home's dock reads these on start; unmocked, the calls never return and its stencils pulse forever.
+    final messenger = TestWidgetsFlutterBinding.ensureInitialized().defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(const MethodChannel('student.launcher/role'), (call) async => null);
+    messenger.setMockMethodCallHandler(const MethodChannel('installed_apps'), (call) async => []);
+  });
 
   testWidgets('shows onboarding on first run', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});

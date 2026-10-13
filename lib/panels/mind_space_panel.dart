@@ -1,3 +1,4 @@
+import '../widgets/skeleton.dart';
 import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
 
@@ -272,7 +273,7 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
     final isDark = AppSettingsScope.of(context).isDark;
     final hasAccess = _hasAccess;
     final Widget awareness = hasAccess == null
-        ? const Center(child: CircularProgressIndicator())
+        ? const DaySkeleton()
         : hasAccess
         ? Column(
             children: [
@@ -328,7 +329,7 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
   List<Widget> _reflectChildren() {
     final daily = _daily;
     final events = _yesterdayEvents;
-    if (daily == null || events == null) return const [Center(child: CircularProgressIndicator())];
+    if (daily == null || events == null) return const [SizedBox(height: 560, child: DaySkeleton())];
     final now = DateTime.now();
     final endOfYesterday = DateTime(now.year, now.month, now.day).subtract(const Duration(milliseconds: 1));
     return [

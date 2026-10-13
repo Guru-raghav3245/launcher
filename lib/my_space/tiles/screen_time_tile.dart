@@ -1,3 +1,4 @@
+import '../../widgets/skeleton.dart';
 import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
 
@@ -79,7 +80,7 @@ class _ScreenTimeTileState extends State<ScreenTimeTile> {
       label: 'SCREEN TIME',
       icon: Icons.hourglass_empty,
       child: switch (_hasAccess) {
-        null => const SizedBox(height: 48, child: Center(child: CircularProgressIndicator())),
+        null => const SkeletonLines(lines: 2),
         false => Align(
           alignment: Alignment.centerLeft,
           child: OutlinedButton(

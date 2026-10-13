@@ -1,3 +1,4 @@
+import '../../widgets/skeleton.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/calendar_service.dart';
@@ -70,7 +71,7 @@ class _CalendarTileState extends State<CalendarTile> {
       label: 'CALENDAR',
       icon: Icons.event_outlined,
       child: switch (_hasAccess) {
-        null => const SizedBox(height: 48, child: Center(child: CircularProgressIndicator())),
+        null => const SkeletonLines(lines: 2),
         false => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

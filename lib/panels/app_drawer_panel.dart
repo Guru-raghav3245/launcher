@@ -1,3 +1,4 @@
+import '../widgets/skeleton.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
@@ -143,7 +144,7 @@ class _AppDrawerPanelState extends State<AppDrawerPanel> with ShowsVisibleApps {
                       future: _appsFuture,
                       builder: (context, snapshot) {
                         if (!snapshot.hasData) {
-                          return const Center(child: CircularProgressIndicator());
+                          return const AppListSkeleton();
                         }
                         final settings = AppSettingsScope.of(context);
                         final query = _searchController.text;
