@@ -1,3 +1,4 @@
+import '../state/settled_resume.dart';
 import '../widgets/skeleton.dart';
 import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
@@ -176,7 +177,10 @@ class MindSpacePanel extends StatefulWidget {
   State<MindSpacePanel> createState() => _MindSpacePanelState();
 }
 
-class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObserver {
+class _MindSpacePanelState extends State<MindSpacePanel> {
+  // Usage access has no runtime-permission callback: re-check when the user
+  // comes back from Settings (once the return animation is done).
+  late final _resume = SettledResumeListener(_refresh);
   final _service = const UsageStatsService();
   final _appsService = const InstalledAppsService();
   bool? _hasAccess;
@@ -194,7 +198,7 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
+    _resume;
     _loadApps();
     InstalledAppsService.changes.addListener(_loadApps);
     _refresh();
@@ -206,16 +210,9 @@ class _MindSpacePanelState extends State<MindSpacePanel> with WidgetsBindingObse
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
+    _resume.dispose();
     InstalledAppsService.changes.removeListener(_loadApps);
     super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Usage access has no runtime-permission callback — re-check when the
-    // user comes back from Settings.
-    if (state == AppLifecycleState.resumed) _refresh();
   }
 
   Future<void> _refresh() async {

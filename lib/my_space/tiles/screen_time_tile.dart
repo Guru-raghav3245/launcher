@@ -1,3 +1,4 @@
+import '../../state/settled_resume.dart';
 import '../../widgets/skeleton.dart';
 import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
@@ -25,7 +26,7 @@ class ScreenTimeTile extends StatefulWidget {
 
 class _ScreenTimeTileState extends State<ScreenTimeTile> {
   final _usage = const UsageStatsService();
-  late final _lifecycle = AppLifecycleListener(onResume: _load);
+  late final _lifecycle = SettledResumeListener(_load);
   bool? _hasAccess;
   ScreenTimeSummary? _summary;
 

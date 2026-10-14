@@ -39,7 +39,7 @@ class MusicBridge(private val activity: MainActivity) {
                     activity.openExternal(intent)
                     result.success(null)
                 }
-                "nowPlaying" -> result.success(controller()?.let(::describe))
+                "nowPlaying" -> activity.inBackground(result) { controller()?.let(::describe) }
                 "control" -> {
                     val controls = controller()?.transportControls
                     when (call.argument<String>("action")) {

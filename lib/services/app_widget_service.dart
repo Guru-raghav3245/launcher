@@ -40,6 +40,14 @@ class AppWidgetService {
 
   static final _previews = <String, Future<Uint8List?>>{};
 
+  /// Height over width of a bound widget's designed size, or null if unknown.
+  /// Kept per id, so a tile built twice asks once.
+  Future<double?> aspect(int widgetId) => _aspects[widgetId] ??= _channel
+      .invokeMethod<double>('aspect', {'widgetId': widgetId})
+      .catchError((Object _) => null);
+
+  static final _aspects = <int, Future<double?>>{};
+
   Future<int> allocateId() async => (await _channel.invokeMethod<int>('allocateId'))!;
 
   /// Binds [widgetId] to [provider], prompting the user for consent if this

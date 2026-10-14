@@ -27,7 +27,10 @@ class CalendarBridge(private val activity: MainActivity) {
             when (call.method) {
                 "hasAccess" -> result.success(hasAccess())
                 "requestAccess" -> requestAccess(result)
-                "events" -> result.success(if (hasAccess()) events(call.argument<Int>("days")!!) else emptyList())
+                "events" -> {
+                    val days = call.argument<Int>("days")!!
+                    activity.inBackground(result) { if (hasAccess()) events(days) else emptyList<Any>() }
+                }
                 "openEvent" -> {
                     val id = (call.argument<Number>("id"))!!.toLong()
                     activity.openExternal(

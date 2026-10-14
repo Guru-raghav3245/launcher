@@ -44,6 +44,7 @@ class AppWidgetHostBridge(private val activity: MainActivity) {
             when (call.method) {
                 "listProviders" -> result.success(listProviders())
                 "preview" -> result.success(preview(call.argument<String>("provider")!!))
+                "aspect" -> result.success(aspect(call.argument<Int>("widgetId")!!))
                 "allocateId" -> result.success(host.allocateAppWidgetId())
                 "bind" -> bind(
                     call.argument<Int>("widgetId")!!,
@@ -77,6 +78,17 @@ class AppWidgetHostBridge(private val activity: MainActivity) {
                 "label" to info.label,
             )
         }
+    }
+
+    // Height over width of a bound widget as its provider designed it (cells
+    // when declared, else its minimum size), so My Space can give its tile the
+    // same proportions. Null if the id isn't bound.
+    private fun aspect(widgetId: Int): Double? {
+        val info = manager.getAppWidgetInfo(widgetId) ?: return null
+        val cells = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && info.targetCellWidth > 0 && info.targetCellHeight > 0
+        val width = if (cells) info.targetCellWidth else info.minWidth
+        val height = if (cells) info.targetCellHeight else info.minHeight
+        return if (width > 0 && height > 0) height.toDouble() / width else null
     }
 
     // A picture of a provider's widget for the Add New Tile sheet and Manage

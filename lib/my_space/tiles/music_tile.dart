@@ -1,3 +1,4 @@
+import '../../state/settled_resume.dart';
 import '../../widgets/skeleton.dart';
 import 'dart:async';
 
@@ -41,7 +42,7 @@ class MusicTile extends StatefulWidget {
 
 class _MusicTileState extends State<MusicTile> with PollsWhileOnScreen {
   final _music = const MusicService();
-  late final _lifecycle = AppLifecycleListener(onResume: _load);
+  late final _lifecycle = SettledResumeListener(_load);
   bool? _hasAccess;
   NowPlaying? _nowPlaying;
 

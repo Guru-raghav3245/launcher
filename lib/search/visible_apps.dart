@@ -1,3 +1,4 @@
+import '../state/settled_resume.dart';
 import 'package:flutter/material.dart';
 import 'package:installed_apps/app_info.dart';
 
@@ -20,7 +21,7 @@ mixin ShowsVisibleApps<T extends StatefulWidget> on State<T> {
   AppCustomizations customizations = const AppCustomizations();
   Set<String> _onBreak = {};
   Map<String, DateTime> _lastUsed = {};
-  late final _lifecycle = AppLifecycleListener(onResume: _load);
+  late final _lifecycle = SettledResumeListener(_load);
 
   @override
   void initState() {

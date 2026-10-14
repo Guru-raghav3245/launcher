@@ -2,6 +2,7 @@ package com.example.launcher
 
 import android.app.Activity
 import android.app.ActivityManager
+import android.app.ActivityOptions
 import android.app.WallpaperManager
 import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
@@ -20,6 +21,8 @@ import android.provider.MediaStore
 import android.provider.Settings
 import android.provider.Telephony
 import android.telecom.TelecomManager
+import android.os.Bundle
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
@@ -125,6 +128,7 @@ class MainActivity : FlutterActivity() {
         appWidgetBridge = AppWidgetHostBridge(this)
         appWidgetBridge.attach(flutterEngine)
         UsageStatsBridge(this).attach(flutterEngine)
+        DataUsageBridge(this).attach(flutterEngine)
         MindfulTimerBridge(this).attach(flutterEngine)
         GesturesBridge(this).attach(flutterEngine)
         calendarBridge = CalendarBridge(this)
@@ -172,12 +176,49 @@ class MainActivity : FlutterActivity() {
         if (intent.hasCategory(Intent.CATEGORY_HOME)) appChannel?.invokeMethod("home", null)
     }
 
+    // Where the finger last went down, so an app launched from a tap grows
+    // out of that spot (an icon, a row, a dock tile) instead of the system's
+    // plain zoom from the middle of the screen.
+    private var lastTouchX = 0f
+    private var lastTouchY = 0f
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+            lastTouchX = event.rawX
+            lastTouchY = event.rawY
+        }
+        return super.dispatchTouchEvent(event)
+    }
+
+    // Every app launch (the installed_apps plugin calls this with no options)
+    // gets the scale-up from the last touch; system screens and anything
+    // that brings its own options are left alone.
+    override fun startActivity(intent: Intent, options: Bundle?) {
+        val launchesApp = options == null && intent.hasCategory(Intent.CATEGORY_LAUNCHER)
+        if (!launchesApp) return super.startActivity(intent, options)
+        val size = (56 * resources.displayMetrics.density).toInt()
+        val root = window.decorView
+        val animation = ActivityOptions.makeScaleUpAnimation(
+            root,
+            (lastTouchX - size / 2).toInt().coerceIn(0, root.width),
+            (lastTouchY - size / 2).toInt().coerceIn(0, root.height),
+            size,
+            size,
+        )
+        super.startActivity(intent, animation.toBundle())
+    }
+
+    // Listening for widget updates waits until the return animation is over
+    // (it's a binder round trip that would land in its first frames).
+    private val startWidgetListening = Runnable { appWidgetBridge.startListening() }
+
     override fun onStart() {
         super.onStart()
-        appWidgetBridge.startListening()
+        window.decorView.postDelayed(startWidgetListening, 350)
     }
 
     override fun onStop() {
+        window.decorView.removeCallbacks(startWidgetListening)
         appWidgetBridge.stopListening()
         super.onStop()
     }

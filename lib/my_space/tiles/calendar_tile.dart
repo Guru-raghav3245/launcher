@@ -1,3 +1,4 @@
+import '../../state/settled_resume.dart';
 import '../../widgets/skeleton.dart';
 import 'package:flutter/material.dart';
 
@@ -29,7 +30,7 @@ class CalendarTile extends StatefulWidget {
 
 class _CalendarTileState extends State<CalendarTile> {
   final _calendar = const CalendarService();
-  late final _lifecycle = AppLifecycleListener(onResume: _load);
+  late final _lifecycle = SettledResumeListener(_load);
   bool? _hasAccess;
   List<CalendarEvent> _events = const [];
 

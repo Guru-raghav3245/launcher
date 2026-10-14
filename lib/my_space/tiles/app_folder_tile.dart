@@ -7,16 +7,21 @@ import '../../search/app_result_row.dart';
 import '../../services/app_customizations_service.dart';
 import '../../services/installed_apps_service.dart';
 import '../../widgets/launch_app.dart';
+import '../../widgets/skeleton.dart';
 import '../tile_card.dart';
 
 /// App Folder tile: a grid of shortcuts to apps the user picked. Packages
 /// are stored as `{"packages": List<String>}` in [MySpaceTile.data]; icons
-/// and names are looked up live from [InstalledAppsService] (Phase 1 task 5).
+/// and names are looked up live from [InstalledAppsService] (Phase 1 task 5),
+/// for just these packages so the folder doesn't wait on the whole app list.
+/// The tile's [MySpaceTile.name] titles it. In [editing] (My Space's edit
+/// mode) each shortcut gets a remove badge and an add chip ends the list.
 class AppFolderTile extends StatefulWidget {
-  const AppFolderTile({super.key, required this.tile, required this.onChanged});
+  const AppFolderTile({super.key, required this.tile, required this.onChanged, this.editing = false});
 
   final MySpaceTile tile;
   final ValueChanged<Map<String, dynamic>> onChanged;
+  final bool editing;
 
   @override
   State<AppFolderTile> createState() => _AppFolderTileState();
@@ -36,7 +41,14 @@ class _AppFolderTileState extends State<AppFolderTile> {
     _loadCustomizations();
   }
 
-  void _loadApps() => _service.loadApps().then((apps) {
+  @override
+  void didUpdateWidget(AppFolderTile old) {
+    super.didUpdateWidget(old);
+    // Packages added or removed: fetch the new set (cached ones come back at once).
+    if (_packagesOf(old.tile).join(',') != _packages.join(',')) _loadApps();
+  }
+
+  void _loadApps() => _service.loadPackages(_packages).then((apps) {
     if (mounted) setState(() => _apps = apps);
   });
 
@@ -52,15 +64,17 @@ class _AppFolderTileState extends State<AppFolderTile> {
     if (mounted) setState(() => _customizations = loaded);
   }
 
-  List<String> get _packages => (widget.tile.data['packages'] as List).cast<String>();
+  static List<String> _packagesOf(MySpaceTile tile) => (tile.data['packages'] as List).cast<String>();
+
+  List<String> get _packages => _packagesOf(widget.tile);
 
   void _setPackages(List<String> packages) => widget.onChanged({'packages': packages});
 
   Future<void> _pickApp() async {
-    final apps = _apps;
-    if (apps == null) return;
-    // Hidden apps aren't offered, but ones already in the folder stay.
-    final available = _customizations.apply(apps).where((a) => !_packages.contains(a.packageName)).toList();
+    // The picker needs every app; hidden ones aren't offered, nor ones already in the folder.
+    final all = await _service.loadApps();
+    if (!mounted) return;
+    final available = _customizations.apply(all).where((a) => !_packages.contains(a.packageName)).toList();
     final picked = await showAppPicker(context, available);
     if (picked != null) _setPackages([..._packages, picked.packageName]);
   }
@@ -77,18 +91,36 @@ class _AppFolderTileState extends State<AppFolderTile> {
           for (final app in shown)
             if (app.packageName == package) app,
     ];
+    final colors = Theme.of(context).colorScheme;
 
     return TileCard(
-      label: 'APP FOLDER',
+      label: (widget.tile.name ?? 'App Folder').toUpperCase(),
       icon: Icons.apps,
-      trailing: IconButton(
-        icon: const Icon(Icons.add_circle_outline, size: 20),
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(),
-        onPressed: apps == null ? null : _pickApp,
-      ),
-      child: selected.isEmpty
-          ? Text('No apps yet — tap + to add some.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))
+      // In edit mode the tile's own buttons sit in this corner.
+      trailing: widget.editing
+          ? null
+          : IconButton(
+              icon: const Icon(Icons.add_circle_outline, size: 20),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: _pickApp,
+            ),
+      child: apps == null
+          ? Skeleton(
+              child: Wrap(
+                spacing: 16,
+                runSpacing: 12,
+                children: [
+                  for (var i = 0; i < (_packages.isEmpty ? 1 : _packages.length); i++)
+                    const SizedBox(
+                      width: 64,
+                      child: Column(children: [SkeletonBar(height: 40, circle: true), SizedBox(height: 6), SkeletonBar(width: 44, height: 8)]),
+                    ),
+                ],
+              ),
+            )
+          : selected.isEmpty && !widget.editing
+          ? Text('No apps yet — tap + to add some.', style: TextStyle(color: colors.onSurfaceVariant))
           : Wrap(
               spacing: 16,
               runSpacing: 12,
@@ -96,8 +128,27 @@ class _AppFolderTileState extends State<AppFolderTile> {
                 for (final app in selected)
                   _AppShortcut(
                     app: app,
-                    onTap: () => launchApp(context, app),
-                    onLongPress: () => _remove(app.packageName),
+                    onTap: widget.editing ? null : () => launchApp(context, app),
+                    onRemove: widget.editing ? () => _remove(app.packageName) : null,
+                  ),
+                if (widget.editing)
+                  InkWell(
+                    onTap: _pickApp,
+                    child: SizedBox(
+                      width: 64,
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: colors.outline)),
+                            child: const Icon(Icons.add, size: 22),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text('Add', style: TextStyle(fontSize: 11)),
+                        ],
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -106,29 +157,48 @@ class _AppFolderTileState extends State<AppFolderTile> {
 }
 
 class _AppShortcut extends StatelessWidget {
-  const _AppShortcut({required this.app, required this.onTap, required this.onLongPress});
+  const _AppShortcut({required this.app, this.onTap, this.onRemove});
 
   final AppInfo app;
-  final VoidCallback onTap;
-  final VoidCallback onLongPress;
+  final VoidCallback? onTap;
+
+  /// Shown as a badge on the icon (edit mode).
+  final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) {
+    // No long-press here: it bubbles up to My Space's edit mode.
     return InkWell(
       onTap: onTap,
-      onLongPress: onLongPress,
       child: SizedBox(
         width: 64,
         child: Column(
           children: [
-            AppIcon(icon: app.icon),
-            const SizedBox(height: 4),
-            Text(
-              app.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 11),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                AppIcon(icon: app.icon),
+                if (onRemove != null)
+                  Positioned(
+                    top: -6,
+                    right: -8,
+                    child: GestureDetector(
+                      onTap: onRemove,
+                      child: Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        child: Icon(Icons.close, size: 14, color: Theme.of(context).colorScheme.surface),
+                      ),
+                    ),
+                  ),
+              ],
             ),
+            const SizedBox(height: 4),
+            Text(app.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11)),
           ],
         ),
       ),

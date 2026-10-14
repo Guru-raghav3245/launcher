@@ -39,10 +39,16 @@ class UsageStatsBridge(private val activity: MainActivity) {
                     }
                     result.success(null)
                 }
-                "queryEvents" -> result.success(
-                    queryEvents(call.argument<Long>("start")!!, call.argument<Long>("end")!!),
-                )
-                "lastUsed" -> result.success(lastUsed(call.argument<Long>("start")!!, call.argument<Long>("end")!!))
+                "queryEvents" -> {
+                    val start = call.argument<Long>("start")!!
+                    val end = call.argument<Long>("end")!!
+                    activity.inBackground(result) { queryEvents(start, end) }
+                }
+                "lastUsed" -> {
+                    val start = call.argument<Long>("start")!!
+                    val end = call.argument<Long>("end")!!
+                    activity.inBackground(result) { lastUsed(start, end) }
+                }
                 else -> result.notImplemented()
             }
         }

@@ -4,10 +4,12 @@ import '../models/my_space_tile.dart';
 import '../models/tile_kind.dart';
 import '../panels/mind_space_panel.dart';
 import '../services/calendar_service.dart';
+import '../services/data_usage_service.dart';
 import '../services/music_service.dart';
 import '../services/system_stats_service.dart';
 import 'tile_card.dart';
 import 'tiles/calendar_tile.dart';
+import 'tiles/data_usage_tile.dart';
 import 'tiles/hydration_tile.dart';
 import 'tiles/music_tile.dart';
 import 'tiles/quote_tile.dart';
@@ -100,6 +102,25 @@ final builtInTileSpecs = [
     ),
   ),
   BuiltInTileSpec(
+    kind: TileKind.todoTasks,
+    icon: Icons.event_available_outlined,
+    title: 'Todo & Tasks',
+    subtitle: 'A checklist and dated tasks, swipe between them',
+    defaultData: () => {'items': <Map<String, dynamic>>[], 'tasks': <Map<String, dynamic>>[]},
+    preview: Builder(
+      builder: (context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('☐  Water the plants', style: TextStyle(fontSize: 16)),
+          SizedBox(height: 6),
+          Text('☐  Call the bank', style: TextStyle(fontSize: 16)),
+          SizedBox(height: 10),
+          Text('Swipe for tasks with due dates  →', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        ],
+      ),
+    ),
+  ),
+  BuiltInTileSpec(
     kind: TileKind.quote,
     icon: Icons.format_quote,
     title: 'Quote',
@@ -176,6 +197,24 @@ final builtInTileSpecs = [
     defaultData: () => {},
     preview: const MusicBody(
       nowPlaying: NowPlaying(title: 'Clair de lune', artist: 'Claude Debussy', packageName: '', playing: true),
+    ),
+  ),
+  BuiltInTileSpec(
+    kind: TileKind.dataUsage,
+    icon: Icons.swap_vert,
+    title: 'Data Usage',
+    subtitle: 'Mobile and Wi-Fi data, today and this month',
+    defaultData: () => {},
+    preview: const DataUsageBody(
+      summary: (
+        today: DataUsage(mobile: 180000000, wifi: 1400000000),
+        month: DataUsage(mobile: 3200000000, wifi: 21500000000),
+        topApps: [
+          ((packageName: 'Browser', mobile: 90000000, wifi: 610000000), null),
+          ((packageName: 'Video', mobile: 40000000, wifi: 520000000), null),
+          ((packageName: 'Maps', mobile: 30000000, wifi: 60000000), null),
+        ],
+      ),
     ),
   ),
   const BuiltInTileSpec(

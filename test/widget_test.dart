@@ -1316,12 +1316,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.fling(find.byType(HomePanel), const Offset(400, 0), 1000); // swipe right → My Space
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('Edit Tile'),
-      200,
-      scrollable: find.descendant(of: find.byType(MySpacePanel), matching: find.byType(Scrollable)).first,
-    );
-    await tester.tap(find.text('Edit Tile'));
+    await tester.tap(find.byTooltip('Manage tiles'));
     await tester.pumpAndSettle();
     expect(find.text('Shopping list'), findsOneWidget);
     expect(find.text('1 of 2 done'), findsOneWidget);

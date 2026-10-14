@@ -26,6 +26,20 @@ class InstalledAppsService {
 
   static Future<List<AppInfo>>? _cache;
 
+  /// Just [packages] (those still installed), in that order, with icons.
+  /// Looks each one up on its own, so a few shortcuts show up in a moment
+  /// instead of waiting for every installed app and its icon. Remembered per
+  /// package until [invalidate]. If a lookup comes back empty, the full list
+  /// is the authority on what's installed.
+  Future<List<AppInfo>> loadPackages(List<String> packages) async {
+    final found = await Future.wait([for (final p in packages) _single[p] ??= InstalledApps.getAppInfo(p)]);
+    if (!found.contains(null)) return [...found.cast<AppInfo>()];
+    final all = {for (final app in await loadApps()) app.packageName: app};
+    return [for (final p in packages) ?all[p]];
+  }
+
+  static final _single = <String, Future<AppInfo?>>{};
+
   static Future<List<AppInfo>> _fetch() async {
     final apps = await InstalledApps.getInstalledApps(
       excludeSystemApps: false,
@@ -43,6 +57,7 @@ class InstalledAppsService {
   /// receiver): drop the cache and tell listeners.
   static void invalidate() {
     _cache = null;
+    _single.clear();
     changes.value++;
   }
 
