@@ -98,19 +98,34 @@ class PerAppUsage {
 /// Per-package opens/foreground-time, sorted by most time spent first.
 List<PerAppUsage> computePerAppUsage(List<UsageEvent> events) {
   final sorted = [...events]..sort((a, b) => a.timestamp.compareTo(b.timestamp));
-  final foregroundSince = <String, DateTime>{};
+  // Android sends a foreground/background pair per *activity*, so one visit to
+  // an app with several screens (or a brief hop to a permission dialog and
+  // back) is many events. Count nesting depth: an open is the app going from
+  // none of its activities showing to one, and one that starts within a few
+  // seconds of the last ending continues that visit.
+  const rejoin = Duration(seconds: 5);
+  final depth = <String, int>{};
+  final since = <String, DateTime>{};
+  final lastEnd = <String, DateTime>{};
   final opens = <String, int>{};
   final durations = <String, Duration>{};
   for (final event in sorted) {
+    final pkg = event.packageName;
     switch (event.type) {
       case UsageEventType.foreground:
-        foregroundSince[event.packageName] = event.timestamp;
-        opens[event.packageName] = (opens[event.packageName] ?? 0) + 1;
+        if ((depth[pkg] ?? 0) == 0) {
+          since[pkg] = event.timestamp;
+          final end = lastEnd[pkg];
+          if (end == null || event.timestamp.difference(end) > rejoin) opens[pkg] = (opens[pkg] ?? 0) + 1;
+        }
+        depth[pkg] = (depth[pkg] ?? 0) + 1;
       case UsageEventType.background:
-        final start = foregroundSince.remove(event.packageName);
-        if (start != null) {
-          durations[event.packageName] =
-              (durations[event.packageName] ?? Duration.zero) + event.timestamp.difference(start);
+        final d = depth[pkg] ?? 0;
+        if (d == 0) break;
+        depth[pkg] = d - 1;
+        if (d == 1) {
+          durations[pkg] = (durations[pkg] ?? Duration.zero) + event.timestamp.difference(since[pkg]!);
+          lastEnd[pkg] = event.timestamp;
         }
       case UsageEventType.unlocked:
         break;

@@ -29,6 +29,22 @@ void main() {
     expect(totals.pickups, 1);
   });
 
+  test('computePerAppUsage counts one visit across several activities as one open', () {
+    final base = DateTime(2026, 1, 1, 9);
+    UsageEvent e(UsageEventType type, int sec) =>
+        UsageEvent(packageName: 'a', type: type, timestamp: base.add(Duration(seconds: sec)));
+    final perApp = computePerAppUsage([
+      e(UsageEventType.foreground, 0),
+      e(UsageEventType.foreground, 10), // second activity opens over the first
+      e(UsageEventType.background, 10),
+      e(UsageEventType.background, 60),
+      e(UsageEventType.foreground, 62), // quick hop back: same visit
+      e(UsageEventType.background, 100),
+    ]);
+    expect(perApp.single.opens, 1);
+    expect(perApp.single.duration, const Duration(seconds: 98));
+  });
+
   test('formatScreenTime', () {
     expect(formatScreenTime(const Duration(minutes: 5)), '5m');
     expect(formatScreenTime(const Duration(hours: 1, minutes: 30)), '1h 30m');
